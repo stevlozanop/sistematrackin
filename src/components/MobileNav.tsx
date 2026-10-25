@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { LogOut, MoreHorizontal, Moon, Sun, type LucideIcon } from "lucide-react";
+import { BookOpen, LogOut, MoreHorizontal, Moon, Sun, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export type MobileItem = { title: string; href: string; icon: LucideIcon };
@@ -36,9 +36,9 @@ function NavButton({ item, active, onGo }: { item: MobileItem; active: boolean; 
 
 /** Barra inferior móvil: cápsula con iconos + botón «más» que se transforma en menú (morph). */
 export function MobileNav({
-  items, activeHref, maxVisible = 4, dark, onToggleTheme, onLogout,
+  items, activeHref, maxVisible = 4, dark, onToggleTheme, onLogout, onGuide,
 }: {
-  items: MobileItem[]; activeHref: string; maxVisible?: number; dark: boolean; onToggleTheme: () => void; onLogout: () => void;
+  items: MobileItem[]; activeHref: string; maxVisible?: number; dark: boolean; onToggleTheme: () => void; onLogout: () => void; onGuide: () => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -90,6 +90,10 @@ export function MobileNav({
                       {i.title}
                     </button>
                   ))}
+                  <button type="button" onClick={() => { setOpen(false); onGuide(); }} className={cn(row, "text-sb-on-surface hover:bg-sb-surface-container-high")}>
+                    <span className={icon}><BookOpen className="h-4 w-4" /></span>
+                    Guía del sistema
+                  </button>
                   <button type="button" onClick={() => { onToggleTheme(); }} className={cn(row, "text-sb-on-surface hover:bg-sb-surface-container-high")}>
                     <span className={icon}>{dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</span>
                     {dark ? "Tema claro" : "Tema oscuro"}

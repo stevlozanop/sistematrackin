@@ -17,6 +17,10 @@ const pool: Pool = (g.__poolV2 ??= mysql.createPool({
 /** Crea el usuario dev inicial si todavía no existe (el esquema vive en database/schema.sql). */
 function ready() {
   return (g.__ready ??= (async () => {
+    // guide_seen: la guía paso a paso se abre sola hasta que el usuario la termina (bases creadas antes de esta columna)
+    await pool.query("ALTER TABLE users ADD COLUMN guide_seen TINYINT(1) NOT NULL DEFAULT 0").catch((e) => {
+      if (e?.code !== "ER_DUP_FIELDNAME") throw e;
+    });
     const [rows] = await pool.query("SELECT 1 FROM users WHERE role='dev' LIMIT 1");
     if ((rows as unknown[]).length) return;
     await pool.execute("INSERT IGNORE INTO users(name,email,password_hash,role) VALUES (?,?,?, 'dev')", [

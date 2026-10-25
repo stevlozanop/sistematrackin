@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   area          VARCHAR(40) NULL,    -- área del encargado (src/lib/workflow.ts → AREAS)
   carrier       VARCHAR(120) NULL,   -- empresa de transporte: si tiene valor, solo ve esas unidades
   can_import    TINYINT(1) NOT NULL DEFAULT 0,  -- puede subir Excel con las fechas de su etapa
+  guide_seen    TINYINT(1) NOT NULL DEFAULT 0,  -- ya terminó la guía del sistema (si no, se abre sola al entrar)
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 

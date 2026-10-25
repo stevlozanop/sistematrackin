@@ -3,10 +3,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, ChevronLeft, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
+import { Activity, Bell, BookOpen, ChevronLeft, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
+import { GuideModal } from "@/components/GuideModal";
 
 type Role = "dev" | "admin" | "operator";
 type Item = { title: string; href: string; icon: LucideIcon; roles?: Role[] };
@@ -99,11 +100,17 @@ const Heading = ({ children }: { children: React.ReactNode }) => (
   <h3 className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/50">{children}</h3>
 );
 
-export function AppShell({ name, role, sites = ["PCL", "YUR"], children }: { name: string; role: Role; sites?: string[]; children: React.ReactNode }) {
+export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = false, children }: { name: string; role: Role; sites?: string[]; firstGuide?: boolean; children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(true);
   const [dark, setDark] = useState(false);
+  // Guía del sistema: se abre sola la primera vez; al cerrarla queda marcada como vista
+  const [guide, setGuide] = useState(firstGuide);
+  const closeGuide = () => {
+    setGuide(false);
+    if (firstGuide) fetch("/api/guide", { method: "POST" }).catch(() => {});
+  };
 
   useEffect(() => {
     setOpen(localStorage.getItem("sb-sidebar-open") !== "0");
@@ -153,6 +160,9 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], children }: { nam
         <div className="shrink-0 space-y-3 border-t border-sb-outline-variant/60 px-2 py-2">
           <div className="flex flex-col gap-px">
             {open && <Heading>Herramientas</Heading>}
+            <ToolButton open={open} label="Guía del sistema" onClick={() => setGuide(true)}>
+              <BookOpen className="h-[16px] w-[16px] shrink-0" />
+            </ToolButton>
             <ToolButton open={open} label="Tema" onClick={toggleTheme}>
               <div className="relative h-[16px] w-[16px] shrink-0">
                 <Sun className={cn("absolute inset-0 h-[16px] w-[16px] transition-all duration-200", dark ? "rotate-90 scale-0 opacity-0" : "opacity-100")} />
@@ -178,6 +188,10 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], children }: { nam
         <header className="flex h-14 shrink-0 items-center justify-between gap-2 px-4 sm:px-6">
           <h1 className="truncate text-sm font-medium text-sb-on-surface-variant">{pageName}</h1>
           <div className="flex shrink-0 items-center gap-2">
+            <button type="button" onClick={() => setGuide(true)} title="Cómo funciona el sistema"
+              className="flex h-8 items-center gap-1.5 rounded-full bg-sb-surface-container-high px-3 text-[11px] font-medium text-sb-on-surface-variant transition-colors hover:bg-sb-on-surface hover:text-sb-surface">
+              <BookOpen className="h-3.5 w-3.5" /><span className="hidden sm:inline">Guía</span>
+            </button>
             <AlertBell href={role === "operator" ? "/my" : "/alerts"} />
             <Link href="/profile" title="Mi perfil" className="flex items-center gap-2 rounded-full bg-sb-surface-container-high px-3 py-1.5 transition-colors hover:bg-sb-surface-container-highest">
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-sb-surface-container-highest">
@@ -197,7 +211,8 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], children }: { nam
           </AnimatePresence>
         </main>
 
-        <MobileNav items={[...sections.flatMap((x) => x.items), PROFILE]} activeHref={path} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} />
+        <MobileNav items={[...sections.flatMap((x) => x.items), PROFILE]} activeHref={path} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} onGuide={() => setGuide(true)} />
+        <GuideModal open={guide} onClose={closeGuide} />
       </div>
     </div>
   );
