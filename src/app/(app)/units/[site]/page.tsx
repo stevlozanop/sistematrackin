@@ -9,7 +9,7 @@ import { Check } from "@/components/Check";
 import { ImportPanel, readExcel, type Preview } from "@/components/ImportPanel";
 import { ProcessRoute } from "@/components/ProcessRoute";
 import {
-  DELAY_REASONS, MONTHS, SITE_INFO, STATUS_LABEL, STATUS_STEP, fmtDate, isSite,
+  DELAY_REASONS, MONTHS, SITE_INFO, STATUS_LABEL, STATUS_STEP, daysText, fmtDate, isSite,
   type DateField, type Service, type Site, type Status,
 } from "@/lib/hsp";
 import { allowedNext, isSuper, previousDate, today, type Role, type Stage } from "@/lib/workflow";
@@ -20,7 +20,8 @@ type Unit = {
   center: string | null; dealer: string | null; dealer_group: string | null; department: string | null; district: string | null;
   route: string | null; nave: string | null; container: string | null; carrier: string | null; plan_almacen: string | null;
   driver: string | null; gm_com: string | null; observation: string | null; delay_reason: string | null;
-  billing_date: string | null; zone: string | null; season: string; via_lima: number; lead_time: number | null; est_date: string | null;
+  billing_date: string | null; zone: string | null; season: string; via_lima: number;
+  days_left: number | null; alert: "VENCIDA" | "POR VENCER" | null; lead_time: number | null; est_date: string | null;
   status: Status; service: Service | null; real_days: number | null;
 } & Partial<Record<DateField, string | null>>;
 
@@ -122,7 +123,7 @@ function Filter({ label, value, onChange, options, className }: {
   );
 }
 
-const FILTER_KEYS = ["q", "status", "service", "dealer", "zone", "reason", "year", "month", "mine", "pending"] as const;
+const FILTER_KEYS = ["q", "status", "service", "dealer", "zone", "reason", "year", "month", "mine", "pending", "alert"] as const;
 
 export default function SitePage({ params, searchParams }: {
   params: Promise<{ site: string }>;
@@ -318,11 +319,14 @@ export default function SitePage({ params, searchParams }: {
         <Filter label="Mes: todos" className="lg:w-40" value={f.month} onChange={(v) => setFilter("month", v)} options={MONTHS.map((m, i) => ({ id: String(i + 1), label: m }))} />
         <Filter label="Motivo: todos" className="lg:w-56" value={f.reason} onChange={(v) => setFilter("reason", v)} options={[{ id: "__none", label: "Sin motivo" }, ...reasons.map((r) => ({ id: r, label: r }))]} />
         <Filter label="Nivel de servicio: todos" className="lg:w-56" value={f.service} onChange={(v) => setFilter("service", v)} options={[{ id: "A TIEMPO", label: "A tiempo" }, { id: "FUERA DE TIEMPO", label: "Fuera de tiempo" }, { id: "__none", label: "Sin plazo" }]} />
+        <Filter label="Alerta: todas" className="lg:w-56" value={f.alert} onChange={(v) => setFilter("alert", v)} options={[
+          { id: "VENCIDA", label: "Vencidas (sin entregar)" }, { id: "POR VENCER", label: "Por vencer" }, { id: "SIN_MOTIVO", label: "Fuera de tiempo sin motivo" },
+        ]} />
         {sup && (
           <Filter label="Esperando etapa: todas" className="lg:w-60" value={f.pending} onChange={(v) => setFilter("pending", v)} options={info.dates.map((d) => ({ id: d.key, label: `Esperando ${d.label}` }))} />
         )}
         {Object.entries(f).some(([k, v]) => v && k !== "q" && k !== "status" && k !== "mine") && (
-          <button className="sbf-chip" onClick={() => { setF((p) => ({ ...p, dealer: "", zone: "", year: "", month: "", reason: "", service: "", pending: "" })); setPage(1); }}>Quitar filtros ✕</button>
+          <button className="sbf-chip" onClick={() => { setF((p) => ({ ...p, dealer: "", zone: "", year: "", month: "", reason: "", service: "", pending: "", alert: "" })); setPage(1); }}>Quitar filtros ✕</button>
         )}
       </div>
       {!sup && me && (
@@ -422,6 +426,11 @@ export default function SitePage({ params, searchParams }: {
                       <div className="text-[10px] text-muted">
                         {u.lead_time != null ? `${u.lead_time} días${site === "YUR" ? ` · ${u.season.toLowerCase()}` : ""}` : "Sin plazo configurado"}
                       </div>
+                      {u.alert && (
+                        <span className={`mt-1 inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${u.alert === "VENCIDA" ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container-high"}`}>
+                          {daysText(u.days_left)}
+                        </span>
+                      )}
                     </Table.Cell>
                     <Table.Cell>
                       <ServiceChip s={u.service} />

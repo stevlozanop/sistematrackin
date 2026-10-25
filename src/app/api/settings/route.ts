@@ -10,7 +10,7 @@ export async function GET() {
   const { err } = await guard();
   if (err) return err;
   const [[settings], leadTimes, missing] = await Promise.all([
-    queryList<{ target: number; creciente_months: string }>("SELECT target, creciente_months FROM settings WHERE id=1"),
+    queryList<{ target: number; creciente_months: string; alert_days: number }>("SELECT target, creciente_months, alert_days FROM settings WHERE id=1"),
     queryList<LeadTime & { units: number }>(
       `SELECT lt.*, COALESCE(c.n, 0) units FROM lead_times lt
        LEFT JOIN (SELECT site, IF(site='PCL', department, route) zone, COUNT(*) n FROM units GROUP BY site, zone) c
@@ -26,6 +26,7 @@ export async function GET() {
   ]);
   return NextResponse.json({
     target: settings?.target ?? 85,
+    alertDays: settings?.alert_days ?? 2,
     creciente: (settings?.creciente_months ?? "").split(",").filter(Boolean).map(Number),
     leadTimes,
     missing,
@@ -38,6 +39,8 @@ export async function PUT(req: Request) {
   if (err) return err;
   const body = await req.json().catch(() => null);
   const target = Number(body?.target);
+  const alertDays = Number(body?.alertDays ?? 2);
+  if (!(alertDays >= 0 && alertDays <= 30)) return NextResponse.json({ error: "Días de aviso inválidos (0 a 30)" }, { status: 400 });
   const creciente = Array.isArray(body?.creciente) ? body.creciente.map(Number).filter((m: number) => m >= 1 && m <= 12) : null;
   const list = Array.isArray(body?.leadTimes) ? (body.leadTimes as LeadTime[]) : null;
   if (!(target >= 1 && target <= 100) || !creciente || !list) {
@@ -57,7 +60,7 @@ export async function PUT(req: Request) {
   }
 
   await tx(async (c) => {
-    await c.query("UPDATE settings SET target=?, creciente_months=? WHERE id=1", [target, [...new Set(creciente)].sort((a, b) => (a as number) - (b as number)).join(",")]);
+    await c.query("UPDATE settings SET target=?, alert_days=?, creciente_months=? WHERE id=1", [target, alertDays, [...new Set(creciente)].sort((a, b) => (a as number) - (b as number)).join(",")]);
     await c.query("DELETE FROM lead_times");
     if (rows.length) await c.query("INSERT INTO lead_times(site, zone, days_cre, days_vac) VALUES ?", [rows.map((r) => [r.site, r.zone, r.cre, r.vac])]);
   });

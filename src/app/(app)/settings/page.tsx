@@ -6,7 +6,7 @@ import { Card, PageTitle } from "@/components/ui";
 import { MONTHS, SITE_INFO, type Site } from "@/lib/hsp";
 
 type LT = { site: Site; zone: string; days_cre: number; days_vac: number; units?: number };
-type Config = { target: number; creciente: number[]; leadTimes: LT[]; missing: { site: Site; zone: string; units: number }[] };
+type Config = { target: number; alertDays: number; creciente: number[]; leadTimes: LT[]; missing: { site: Site; zone: string; units: number }[] };
 
 const input = "h-8 rounded-xl border border-sb-outline-variant bg-sb-surface-container-low px-2 text-xs text-sb-on-surface outline-none transition-colors focus:border-sb-primary";
 
@@ -29,7 +29,7 @@ export default function SettingsPage() {
     const r = await fetch("/api/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ target: cfg!.target, creciente: cfg!.creciente, leadTimes: cfg!.leadTimes }),
+      body: JSON.stringify({ target: cfg!.target, alertDays: cfg!.alertDays, creciente: cfg!.creciente, leadTimes: cfg!.leadTimes }),
     });
     const j = await r.json().catch(() => ({ error: "Error del servidor" }));
     setSaving(false);
@@ -48,6 +48,11 @@ export default function SettingsPage() {
           <label className="flex items-center gap-2 text-sm">
             <input type="number" min={1} max={100} value={cfg.target} onChange={(e) => change({ target: Number(e.target.value) })} className={`w-20 ${input}`} aria-label="Meta en porcentaje" />
             % de unidades a tiempo
+          </label>
+          <h3 className="mt-2 text-sm font-semibold">Aviso de «por vencer»</h3>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="number" min={0} max={30} value={cfg.alertDays} onChange={(e) => change({ alertDays: Number(e.target.value) })} className={`w-20 ${input}`} aria-label="Días de aviso" />
+            días o menos antes de la fecha estimada
           </label>
         </Card>
         <Card className="flex flex-col gap-3 p-5">

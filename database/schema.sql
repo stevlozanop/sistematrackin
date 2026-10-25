@@ -81,7 +81,8 @@ CREATE TABLE IF NOT EXISTS lead_times (
 CREATE TABLE IF NOT EXISTS settings (
   id               TINYINT NOT NULL PRIMARY KEY DEFAULT 1,
   target           TINYINT NOT NULL DEFAULT 85,        -- meta % a tiempo
-  creciente_months VARCHAR(40) NOT NULL DEFAULT '1,2,3,4'
+  creciente_months VARCHAR(40) NOT NULL DEFAULT '1,2,3,4',
+  alert_days       TINYINT NOT NULL DEFAULT 2             -- avisar "por vencer" cuando falten estos días o menos
 ) ENGINE=InnoDB;
 INSERT IGNORE INTO settings (id) VALUES (1);
 
@@ -124,9 +125,15 @@ SELECT x.*,
   CASE WHEN x.est_date IS NULL THEN NULL
        WHEN COALESCE(x.d_entrega, CURDATE()) <= x.est_date THEN 'A TIEMPO'
        ELSE 'FUERA DE TIEMPO' END AS service,
-  DATEDIFF(x.d_entrega, x.billing_date) AS real_days
+  DATEDIFF(x.d_entrega, x.billing_date) AS real_days,
+  -- Alertas (solo unidades sin entregar): días que faltan para la fecha estimada
+  IF(x.d_entrega IS NULL, DATEDIFF(x.est_date, CURDATE()), NULL) AS days_left,
+  CASE WHEN x.d_entrega IS NOT NULL OR x.est_date IS NULL THEN NULL
+       WHEN x.est_date < CURDATE() THEN 'VENCIDA'
+       WHEN DATEDIFF(x.est_date, CURDATE()) <= x.alert_days THEN 'POR VENCER'
+       END AS alert
 FROM (
-  SELECT u.*, d.name AS dealer, IFNULL(d.coast, 0) AS via_lima,
+  SELECT u.*, d.name AS dealer, IFNULL(d.coast, 0) AS via_lima, s.alert_days,
     IF(u.site = 'PCL', u.department, u.route) AS zone,
     IF(FIND_IN_SET(MONTH(u.billing_date), s.creciente_months), 'CRECIENTE', 'VACIANTE') AS season,
     IF(FIND_IN_SET(MONTH(u.billing_date), s.creciente_months), lt.days_cre, lt.days_vac) AS lead_time,

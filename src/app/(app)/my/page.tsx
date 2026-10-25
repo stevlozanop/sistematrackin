@@ -5,8 +5,8 @@ import { CheckCircle2, ChevronLeft, ChevronRight, Search, X } from "lucide-react
 import { Card, PageTitle } from "@/components/ui";
 import { ProcessRoute } from "@/components/ProcessRoute";
 import { cn } from "@/lib/cn";
-import { SITE_INFO, STATUS_LABEL, fmtDate, type DateField, type Site, type Status } from "@/lib/hsp";
-import { areaOf, previousDate, stageLabel, today, type Stage } from "@/lib/workflow";
+import { DELAY_REASONS, SITE_INFO, STATUS_LABEL, daysText, fmtDate, type DateField, type Site, type Status } from "@/lib/hsp";
+import { areaOf, needsDelayReason, previousDate, stageLabel, today, type Stage } from "@/lib/workflow";
 
 type Me = {
   name: string; area: string | null; carrier: string | null;
@@ -17,7 +17,9 @@ type Me = {
 type Unit = {
   id: number; site: Site; chassis: string; motor: string | null; material: string | null; category: string | null;
   dealer: string | null; zone: string | null; district: string | null; billing_date: string | null; status: Status; carrier: string | null;
+  est_date: string | null; days_left: number | null; alert: "VENCIDA" | "POR VENCER" | null; delay_reason: string | null;
 } & Partial<Record<DateField, string | null>>;
+type StageAlerts = { site: Site; next_step: DateField; alert: string; n: number }[];
 
 const PAGE = 50;
 const input = "h-10 rounded-xl border border-sb-outline-variant bg-sb-surface px-3 text-sm text-sb-on-surface outline-none focus:border-sb-on-surface";
@@ -37,11 +39,16 @@ export default function MyWorkPage() {
   const [carrier, setCarrier] = useState("");
   const [saving, setSaving] = useState(false);
   const [reload, setReload] = useState(0);
+  const [reason, setReason] = useState("");
+  const [stageAlerts, setStageAlerts] = useState<StageAlerts>([]);
 
-  const loadMe = useCallback(() => fetch("/api/me").then((r) => r.json()).then((m: Me) => {
-    setMe(m);
-    setStage((cur) => cur ?? m.pending[0] ?? null);
-  }), []);
+  const loadMe = useCallback(() => {
+    fetch("/api/alerts").then((r) => r.json()).then((a) => setStageAlerts(a.byStage ?? []));
+    return fetch("/api/me").then((r) => r.json()).then((m: Me) => {
+      setMe(m);
+      setStage((cur) => cur ?? m.pending[0] ?? null);
+    });
+  }, []);
   useEffect(() => { loadMe(); }, [loadMe]);
 
   useEffect(() => { const t = setTimeout(() => { setQDebounced(q); setPage(1); }, 300); return () => clearTimeout(t); }, [q]);
@@ -49,7 +56,7 @@ export default function MyWorkPage() {
   useEffect(() => {
     if (!stage) return;
     let alive = true;
-    const p = new URLSearchParams({ site: stage.site, pending: stage.field, page: String(page), size: String(PAGE), sort: "billing_date", dir: "asc" });
+    const p = new URLSearchParams({ site: stage.site, pending: stage.field, page: String(page), size: String(PAGE), sort: "days_left", dir: "asc" });
     if (qDebounced) p.set("q", qDebounced);
     fetch(`/api/units?${p}`).then((r) => r.json()).then((j) => {
       if (!alive) return;
@@ -70,12 +77,21 @@ export default function MyWorkPage() {
     [selected, stage],
   );
   const needsCarrier = stage?.site === "PCL" && stage.field === "d_despacho";
+  // Unidades marcadas que quedan fuera de tiempo y aún no tienen motivo de demora
+  const lateSel = selected.filter((u) => needsDelayReason(u, date));
+  const alertsOf = (st: Stage, alert: string) => Number(stageAlerts.find((a) => a.site === st.site && a.next_step === st.field && a.alert === alert)?.n ?? 0);
 
   async function register() {
     if (!stage || !selected.length) return;
     if (minDate && date < minDate) return toast.danger(`La fecha no puede ser anterior al ${fmtDate(minDate)} (etapa anterior)`);
     if (needsCarrier && !carrier.trim()) return toast.danger("Indica la empresa de transporte que lleva las unidades");
+    if (lateSel.length && !reason) return toast.danger("Indica el motivo de demora de las unidades fuera de tiempo");
     setSaving(true);
+    // Primero el motivo de demora en las que llegan tarde, luego la fecha
+    if (lateSel.length) {
+      const rr = await fetch("/api/units", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: lateSel.map((u) => u.id), changes: { delay_reason: reason } }) });
+      if (!rr.ok) { setSaving(false); return toast.danger((await rr.json().catch(() => ({}))).error ?? "No se pudo guardar el motivo"); }
+    }
     const changes: Record<string, string> = { [stage.field]: date };
     if (needsCarrier) changes.carrier = carrier.trim();
     const r = await fetch("/api/units", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: [...sel], changes }) });
@@ -86,6 +102,7 @@ export default function MyWorkPage() {
       description: j.skipped ? `${j.skipped} no se registraron: ${j.skipReason}` : "Pasan a la siguiente etapa.",
     });
     setSel(new Set());
+    setReason("");
     setReload((n) => n + 1);
     loadMe();
   }
@@ -117,6 +134,12 @@ export default function MyWorkPage() {
                   <div className="mt-0.5 text-sm font-semibold">{stageLabel(st.site, st.field)}</div>
                   <div className="mt-2 text-2xl font-bold">{st.pending.toLocaleString()}</div>
                   <div className="text-[11px] opacity-70">{st.pending === 1 ? "unidad por registrar" : "unidades por registrar"}</div>
+                  {(alertsOf(st, "VENCIDA") > 0 || alertsOf(st, "POR VENCER") > 0) && (
+                    <div className="mt-1.5 flex flex-wrap gap-1 text-[10px] font-semibold">
+                      {alertsOf(st, "VENCIDA") > 0 && <span className={cn("rounded-full px-2 py-0.5", on ? "bg-sb-surface text-sb-on-surface" : "bg-sb-on-surface text-sb-surface")}>{alertsOf(st, "VENCIDA")} vencidas</span>}
+                      {alertsOf(st, "POR VENCER") > 0 && <span className="rounded-full bg-sb-surface-container-high px-2 py-0.5 text-sb-on-surface">{alertsOf(st, "POR VENCER")} por vencer</span>}
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -141,7 +164,7 @@ export default function MyWorkPage() {
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sb-outline-variant/40 px-4 py-3">
                 <div>
                   <h3 className="text-sm font-semibold">Por registrar: {stageLabel(stage.site, stage.field)}</h3>
-                  <p className="text-[11px] text-sb-on-surface-variant/70">{total.toLocaleString()} unidades · primero las más antiguas</p>
+                  <p className="text-[11px] text-sb-on-surface-variant/70">{total.toLocaleString()} unidades · primero las más urgentes</p>
                 </div>
                 <label className="sbf-search sm:w-80">
                   <Search className="h-4 w-4 opacity-40" />
@@ -149,50 +172,51 @@ export default function MyWorkPage() {
                   {q && <button onClick={() => setQ("")} className="opacity-40 hover:opacity-100"><X className="h-4 w-4" /></button>}
                 </label>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">
-                      <th className="w-10 px-4 py-2.5">
-                        <input type="checkbox" aria-label="Marcar todas las de esta página" checked={allOnPage}
-                          onChange={() => setSel(allOnPage ? new Set() : new Set(rows.map((u) => u.id)))} className="h-4 w-4 accent-[var(--sb-primary)]" />
-                      </th>
-                      <th className="px-2 py-2.5 font-semibold">Unidad</th>
-                      <th className="px-2 py-2.5 font-semibold">Destino</th>
-                      <th className="px-2 py-2.5 font-semibold">Etapa anterior</th>
-                      <th className="px-2 py-2.5 font-semibold">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {!rows.length && (
-                      <tr><td colSpan={5} className="px-4 py-12 text-center text-sb-on-surface-variant/60">
-                        {loading ? "Cargando…" : q ? "Ninguna unidad coincide con la búsqueda." : <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> No tienes unidades pendientes en esta etapa.</span>}
-                      </td></tr>
-                    )}
-                    {rows.map((u) => {
-                      const prev = previousDate(u.site, u, stage.field);
-                      const prevKey = SITE_INFO[u.site].dates.find((d) => u[d.key] === prev)?.key;
-                      const on = sel.has(u.id);
-                      return (
-                        <tr key={u.id} onClick={() => setSel((s) => { const n = new Set(s); if (n.has(u.id)) n.delete(u.id); else n.add(u.id); return n; })}
-                          className={cn("cursor-pointer border-b border-sb-outline-variant/25 last:border-0", on ? "bg-sb-surface-container" : "hover:bg-sb-surface-container-low")}>
-                          <td className="px-4 py-2.5"><input type="checkbox" aria-label={`Marcar ${u.chassis}`} checked={on} readOnly className="pointer-events-none h-4 w-4 accent-[var(--sb-primary)]" /></td>
-                          <td className="px-2 py-2.5">
-                            <div className="font-mono text-xs font-semibold">{u.chassis}</div>
-                            <div className="text-[11px] text-muted">{u.material} · {u.category} · motor {u.motor}</div>
-                          </td>
-                          <td className="px-2 py-2.5">
-                            <div className="max-w-[16rem] truncate text-xs">{u.dealer}</div>
-                            <div className="text-[11px] text-muted">{u.district ?? u.zone}{u.carrier ? ` · ${u.carrier}` : ""}</div>
-                          </td>
-                          <td className="px-2 py-2.5 text-xs">{prevKey ? <>{stageLabel(u.site, prevKey)}: <b>{fmtDate(prev)}</b></> : <>Facturada {fmtDate(u.billing_date)}</>}</td>
-                          <td className="px-2 py-2.5 text-xs">{STATUS_LABEL[u.status]}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="flex items-center gap-2 border-b border-sb-outline-variant/40 px-4 py-2 text-[11px] text-sb-on-surface-variant">
+                <input type="checkbox" aria-label="Marcar todas las de esta página" checked={allOnPage}
+                  onChange={() => setSel(allOnPage ? new Set() : new Set(rows.map((u) => u.id)))} className="h-4 w-4 accent-[var(--sb-primary)]" />
+                Marcar todas las de esta página
               </div>
+              {!rows.length && (
+                <div className="px-4 py-12 text-center text-sm text-sb-on-surface-variant/60">
+                  {loading ? "Cargando…" : q ? "Ninguna unidad coincide con la búsqueda." : <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> No tienes unidades pendientes en esta etapa.</span>}
+                </div>
+              )}
+              <ul className="divide-y divide-sb-outline-variant/25">
+                {rows.map((u) => {
+                  const prev = previousDate(u.site, u, stage.field);
+                  const prevKey = SITE_INFO[u.site].dates.find((d) => u[d.key] === prev)?.key;
+                  const on = sel.has(u.id);
+                  return (
+                    <li key={u.id}>
+                      <button type="button"
+                        onClick={() => setSel((s) => { const n = new Set(s); if (n.has(u.id)) n.delete(u.id); else n.add(u.id); return n; })}
+                        className={cn("grid w-full grid-cols-[auto_1fr] items-start gap-x-3 gap-y-1 px-4 py-3 text-left md:grid-cols-[auto_1.3fr_1.2fr_1fr_auto] md:items-center",
+                          on ? "bg-sb-surface-container" : "hover:bg-sb-surface-container-low")}>
+                        <input type="checkbox" aria-label={`Marcar ${u.chassis}`} checked={on} readOnly className="pointer-events-none mt-0.5 h-5 w-5 accent-[var(--sb-primary)] md:mt-0 md:h-4 md:w-4" />
+                        <div className="min-w-0">
+                          <div className="font-mono text-xs font-semibold">{u.chassis}</div>
+                          <div className="truncate text-[11px] text-muted">{u.material} · {u.category} · motor {u.motor}</div>
+                        </div>
+                        <div className="col-start-2 min-w-0 md:col-start-auto">
+                          <div className="truncate text-xs">{u.dealer}</div>
+                          <div className="text-[11px] text-muted">{u.district ?? u.zone}{u.carrier ? ` · ${u.carrier}` : ""}</div>
+                        </div>
+                        <div className="col-start-2 text-xs md:col-start-auto">
+                          {prevKey ? <>{stageLabel(u.site, prevKey)}: <b>{fmtDate(prev)}</b></> : <>Facturada {fmtDate(u.billing_date)}</>}
+                          <div className="text-[11px] text-muted">{STATUS_LABEL[u.status]}</div>
+                        </div>
+                        <div className="col-start-2 md:col-start-auto md:text-right">
+                          {u.alert ? (
+                            <span className={cn("inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                              u.alert === "VENCIDA" ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container-high")}>{daysText(u.days_left)}</span>
+                          ) : u.est_date ? <span className="text-[11px] text-muted">Estimada {fmtDate(u.est_date)}</span> : null}
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
               {pages > 1 && (
                 <div className="flex items-center justify-end gap-1 border-t border-sb-outline-variant/40 px-4 py-2 text-[11px]">
                   <button className="rounded-full p-1.5 hover:bg-sb-surface-container disabled:opacity-30" aria-label="Página anterior" disabled={page <= 1} onClick={() => { setPage(page - 1); setSel(new Set()); }}><ChevronLeft className="h-4 w-4" /></button>
@@ -217,15 +241,24 @@ export default function MyWorkPage() {
 
       {/* Barra para registrar las unidades marcadas */}
       {sel.size > 0 && stage && (
-        <div className="fixed inset-x-0 bottom-20 z-20 flex justify-center px-4 md:bottom-6 md:left-[240px]">
-          <div className="flex w-full max-w-3xl flex-wrap items-end gap-3 rounded-2xl border border-sb-outline-variant/60 bg-sb-surface p-3 shadow-xl">
+        <div className="fixed inset-x-0 bottom-24 z-20 flex justify-center px-3 md:bottom-6 md:left-[240px]">
+          <div className="flex w-full max-w-3xl flex-wrap items-end gap-2 rounded-2xl border border-sb-outline-variant/60 bg-sb-surface p-3 shadow-xl sm:gap-3">
             <div className="min-w-32 flex-1 text-sm"><b>{sel.size}</b> {sel.size === 1 ? "unidad marcada" : "unidades marcadas"}<div className="text-[11px] text-muted">{stageLabel(stage.site, stage.field)}</div></div>
             <label className="flex flex-col gap-1 text-[11px]">Fecha
               <input type="date" value={date} min={minDate} max={today()} onChange={(e) => setDate(e.target.value)} className={input} />
             </label>
+            {lateSel.length > 0 && (
+              <label className="flex flex-col gap-1 text-[11px]">
+                Motivo de demora ({lateSel.length} fuera de tiempo)
+                <select value={reason} onChange={(e) => setReason(e.target.value)} className={cn(input, "w-full sm:w-56", !reason && "border-sb-on-surface")}>
+                  <option value="">Elige el motivo…</option>
+                  {DELAY_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </label>
+            )}
             {needsCarrier && (
               <label className="flex flex-col gap-1 text-[11px]">Empresa de transporte
-                <input list="carriers" value={carrier} onChange={(e) => setCarrier(e.target.value)} placeholder="Ej. JOSEPH S.A.C." className={`w-60 ${input}`} />
+                <input list="carriers" value={carrier} onChange={(e) => setCarrier(e.target.value)} placeholder="Ej. JOSEPH S.A.C." className={`w-full sm:w-60 ${input}`} />
                 <datalist id="carriers">{me.carriers.map((c) => <option key={c} value={c} />)}</datalist>
               </label>
             )}

@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { queryList, run, tx } from "@/lib/db";
 import { getScope, guard, SUPER } from "@/lib/guard";
 import { DATE_FIELDS, isSite, type DateField, type Site } from "@/lib/hsp";
-import { checkDateEdit, isSuper, pendingSql } from "@/lib/workflow";
+import { checkDateEdit, isSuper, needsDelayReason, pendingSql } from "@/lib/workflow";
 
 const SORTABLE = new Set([
-  "chassis", "material", "dealer", "zone", "billing_date", "est_date", "status", "service", "delay_reason", "real_days",
+  "days_left", "chassis", "material", "dealer", "zone", "billing_date", "est_date", "status", "service", "delay_reason", "real_days",
   ...DATE_FIELDS,
 ]);
 
@@ -61,6 +61,10 @@ export async function GET(req: Request) {
     const mine = (scope?.stages ?? []).filter((st) => st.site === site);
     where.push(mine.length ? `(${mine.map((st) => `(${pendingSql(site, st.field)})`).join(" OR ")})` : "1=0");
   }
+  // Alertas: VENCIDA, POR VENCER o SIN_MOTIVO (fuera de tiempo sin motivo de demora)
+  const alert = p.get("alert");
+  if (alert === "VENCIDA" || alert === "POR VENCER") { where.push("alert = ?"); args.push(alert); }
+  if (alert === "SIN_MOTIVO") where.push("service = 'FUERA DE TIEMPO' AND delay_reason IS NULL");
   const year = Number(p.get("year")), month = Number(p.get("month"));
   if (year) { where.push("YEAR(billing_date) = ?"); args.push(year); }
   if (month) { where.push("MONTH(billing_date) = ?"); args.push(month); }
@@ -120,7 +124,7 @@ export async function PATCH(req: Request) {
   const current: Record<string, unknown>[] = [];
   for (let i = 0; i < unitIds.length; i += 1000) {
     // v_units trae via_lima (si el dealer va por Ruta Lima), necesario para validar el orden
-    current.push(...(await queryList(`SELECT ${cols.join(",")}, via_lima FROM v_units WHERE id IN (?)`, [unitIds.slice(i, i + 1000)])));
+    current.push(...(await queryList(`SELECT ${cols.join(",")}, via_lima, est_date FROM v_units WHERE id IN (?)`, [unitIds.slice(i, i + 1000)])));
   }
 
   // Valida unidad por unidad
@@ -132,6 +136,10 @@ export async function PATCH(req: Request) {
     for (const [k, v] of vals) {
       if ((DATE_FIELDS as string[]).includes(k)) {
         reason = checkDateEdit(s.role, stages, site, u as never, k as DateField, v, scope?.carrier);
+        // Si la unidad está fuera de tiempo y no tiene motivo, se pide antes de registrar la fecha
+        if (!reason && needsDelayReason(u as never, v, vals.find(([key]) => key === "delay_reason")?.[1])) {
+          reason = "La unidad está fuera de tiempo: indica primero el motivo de demora";
+        }
       } else if (!sup && !stages.some((st) => st.site === site)) {
         reason = "No tienes etapas asignadas en este módulo";
       } else if (!sup && scope?.carrier && String(u.carrier ?? "").toUpperCase() !== scope.carrier.toUpperCase()) {

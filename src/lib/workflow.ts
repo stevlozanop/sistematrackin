@@ -93,6 +93,17 @@ export function checkDateEdit(
   return null;
 }
 
+/**
+ * ¿Al registrar esta fecha la unidad queda (o ya está) fuera de tiempo y todavía no tiene motivo de demora?
+ * En ese caso se pide el motivo antes de guardar.
+ */
+export function needsDelayReason(
+  u: { est_date?: string | null; delay_reason?: string | null }, value: string | null, newReason?: string | null,
+) {
+  if (!value || !u.est_date || u.delay_reason || newReason) return false;
+  return value > u.est_date || today() > u.est_date;
+}
+
 export const stageLabel = (site: Site, field: string) =>
   SITE_INFO[site].dates.find((d) => d.key === field)?.label ?? (field === "delay_reason" ? "Motivo de demora" : field);
 

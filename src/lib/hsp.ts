@@ -104,3 +104,13 @@ export const isSite = (v: unknown): v is Site => v === "PCL" || v === "YUR";
 
 /** "2026-10-16" -> "16/10/2026" */
 export const fmtDate = (d?: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : "");
+
+/** Texto de la alerta según los días que faltan para la fecha estimada. */
+export function daysText(days: number | null | undefined) {
+  if (days === null || days === undefined) return "";
+  if (days < -1) return `Vencida hace ${-days} días`;
+  if (days === -1) return "Vencida ayer";
+  if (days === 0) return "Vence hoy";
+  if (days === 1) return "Vence mañana";
+  return `Vence en ${days} días`;
+}

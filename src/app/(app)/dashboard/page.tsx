@@ -84,6 +84,14 @@ export default function DashboardPage() {
   const [year, setYear] = useState<number | null>(null);
   const [cl, setCl] = useState<string[] | null>(null); // null = por defecto (todos menos 3114, como la TABLA)
   const [months, setMonths] = useState<number[] | null>(null);
+  const [alerts, setAlerts] = useState<{ overdue: number; soon: number; days: number } | null>(null);
+  useEffect(() => {
+    fetch("/api/alerts").then((r) => (r.ok ? r.json() : null)).then((a) => {
+      if (!a) return;
+      const sum = (k: string) => (a.bySite as { alert: string; n: number }[]).filter((r) => r.alert === k).reduce((t, r) => t + Number(r.n), 0);
+      setAlerts({ overdue: sum("VENCIDA"), soon: sum("POR VENCER"), days: a.alertDays });
+    });
+  }, []);
 
   useEffect(() => {
     const p = new URLSearchParams();
@@ -152,6 +160,13 @@ export default function DashboardPage() {
           { label: `HSP a tiempo · meta ${data.target}%`, value: fmtPct(hspPct), icon: hspPct !== null && hspPct >= data.target ? Target : Gauge },
         ]}
       />
+
+      {alerts && (alerts.overdue > 0 || alerts.soon > 0) && (
+        <Link href="/alerts" className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-sb-on-surface px-4 py-3 text-sm text-sb-surface">
+          <span><b>{alerts.overdue.toLocaleString()}</b> unidades vencidas sin entregar · <b>{alerts.soon.toLocaleString()}</b> por vencer en {alerts.days} días o menos</span>
+          <span className="text-xs underline underline-offset-2">Ver alertas →</span>
+        </Link>
+      )}
 
       <Card className="sb-anim-item-in p-0">
         <details open className="group">

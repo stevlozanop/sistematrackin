@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, ChevronLeft, ClipboardCheck, LayoutDashboard, LogOut, Moon, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
+import { Activity, Bell, ChevronLeft, ClipboardCheck, LayoutDashboard, LogOut, Moon, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
+import { AlertBell } from "@/components/AlertBell";
 
 type Role = "dev" | "admin" | "operator";
 type Item = { title: string; href: string; icon: LucideIcon; roles?: Role[] };
@@ -17,6 +18,7 @@ const SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
     items: [
       { title: "Mi trabajo", href: "/my", icon: ClipboardCheck, roles: ["operator"] },
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: SUPER },
+      { title: "Alertas", href: "/alerts", icon: Bell, roles: SUPER },
       { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship },
       { title: "YUR · Yurimaguas", href: "/units/yur", icon: Truck },
       { title: "Dealers", href: "/dealers", icon: Store, roles: SUPER },
@@ -165,20 +167,21 @@ export function AppShell({ name, role, children }: { name: string; role: Role; c
 
       {/* Main */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 shrink-0 items-center justify-between px-6">
-          <h1 className="text-sm font-medium text-sb-on-surface-variant">{pageName}</h1>
-          <div className="flex items-center gap-2">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-2 px-4 sm:px-6">
+          <h1 className="truncate text-sm font-medium text-sb-on-surface-variant">{pageName}</h1>
+          <div className="flex shrink-0 items-center gap-2">
+            <AlertBell href={role === "operator" ? "/my" : "/alerts"} />
             <div className="flex items-center gap-2 rounded-full bg-sb-surface-container-high px-3 py-1.5">
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-sb-surface-container-highest">
                 <span className="text-[8px] font-semibold text-sb-on-surface/80">{initials}</span>
               </div>
               <span className="hidden text-[10px] text-sb-on-surface-variant sm:block">{name}</span>
-              <span className="text-[10px] font-medium uppercase text-sb-on-surface-variant">{role === "operator" ? "Encargado" : role === "admin" ? "Admin" : "Super admin"}</span>
+              <span className="text-[10px] font-medium uppercase text-sb-on-surface-variant">{role === "operator" ? "Encargado" : role === "admin" ? "Supervisor" : "Super admin"}</span>
             </div>
           </div>
         </header>
 
-        <main className="scroll-hidden flex-1 overflow-auto px-6 pb-24 md:pb-6">
+        <main className="scroll-hidden flex-1 overflow-auto px-4 pb-28 sm:px-6 md:pb-6">
           <AnimatePresence mode="wait">
             <motion.div key={path} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: [0.37, 0.35, 0, 1] }}>
               {children}
