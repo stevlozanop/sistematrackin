@@ -1,0 +1,216 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+@custom-variant dark (&:is(.dark *));
+
+/* Tokens «sb» (mismo sistema de diseño que EduconectaV2, diseño minimal blanco/negro) */
+:root {
+  --sb-background: #ffffff;
+  --sb-on-background: #161618;
+  --sb-surface: #ffffff;
+  --sb-surface-container-low: #fbfbfc;
+  --sb-surface-container: #f6f6f7;
+  --sb-surface-container-high: #ececee;
+  --sb-surface-container-highest: #e1e1e4;
+  --sb-on-surface: #161618;
+  --sb-on-surface-variant: #52525b;
+  --sb-outline: #a1a1aa;
+  --sb-outline-variant: #e4e4e7;
+  --sb-primary: #161618;
+  --sb-on-primary: #ffffff;
+  --page-bg: #f5f5f5;
+}
+html.dark {
+  --sb-background: #0a0a0b;
+  --sb-on-background: #f4f4f5;
+  --sb-surface: #0a0a0b;
+  --sb-surface-container-low: #101013;
+  --sb-surface-container: #17171a;
+  --sb-surface-container-high: #1f1f23;
+  --sb-surface-container-highest: #27272b;
+  --sb-on-surface: #f4f4f5;
+  --sb-on-surface-variant: #a1a1aa;
+  --sb-outline: #3f3f46;
+  --sb-outline-variant: #27272b;
+  --sb-primary: #ffffff;
+  --sb-on-primary: #0a0a0b;
+  --page-bg: #000000;
+}
+
+@theme inline {
+  --color-sb-background: var(--sb-background);
+  --color-sb-surface: var(--sb-surface);
+  --color-sb-surface-container-low: var(--sb-surface-container-low);
+  --color-sb-surface-container: var(--sb-surface-container);
+  --color-sb-surface-container-high: var(--sb-surface-container-high);
+  --color-sb-surface-container-highest: var(--sb-surface-container-highest);
+  --color-sb-on-surface: var(--sb-on-surface);
+  --color-sb-on-surface-variant: var(--sb-on-surface-variant);
+  --color-sb-outline: var(--sb-outline);
+  --color-sb-outline-variant: var(--sb-outline-variant);
+  --color-sb-primary: var(--sb-primary);
+  --color-sb-on-primary: var(--sb-on-primary);
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--page-bg);
+  color: var(--sb-on-background);
+  font-family: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+input[type="date"] { color-scheme: light; }
+html.dark input[type="date"] { color-scheme: dark; }
+
+/* Buscador y chips de filtro (sbf-*) */
+.sbf-search {
+  display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 16px;
+  background: var(--sb-surface); border-radius: 24px; border: 1.5px solid transparent;
+  transition: box-shadow .3s ease, border-color .3s ease;
+}
+.sbf-search:hover { box-shadow: 0 2px 12px -4px rgba(0,0,0,.08); }
+.sbf-search:focus-within {
+  border-color: var(--sb-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--sb-primary) 12%, transparent),
+              0 8px 32px -8px color-mix(in srgb, var(--sb-primary) 18%, transparent);
+}
+.sbf-search input { flex: 1; height: 100%; background: transparent; border: 0; outline: 0; font-size: 14px; color: var(--sb-on-surface); }
+.sbf-search input::placeholder { color: var(--sb-on-surface-variant); opacity: .4; }
+.sbf-chip {
+  height: 32px; padding: 0 14px; border-radius: 9999px; font-size: 12px; font-weight: 500; white-space: nowrap;
+  border: 1.5px solid var(--sb-outline-variant); background: transparent; color: var(--sb-on-surface-variant);
+  cursor: pointer; transition: all .18s ease;
+}
+.sbf-chip:hover { background: var(--sb-surface-container); border-color: var(--sb-on-surface-variant); }
+.sbf-chip.active { background: var(--sb-on-surface); color: var(--sb-surface); border-color: transparent; box-shadow: 0 2px 8px -2px rgba(0,0,0,.2); }
+
+/* HeroUI v3 en blanco y negro: acento, estados y superficies salen de los tokens sb */
+:root {
+  --accent: #161618;
+  --accent-foreground: #ffffff;
+  --success: #3f3f46;
+  --success-foreground: #ffffff;
+  --warning: #71717a;
+  --warning-foreground: #ffffff;
+  --danger: #27272a;
+  --danger-foreground: #ffffff;
+  --focus: #161618;
+  --background: var(--page-bg);
+  --foreground: var(--sb-on-surface);
+  --surface: var(--sb-surface);
+  --surface-foreground: var(--sb-on-surface);
+  --field-background: var(--sb-surface-container-low);
+  --field-foreground: var(--sb-on-surface);
+}
+html.dark {
+  --accent: #ffffff;
+  --accent-foreground: #0a0a0b;
+  --success: #d4d4d8;
+  --success-foreground: #0a0a0b;
+  --warning: #a1a1aa;
+  --warning-foreground: #0a0a0b;
+  --danger: #e4e4e7;
+  --danger-foreground: #0a0a0b;
+  --focus: #ffffff;
+  --overlay: #101013;
+}
+
+/* ===== Animaciones (réplica de EduconectaV2) ===== */
+.sb-anim-item-in { animation: sb-item-in 500ms cubic-bezier(0.1, 0.8, 0, 1) both; }
+@keyframes sb-item-in {
+  from { opacity: 0; filter: blur(16px); transform: translateY(-20px); }
+  to { opacity: 1; filter: blur(0); transform: translateY(0); }
+}
+.sb-anim-table-in { animation: sb-table-in 500ms cubic-bezier(0.37, 1.42, 0.37, 1); transform-origin: top; }
+@keyframes sb-table-in {
+  from { opacity: 0; transform: scaleY(0.4); }
+  to { opacity: 1; transform: scaleY(1); }
+}
+.sb-anim-shake { animation: sb-shake 500ms cubic-bezier(0.6, 0.6, 0.12, 1.26); }
+@keyframes sb-shake {
+  0% { transform: translateX(0); } 25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); } 75% { transform: translateX(-4px); } 100% { transform: translateX(0); }
+}
+.sb-hover-scale { transition: transform 0.3s cubic-bezier(0, 0, 0.5, 1); }
+.sb-hover-scale:hover { transform: scale(1.03); }
+@media (prefers-reduced-motion: reduce) {
+  .sb-anim-item-in, .sb-anim-table-in, .sb-anim-shake { animation: none !important; }
+}
+
+/* ===== Morph: botón «más» → menú ===== */
+:root {
+  --morph-open-dur: 350ms;
+  --morph-close-dur: 250ms;
+  --morph-ease: cubic-bezier(0.34, 1.25, 0.64, 1);
+  --morph-close-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --morph-r-closed: 50px;
+  --morph-r-open: 24px;
+  --morph-fade-dur: 200ms;
+  --morph-slide: 40px;
+  --morph-rotate: 45deg;
+  --morph-scale: 0.97;
+  --morph-blur: 2px;
+}
+.t-morph {
+  position: relative; width: 48px; height: 48px; border-radius: var(--morph-r-closed); overflow: hidden;
+  background-color: var(--sb-surface); box-shadow: 0 8px 32px -8px rgba(0,0,0,0.35); border: 1px solid var(--sb-outline-variant);
+  transition: width var(--morph-close-dur) var(--morph-close-ease), height var(--morph-close-dur) var(--morph-close-ease),
+    border-radius var(--morph-close-dur) var(--morph-close-ease);
+}
+.t-morph[data-open="true"] {
+  width: 224px; border-radius: var(--morph-r-open); margin-left: -176px;
+  transition: width var(--morph-open-dur) var(--morph-ease), height var(--morph-open-dur) var(--morph-ease),
+    border-radius var(--morph-open-dur) var(--morph-ease), margin var(--morph-open-dur) var(--morph-ease);
+}
+.t-morph-plus {
+  position: absolute; inset: auto 0 0 auto; width: 48px; height: 48px; display: grid; place-items: center;
+  border: 0; background: transparent; cursor: pointer; z-index: 10;
+  transition: opacity var(--morph-fade-dur) var(--morph-close-ease), transform var(--morph-open-dur) var(--morph-close-ease),
+    filter var(--morph-fade-dur) var(--morph-close-ease);
+}
+.t-morph-plus svg { transition: transform var(--morph-open-dur) var(--morph-close-ease); }
+.t-morph[data-open="true"] .t-morph-plus {
+  opacity: 0; transform: translateX(calc(-1 * var(--morph-slide))); filter: blur(var(--morph-blur)); pointer-events: none;
+}
+.t-morph[data-open="true"] .t-morph-plus svg { transform: scale(var(--morph-scale)) rotate(var(--morph-rotate)); }
+.t-morph-menu {
+  position: absolute; inset: 0; opacity: 0; transform: translateX(var(--morph-slide)) scale(var(--morph-scale));
+  filter: blur(var(--morph-blur)); pointer-events: none;
+  transition: opacity var(--morph-fade-dur) var(--morph-close-ease), transform var(--morph-open-dur) var(--morph-close-ease),
+    filter var(--morph-fade-dur) var(--morph-close-ease);
+}
+.t-morph[data-open="true"] .t-morph-menu { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) { .t-morph, .t-morph-plus, .t-morph-menu { transition: none !important; } }
+@media (max-width: 380px) { .t-morph[data-open="true"] { width: 180px; margin-left: -132px; } }
+
+.mobile-navbar { bottom: 1rem; }
+.mobile-nav-buttons { border-radius: 50px !important; }
+@media (max-width: 380px) { .mobile-nav-inner { padding-left: 0.5rem !important; padding-right: 0.5rem !important; } }
+
+/* ===== Botones animados: réplica exacta de .sb-btn / .sb-btn-icon de EduconectaV2 ===== */
+.button, .sbf-chip {
+  transition: padding 400ms cubic-bezier(0.38, 0.49, 0, 2), background-color 125ms, color 125ms,
+    border-radius 200ms cubic-bezier(0.38, 0.49, 0, 1.5), opacity 125ms !important;
+  -webkit-tap-highlight-color: transparent;
+}
+/* hover: el botón «respira» ensanchando su relleno horizontal con rebote elástico */
+.button:not(.button--icon-only):not(:disabled):hover { padding-inline: calc(1rem + 2px); }
+.button--sm:not(.button--icon-only):not(:disabled):hover { padding-inline: calc(0.75rem + 2px); }
+.sbf-chip:hover { padding-inline: 16px; }
+/* press: scale(0.97) como .sb-btn:active */
+.button:not(:disabled):active, .sbf-chip:active { transform: scale(0.97) !important; }
+/* todos los botones son totalmente redondos (como los del sidebar); los de icono se encogen más al presionar */
+.button, .button--icon-only, .sbf-chip { border-radius: 9999px !important; }
+.button--icon-only:not(:disabled):active { transform: scale(0.92) !important; }
+@media (prefers-reduced-motion: reduce) { .button, .sbf-chip { transition: none !important; } }
+
+/* Scroll invisible pero funcional (rueda, touchpad y teclado siguen funcionando) */
+.scroll-hidden,
+[data-slot="modal-body"] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scroll-hidden::-webkit-scrollbar,
+[data-slot="modal-body"]::-webkit-scrollbar { display: none; }
+
+/* El contenido de las ventanas se desplaza dentro de la ventana, sin cortarse */
+[data-slot="modal-body"] { min-height: 0; overscroll-behavior: contain; }

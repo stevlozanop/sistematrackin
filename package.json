@@ -1,0 +1,41 @@
+{
+  "name": "system-trackin",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@heroui/react": "^3.2.6",
+    "@iconify/react": "^6.0.3",
+    "@internationalized/date": "^3.12.4",
+    "@react-aria/ssr": "^3.10.1",
+    "@react-aria/utils": "^3.34.1",
+    "bcryptjs": "^3.0.3",
+    "framer-motion": "^14.6.0",
+    "jose": "^6.2.13",
+    "lucide-react": "^1.61.0",
+    "mysql2": "^3.24.6",
+    "next": "16.4.3",
+    "react": "19.3.0",
+    "react-aria": "^3.53.1",
+    "react-aria-components": "^1.22.1",
+    "react-dom": "19.3.0",
+    "xlsx": "^0.18.5",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.3",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
