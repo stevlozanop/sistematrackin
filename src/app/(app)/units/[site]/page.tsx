@@ -3,7 +3,7 @@ import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { notFound } from "next/navigation";
 import { Button, Chip, Input, Label, ListBox, Modal, Select, Table, toast, useOverlayState } from "@heroui/react";
 import type { Key, Selection, SortDescriptor } from "@heroui/react";
-import { Check as CheckIcon, ChevronLeft, ChevronRight, Lock, MoreHorizontal, Search, SlidersHorizontal, Trash2, Upload, X } from "lucide-react";
+import { Check as CheckIcon, ChevronLeft, ChevronRight, History, Lock, MoreHorizontal, Search, SlidersHorizontal, Trash2, Upload, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { Check } from "@/components/Check";
 import { ImportPanel, readExcel, type Preview } from "@/components/ImportPanel";
@@ -141,7 +141,10 @@ export default function SitePage({ params, searchParams }: {
   );
   const [qInput, setQInput] = useState(f.q);
   const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<SortDescriptor>({ column: "billing_date", direction: "descending" });
+  // Por defecto, «Últimos cambios»: arriba lo que se acaba de registrar
+  const RECENT: SortDescriptor = { column: "recent", direction: "descending" };
+  const [sort, setSort] = useState<SortDescriptor>(RECENT);
+  const recent = sort.column === "recent";
   const [selected, setSelected] = useState<Selection>(new Set());
   const [reload, setReload] = useState(0);
   const [showFilters, setShowFilters] = useState(false); // en celular los filtros se abren con un botón
@@ -324,6 +327,14 @@ export default function SitePage({ params, searchParams }: {
           <input placeholder="Buscar chasis, motor, lote, factura, guía, pedido…" value={qInput} onChange={(e) => setQInput(e.target.value)} />
           {qInput && <button onClick={() => setQInput("")} className="opacity-40 hover:opacity-100"><X className="h-4 w-4" /></button>}
         </label>
+        <button
+          type="button"
+          className={`sbf-chip flex w-fit items-center gap-1.5 ${recent ? "active" : ""}`}
+          title={recent ? "Las unidades con la fecha registrada más reciente van primero" : "Volver a ver primero lo último que se registró"}
+          onClick={() => { setSort(recent ? { column: "billing_date", direction: "descending" } : RECENT); setPage(1); }}
+        >
+          <History className="h-3.5 w-3.5" /> Últimos cambios primero
+        </button>
       </div>
       <div className="flex items-center gap-2 lg:hidden">
         <button className={`sbf-chip flex items-center gap-1.5 ${showFilters ? "active" : ""}`} onClick={() => setShowFilters((v) => !v)}>
@@ -485,7 +496,8 @@ export default function SitePage({ params, searchParams }: {
                     <Table.Cell>
                       <Chip size="sm" className="whitespace-nowrap" variant={u.status === "ENTREGADO" ? "primary" : "soft"} color={u.status === "ENTREGADO" ? "accent" : "default"}>{STATUS_LABEL[u.status]}</Chip>
                       {u.last_at && (
-                        <div className="mt-1 whitespace-nowrap text-[10px] text-muted" title={`Último registro: ${stageLabel(site, u.last_field ?? "")} · ${u.last_at}`}>
+                        <div className="mt-1 flex items-center gap-1 whitespace-nowrap text-[10px] text-muted" title={`Último registro: ${stageLabel(site, u.last_field ?? "")} · ${u.last_at}`}>
+                          {u.last_at.slice(0, 10) === today() && <span className="rounded-full bg-sb-on-surface px-1.5 py-px text-[9px] font-semibold uppercase text-sb-surface">Hoy</span>}
                           {u.last_by ?? "—"} · {fmtDate(u.last_at.slice(0, 10))} {u.last_at.slice(11)}
                         </div>
                       )}

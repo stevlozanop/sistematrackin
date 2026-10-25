@@ -74,13 +74,21 @@ export async function GET(req: Request) {
 
   const size = Math.min(200, Math.max(5, Number(p.get("size")) || 25));
   const page = Math.max(1, Number(p.get("page")) || 1);
-  const sort = SORTABLE.has(p.get("sort") ?? "") ? p.get("sort")! : "billing_date";
+  const sort = p.get("sort") === "recent" || SORTABLE.has(p.get("sort") ?? "") ? p.get("sort")! : "billing_date";
   const dir = p.get("dir") === "asc" ? "ASC" : "DESC";
   const w = where.join(" AND ");
 
+  // «Últimos cambios»: primero las unidades con la fecha registrada más reciente (historial unit_events,
+  // no updated_at, que la carga de Excel cambia en todas). Las que nunca se tocaron siguen por facturación.
+  const page_ = [size, (page - 1) * size];
+  const rowsSql = sort === "recent"
+    ? `SELECT v.* FROM v_units v
+       LEFT JOIN (SELECT unit_id, MAX(id) ev FROM unit_events GROUP BY unit_id) le ON le.unit_id = v.id
+       WHERE ${w} ORDER BY le.ev IS NULL, le.ev ${dir}, v.billing_date DESC, v.id DESC LIMIT ? OFFSET ?`
+    : `SELECT * FROM v_units WHERE ${w} ORDER BY ${sort} ${dir}, id ${dir} LIMIT ? OFFSET ?`;
   const [[{ total }], rows] = await Promise.all([
     queryList<{ total: number }>(`SELECT COUNT(*) total FROM v_units WHERE ${w}`, args),
-    queryList<Record<string, unknown>>(`SELECT * FROM v_units WHERE ${w} ORDER BY ${sort} ${dir}, id ${dir} LIMIT ? OFFSET ?`, [...args, size, (page - 1) * size]),
+    queryList<Record<string, unknown>>(rowsSql, [...args, ...page_]),
   ]);
   // Último registro de cada unidad (quién y cuándo) para seguir el trabajo en tiempo real
   if (rows.length) {
