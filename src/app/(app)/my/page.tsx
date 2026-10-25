@@ -4,12 +4,13 @@ import { Button, toast } from "@heroui/react";
 import { CheckCircle2, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { ProcessRoute } from "@/components/ProcessRoute";
+import { StageImport } from "@/components/StageImport";
 import { cn } from "@/lib/cn";
 import { DELAY_REASONS, SITE_INFO, STATUS_LABEL, daysText, fmtDate, type DateField, type Site, type Status } from "@/lib/hsp";
 import { areaOf, needsDelayReason, previousDate, stageLabel, today, type Stage } from "@/lib/workflow";
 
 type Me = {
-  name: string; area: string | null; carrier: string | null;
+  name: string; area: string | null; carrier: string | null; canImport: boolean;
   pending: (Stage & { pending: number })[];
   today: { id: number; at: string; field: string; new_value: string | null; site: Site; chassis: string }[];
   carriers: string[];
@@ -145,6 +146,16 @@ export default function MyWorkPage() {
             })}
           </div>
 
+          {me.canImport && (
+            <Card className="p-4">
+              <p className="mb-2 text-xs text-sb-on-surface-variant">
+                <b className="text-sb-on-surface">Carga masiva con Excel:</b> descarga la plantilla (ya trae tus unidades pendientes), escribe la fecha en la columna de tu etapa y súbela.
+                Antes de guardar verás cuáles se registran y cuáles no.
+              </p>
+              <StageImport stages={me.pending.map(({ site, field }) => ({ site, field }))} onSaved={() => { setReload((n) => n + 1); loadMe(); }} />
+            </Card>
+          )}
+
           {[...new Set(me.pending.map((p) => p.site))].map((site) => (
             <Card key={site} className="p-0">
               <details className="group">
@@ -191,7 +202,7 @@ export default function MyWorkPage() {
               <ul className="divide-y divide-sb-outline-variant/25">
                 {rows.map((u) => {
                   const prev = previousDate(u.site, u, stage.field);
-                  const prevKey = SITE_INFO[u.site].dates.find((d) => u[d.key] === prev)?.key;
+                  const prevKey = prev ? SITE_INFO[u.site].dates.find((d) => u[d.key] === prev)?.key : undefined;
                   const on = sel.has(u.id);
                   return (
                     <li key={u.id}>

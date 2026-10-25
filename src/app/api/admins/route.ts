@@ -24,13 +24,13 @@ function parseStages(v: unknown): { site: string; field: string }[] | null {
 }
 
 /** Etapas, área y empresa a partir de lo que envía el formulario. El área define las etapas (salvo "Personalizado"). */
-function parseAssignment(b: { area?: unknown; stages?: unknown; carrier?: unknown }) {
+function parseAssignment(b: { area?: unknown; stages?: unknown; carrier?: unknown; canImport?: unknown }) {
   const area = areaOf(String(b.area ?? "CUSTOM"));
   if (!area) return null;
   const stages = area.id === "CUSTOM" ? parseStages(b.stages ?? []) : areaStages(area);
   if (!stages) return null;
   const carrier = area.carrier ? String(b.carrier ?? "").trim().toUpperCase().slice(0, 120) || null : null;
-  return { area: area.id, stages, carrier };
+  return { area: area.id, stages, carrier, canImport: b.canImport ? 1 : 0 };
 }
 
 export async function GET(req: Request) {
@@ -43,7 +43,7 @@ export async function GET(req: Request) {
   }
   const roles = manageable(s.role);
   const users = await queryList<{ id: number; name: string; email: string; role: Role; created_at: string; last_seen: string | null }>(
-    `SELECT id, name, email, role, area, carrier, DATE_FORMAT(created_at,'%Y-%m-%d %H:%i') AS created_at,
+    `SELECT id, name, email, role, area, carrier, can_import, DATE_FORMAT(created_at,'%Y-%m-%d %H:%i') AS created_at,
        DATE_FORMAT(last_seen,'%Y-%m-%d %H:%i:%s') AS last_seen,
        (last_seen > NOW() - INTERVAL 60 SECOND) AS online
      FROM users WHERE role IN (?) ORDER BY id DESC`,
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
   const email = String(b.email ?? "").trim().toLowerCase();
   const password = String(b.password ?? "");
   const role: Role = b.role === "operator" ? "operator" : "admin";
-  const asg = role === "operator" ? parseAssignment(b) : { area: null, stages: [], carrier: null };
+  const asg = role === "operator" ? parseAssignment(b) : { area: null, stages: [], carrier: null, canImport: 0 };
   if (!manageable(s.role).includes(role)) return NextResponse.json({ error: "No puedes crear ese tipo de usuario" }, { status: 403 });
   if (!name || !/^\S+@\S+\.\S+$/.test(email) || password.length < 8) {
     return NextResponse.json({ error: "Nombre, correo válido y contraseña (mín. 8) son obligatorios" }, { status: 400 });
@@ -70,8 +70,8 @@ export async function POST(req: Request) {
   if (role === "operator" && !asg.stages.length) return NextResponse.json({ error: "Elige el área o al menos una etapa" }, { status: 400 });
   try {
     await tx(async (c) => {
-      const [r] = await c.query("INSERT INTO users(name,email,password_hash,role,area,carrier) VALUES (?,?,?,?,?,?)", [
-        name, email, bcrypt.hashSync(password, 10), role, asg.area, asg.carrier,
+      const [r] = await c.query("INSERT INTO users(name,email,password_hash,role,area,carrier,can_import) VALUES (?,?,?,?,?,?,?)", [
+        name, email, bcrypt.hashSync(password, 10), role, asg.area, asg.carrier, asg.canImport,
       ]);
       const id = (r as { insertId: number }).insertId;
       if (asg.stages.length) await c.query("INSERT INTO user_stages(user_id, site, field) VALUES ?", [asg.stages.map((st) => [id, st.site, st.field])]);
@@ -95,7 +95,7 @@ export async function PATCH(req: Request) {
     const asg = parseAssignment(b);
     if (!asg || u.role !== "operator" || !asg.stages.length) return NextResponse.json({ error: "Elige el área o al menos una etapa" }, { status: 400 });
     await tx(async (c) => {
-      await c.query("UPDATE users SET area=?, carrier=? WHERE id=?", [asg.area, asg.carrier, id]);
+      await c.query("UPDATE users SET area=?, carrier=?, can_import=? WHERE id=?", [asg.area, asg.carrier, asg.canImport, id]);
       await c.query("DELETE FROM user_stages WHERE user_id=?", [id]);
       await c.query("INSERT INTO user_stages(user_id, site, field) VALUES ?", [asg.stages.map((st) => [id, st.site, st.field])]);
     });

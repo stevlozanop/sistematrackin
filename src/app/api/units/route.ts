@@ -80,8 +80,23 @@ export async function GET(req: Request) {
 
   const [[{ total }], rows] = await Promise.all([
     queryList<{ total: number }>(`SELECT COUNT(*) total FROM v_units WHERE ${w}`, args),
-    queryList(`SELECT * FROM v_units WHERE ${w} ORDER BY ${sort} ${dir}, id ${dir} LIMIT ? OFFSET ?`, [...args, size, (page - 1) * size]),
+    queryList<Record<string, unknown>>(`SELECT * FROM v_units WHERE ${w} ORDER BY ${sort} ${dir}, id ${dir} LIMIT ? OFFSET ?`, [...args, size, (page - 1) * size]),
   ]);
+  // Último registro de cada unidad (quién y cuándo) para seguir el trabajo en tiempo real
+  if (rows.length) {
+    const last = await queryList<{ unit_id: number; field: string; at: string; by: string | null }>(
+      `SELECT e.unit_id, e.field, DATE_FORMAT(e.at,'%Y-%m-%d %H:%i') at, us.name \`by\`
+       FROM unit_events e
+       JOIN (SELECT unit_id, MAX(id) id FROM unit_events WHERE unit_id IN (?) GROUP BY unit_id) m ON m.id = e.id
+       LEFT JOIN users us ON us.id = e.user_id`,
+      [rows.map((r) => r.id)],
+    );
+    const byUnit = new Map(last.map((l) => [l.unit_id, l]));
+    for (const r of rows) {
+      const l = byUnit.get(r.id as number);
+      if (l) Object.assign(r, { last_field: l.field, last_at: l.at, last_by: l.by });
+    }
+  }
   return NextResponse.json({ total, page, size, rows });
 }
 

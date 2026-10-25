@@ -29,8 +29,8 @@ export async function getStages(userId: number): Promise<Stage[]> {
 /** Etapas + área + empresa de transporte (si la tiene, solo trabaja con las unidades de esa empresa). */
 export async function getScope(userId: number) {
   const [[u], stages] = await Promise.all([
-    query<{ area: string | null; carrier: string | null }>("SELECT area, carrier FROM users WHERE id=?", [userId]),
+    query<{ area: string | null; carrier: string | null; can_import: number }>("SELECT area, carrier, can_import FROM users WHERE id=?", [userId]),
     getStages(userId),
   ]);
-  return { stages, area: u?.area ?? null, carrier: u?.carrier || null };
+  return { stages, area: u?.area ?? null, carrier: u?.carrier || null, canImport: !!Number(u?.can_import) };
 }

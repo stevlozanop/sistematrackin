@@ -13,7 +13,7 @@ import {
   DELAY_REASONS, MONTHS, SITE_INFO, STATUS_LABEL, STATUS_STEP, daysText, fmtDate, isSite,
   type DateField, type Service, type Site, type Status,
 } from "@/lib/hsp";
-import { allowedNext, isSuper, previousDate, today, type Role, type Stage } from "@/lib/workflow";
+import { allowedNext, isSuper, previousDate, stageLabel, today, type Role, type Stage } from "@/lib/workflow";
 
 type Unit = {
   id: number; site: Site; chassis: string; motor: string | null; lote: string | null; material: string | null;
@@ -22,7 +22,8 @@ type Unit = {
   route: string | null; nave: string | null; container: string | null; carrier: string | null; plan_almacen: string | null;
   driver: string | null; gm_com: string | null; observation: string | null; delay_reason: string | null;
   billing_date: string | null; zone: string | null; season: string; via_lima: number;
-  days_left: number | null; alert: "VENCIDA" | "POR VENCER" | null; lead_time: number | null; est_date: string | null;
+  days_left: number | null; alert: "VENCIDA" | "POR VENCER" | null;
+  last_field?: string; last_at?: string; last_by?: string | null; lead_time: number | null; est_date: string | null;
   status: Status; service: Service | null; real_days: number | null;
 } & Partial<Record<DateField, string | null>>;
 
@@ -144,6 +145,8 @@ export default function SitePage({ params, searchParams }: {
   const [selected, setSelected] = useState<Selection>(new Set());
   const [reload, setReload] = useState(0);
   const [showFilters, setShowFilters] = useState(false); // en celular los filtros se abren con un botón
+  const [updatedAt, setUpdatedAt] = useState("");
+  const [flash, setFlash] = useState<Set<number>>(new Set());
 
   const bulk = useOverlayState();
   const [bulkField, setBulkField] = useState<Key | null>(info.dates[0].key);
@@ -188,7 +191,18 @@ export default function SitePage({ params, searchParams }: {
     fetch(`/api/units?${query}`).then(async (r) => {
       const j = await r.json().catch(() => null);
       if (!alive) return;
-      if (r.ok && j) { setRows(j.rows); setTotal(j.total); } else toast.danger(j?.error ?? "No se pudieron cargar las unidades");
+      if (r.ok && j) {
+        // Resalta las filas que cambiaron desde la última actualización (otro usuario registró algo)
+        setRows((prev) => {
+          const sig = (u: Unit) => `${u.status}|${u.last_at ?? ""}|${u.delay_reason ?? ""}`;
+          const old = new Map(prev.map((u) => [u.id, sig(u)]));
+          const changed = (j.rows as Unit[]).filter((u) => old.has(u.id) && old.get(u.id) !== sig(u)).map((u) => u.id);
+          if (changed.length) { setFlash(new Set(changed)); setTimeout(() => setFlash(new Set()), 3000); }
+          return j.rows;
+        });
+        setTotal(j.total);
+        setUpdatedAt(new Date().toLocaleTimeString("es-PE"));
+      } else toast.danger(j?.error ?? "No se pudieron cargar las unidades");
       setLoading(false);
     });
     return () => { alive = false; };
@@ -278,7 +292,7 @@ export default function SitePage({ params, searchParams }: {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageTitle title={info.title} sub={`${total.toLocaleString()} unidades${Object.values(f).some(Boolean) ? " con los filtros actuales" : ""}`}>
+      <PageTitle title={info.title} sub={`${total.toLocaleString()} unidades${Object.values(f).some(Boolean) ? " con los filtros actuales" : ""}${updatedAt ? ` · en vivo, actualizado ${updatedAt}` : ""}`}>
         <Button size="sm" variant="secondary" className="rounded-full" isDisabled={!selIds.length} onPress={() => {
           setBulkField(sup ? info.dates[0].key : info.dates.find((d) => myFields.has(d.key))?.key ?? "delay_reason");
           setBulkValue("");
@@ -448,7 +462,7 @@ export default function SitePage({ params, searchParams }: {
                 </div>
               )}>
                 {rows.map((u) => (
-                  <Table.Row key={u.id} id={u.id}>
+                  <Table.Row key={u.id} id={u.id} className={flash.has(u.id) ? "bg-sb-ontime-soft transition-colors duration-1000" : "transition-colors duration-1000"}>
                     <Table.Cell className="pe-0"><Check slot="selection" aria-label={`Seleccionar ${u.chassis}`} /></Table.Cell>
                     <Table.Cell>
                       <div className="font-mono text-xs font-medium">{u.chassis}</div>
@@ -465,11 +479,16 @@ export default function SitePage({ params, searchParams }: {
                     <Table.Cell className="text-xs">{fmtDate(u.billing_date) || "—"}</Table.Cell>
                     {info.dates.map((d) => (
                       <Table.Cell key={d.key}>
-                        <DateCell key={`${u.id}-${d.key}`} label={d.label} value={u[d.key]} mode={modeOf(u, d.key)} min={previousDate(site, u, d.key)} onSave={(v) => patch([u.id], { [d.key]: v || null })} />
+                        <span className={u[d.key] ? "whitespace-nowrap text-xs" : "text-xs text-muted"}>{u[d.key] ? fmtDate(u[d.key]) : "—"}</span>
                       </Table.Cell>
                     )) as never}
                     <Table.Cell>
                       <Chip size="sm" className="whitespace-nowrap" variant={u.status === "ENTREGADO" ? "primary" : "soft"} color={u.status === "ENTREGADO" ? "accent" : "default"}>{STATUS_LABEL[u.status]}</Chip>
+                      {u.last_at && (
+                        <div className="mt-1 whitespace-nowrap text-[10px] text-muted" title={`Último registro: ${stageLabel(site, u.last_field ?? "")} · ${u.last_at}`}>
+                          {u.last_by ?? "—"} · {fmtDate(u.last_at.slice(0, 10))} {u.last_at.slice(11)}
+                        </div>
+                      )}
                     </Table.Cell>
                     <Table.Cell>
                       <div className="text-xs">{fmtDate(u.est_date) || "—"}</div>

@@ -22,11 +22,11 @@ export const TEXT_FIELDS = [
 export type ImportFormat = "HSP" | "FACT";
 
 /** Normaliza encabezados: sin tildes, minúsculas, espacios simples. */
-const norm = (s: string) =>
+export const norm = (s: string) =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
 
 /** Columnas de cada formato: campo -> posibles encabezados (normalizados). */
-const MAP = {
+export const MAP = {
   PCL: {
     billing_date: ["fecha de facturacion"],
     dealer: ["nombre tienda"],
@@ -116,12 +116,12 @@ export function toIso(v: unknown): string | null {
   return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null;
 }
 
-const text = (v: unknown, max = 160) => {
+export const text = (v: unknown, max = 160) => {
   const s = String(v ?? "").replace(/\s+/g, " ").trim();
   return s ? s.slice(0, max) : null;
 };
 
-function sheetRows(ws: XLSX.WorkSheet) {
+export function sheetRows(ws: XLSX.WorkSheet) {
   const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "", raw: true, blankrows: false });
   const header = (raw[0] ?? []).map((h) => norm(String(h ?? "")));
   return { header, rows: raw.slice(1) };

@@ -9,7 +9,7 @@ import { Check } from "@/components/Check";
 import { AreaPicker, type Assignment } from "@/components/AreaPicker";
 import { ROLE_LABEL, USER_DOMAIN, areaOf, stageLabel, suggestEmail, type Role, type Stage } from "@/lib/workflow";
 
-type Admin = { id: number; name: string; email: string; role: Exclude<Role, "dev">; created_at: string; last_seen: string | null; online: number; stages: Stage[]; area: string | null; carrier: string | null };
+type Admin = { id: number; name: string; email: string; role: Exclude<Role, "dev">; created_at: string; last_seen: string | null; online: number; stages: Stage[]; area: string | null; carrier: string | null; can_import: number };
 
 const initials = (n: string) => n.split(" ").filter(Boolean).map((x) => x[0]).join("").toUpperCase().slice(0, 2);
 
@@ -36,7 +36,7 @@ export default function AdminsPage() {
   const [password, setPassword] = useState(() => genPassword());
   const [saving, setSaving] = useState(false);
   const [role, setRole] = useState<"operator" | "admin">("operator");
-  const emptyAsg: Assignment = { area: "", stages: [], carrier: "" };
+  const emptyAsg: Assignment = { area: "", stages: [], carrier: "", canImport: true };
   const [asg, setAsg] = useState<Assignment>(emptyAsg);
   const [carriers, setCarriers] = useState<string[]>([]);
   const [myRole, setMyRole] = useState<Role | null>(null);
@@ -151,7 +151,7 @@ export default function AdminsPage() {
             </div>
             <div className="flex flex-wrap gap-1.5">
               {a.role === "operator" && (
-                <Button size="sm" variant="secondary" className="rounded-full" onPress={() => { setEditStages(a); setDraftAsg({ area: a.area ?? "CUSTOM", stages: a.stages, carrier: a.carrier ?? "" }); }}><ListChecks className="h-3.5 w-3.5" /> Área</Button>
+                <Button size="sm" variant="secondary" className="rounded-full" onPress={() => { setEditStages(a); setDraftAsg({ area: a.area ?? "CUSTOM", stages: a.stages, carrier: a.carrier ?? "", canImport: !!Number(a.can_import) }); }}><ListChecks className="h-3.5 w-3.5" /> Área</Button>
               )}
               <Button size="sm" variant="secondary" className="rounded-full" onPress={() => copy(a.email, "Correo copiado")}><Copy className="h-3.5 w-3.5" /> Usuario</Button>
               <Button size="sm" variant="secondary" className="rounded-full" onPress={() => reset(a)}><KeyRound className="h-3.5 w-3.5" /> Contraseña</Button>
@@ -206,7 +206,7 @@ export default function AdminsPage() {
                     <Table.Cell>
                       <div className="flex items-center justify-end gap-1">
                         {a.role === "operator" && (
-                          <Button isIconOnly size="sm" variant="tertiary" aria-label={`Cambiar área de ${a.name}`} onPress={() => { setEditStages(a); setDraftAsg({ area: a.area ?? "CUSTOM", stages: a.stages, carrier: a.carrier ?? "" }); }}><ListChecks className="h-4 w-4" /></Button>
+                          <Button isIconOnly size="sm" variant="tertiary" aria-label={`Cambiar área de ${a.name}`} onPress={() => { setEditStages(a); setDraftAsg({ area: a.area ?? "CUSTOM", stages: a.stages, carrier: a.carrier ?? "", canImport: !!Number(a.can_import) }); }}><ListChecks className="h-4 w-4" /></Button>
                         )}
                         <Button isIconOnly size="sm" variant="tertiary" aria-label={`Copiar correo de ${a.name}`} onPress={() => copy(a.email, "Correo copiado")}><Copy className="h-4 w-4" /></Button>
                         <Button isIconOnly size="sm" variant="tertiary" aria-label={`Restablecer contraseña de ${a.name}`} onPress={() => reset(a)}><KeyRound className="h-4 w-4" /></Button>

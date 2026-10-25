@@ -31,7 +31,7 @@ export async function GET() {
     : [];
   return NextResponse.json({
     id: s.id, name: s.name, role: s.role,
-    area: scope.area, carrier: scope.carrier,
+    area: scope.area, carrier: scope.carrier, canImport: scope.canImport,
     stages: scope.stages, pending, today, carriers,
   });
 }

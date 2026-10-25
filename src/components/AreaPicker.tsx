@@ -5,7 +5,7 @@ import { SITE_INFO, type Site } from "@/lib/hsp";
 import { AREAS, areaOf, stageLabel, type Stage } from "@/lib/workflow";
 import { StagePicker } from "@/components/StagePicker";
 
-export type Assignment = { area: string; stages: Stage[]; carrier: string };
+export type Assignment = { area: string; stages: Stage[]; carrier: string; canImport: boolean };
 
 /**
  * Paso 1: módulo (PCL Pucallpa o YUR Yurimaguas). Paso 2: área de ese módulo (las etapas se asignan solas).
@@ -16,8 +16,8 @@ export function AreaPicker({ value, onChange, carriers }: { value: Assignment; o
   const [module, setModule] = useState<Site | "CUSTOM" | null>(area ? (area.site ?? "CUSTOM") : null);
   const pick = (m: Site | "CUSTOM") => {
     setModule(m);
-    if (m === "CUSTOM") onChange({ area: "CUSTOM", stages: value.area === "CUSTOM" ? value.stages : [], carrier: "" });
-    else if (area?.site !== m) onChange({ area: "", stages: [], carrier: "" });
+    if (m === "CUSTOM") onChange({ ...value, area: "CUSTOM", stages: value.area === "CUSTOM" ? value.stages : [], carrier: "" });
+    else if (area?.site !== m) onChange({ ...value, area: "", stages: [], carrier: "" });
   };
   return (
     <div className="flex flex-col gap-3">
@@ -44,7 +44,7 @@ export function AreaPicker({ value, onChange, carriers }: { value: Assignment; o
             <button
               type="button"
               key={a.id}
-              onClick={() => onChange({ area: a.id, stages: a.id === "CUSTOM" ? value.stages : [], carrier: a.carrier ? value.carrier : "" })}
+              onClick={() => onChange({ ...value, area: a.id, stages: a.id === "CUSTOM" ? value.stages : [], carrier: a.carrier ? value.carrier : "" })}
               className={cn("rounded-xl border p-2.5 text-left transition-colors", on ? "border-sb-on-surface bg-sb-on-surface text-sb-surface" : "border-sb-outline-variant/60 hover:bg-sb-surface-container-low")}
             >
               <div className="text-xs font-semibold">{a.label}</div>
@@ -69,6 +69,15 @@ export function AreaPicker({ value, onChange, carriers }: { value: Assignment; o
           />
           <datalist id="area-carriers">{carriers.map((c) => <option key={c} value={c} />)}</datalist>
           <span className="text-[10px] text-muted">Si eliges una empresa, este usuario solo verá y registrará las unidades que lleva esa empresa.</span>
+        </label>
+      )}
+      {module && (
+        <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-sb-outline-variant/60 p-2.5 text-xs">
+          <input type="checkbox" checked={value.canImport} onChange={(e) => onChange({ ...value, canImport: e.target.checked })} className="mt-0.5 h-4 w-4 accent-[var(--sb-primary)]" />
+          <span>
+            <b>Puede subir Excel con las fechas de su etapa</b>
+            <span className="block text-[10px] text-muted">Carga masiva: solo se guardan sus etapas, en orden y sin cambiar fechas ya registradas.</span>
+          </span>
         </label>
       )}
     </div>
