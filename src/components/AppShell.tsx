@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, ChevronLeft, ClipboardCheck, LayoutDashboard, LogOut, Moon, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
+import { Activity, Bell, ChevronLeft, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
@@ -35,7 +35,9 @@ const SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
   },
 ];
 
-const SPRING = { type: "spring", stiffness: 400, damping: 32, mass: 0.7 } as const;
+const PROFILE: Item = { title: "Mi perfil", href: "/profile", icon: CircleUser };
+
+const SPRING ={ type: "spring", stiffness: 400, damping: 32, mass: 0.7 } as const;
 
 function NavLink({ item, active, open }: { item: Item; active: boolean; open: boolean }) {
   return (
@@ -127,7 +129,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], children }: { nam
         // módulos PCL / YUR: solo los que le corresponden
         (!i.href.startsWith("/units/") || sites.includes(i.href.slice(7).toUpperCase()))),
     }));
-  const pageName = sections.flatMap((s) => s.items).find((i) => path.startsWith(i.href))?.title ?? "";
+  const pageName = [...sections.flatMap((s) => s.items), PROFILE].find((i) => path.startsWith(i.href))?.title ?? "";
   const initials = name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
   return (
@@ -163,6 +165,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], children }: { nam
           </div>
           <div className="flex flex-col gap-px border-t border-sb-outline-variant/60 pt-2">
             {open && <Heading>Cuenta</Heading>}
+            <NavLink item={PROFILE} active={path.startsWith(PROFILE.href)} open={open} />
             <ToolButton open={open} label="Salir" onClick={logout}>
               <LogOut className="h-[16px] w-[16px] shrink-0" />
             </ToolButton>
@@ -176,13 +179,13 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], children }: { nam
           <h1 className="truncate text-sm font-medium text-sb-on-surface-variant">{pageName}</h1>
           <div className="flex shrink-0 items-center gap-2">
             <AlertBell href={role === "operator" ? "/my" : "/alerts"} />
-            <div className="flex items-center gap-2 rounded-full bg-sb-surface-container-high px-3 py-1.5">
+            <Link href="/profile" title="Mi perfil" className="flex items-center gap-2 rounded-full bg-sb-surface-container-high px-3 py-1.5 transition-colors hover:bg-sb-surface-container-highest">
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-sb-surface-container-highest">
                 <span className="text-[8px] font-semibold text-sb-on-surface/80">{initials}</span>
               </div>
               <span className="hidden text-[10px] text-sb-on-surface-variant sm:block">{name}</span>
               <span className="text-[10px] font-medium uppercase text-sb-on-surface-variant">{role === "operator" ? "Encargado" : role === "admin" ? "Supervisor" : "Super admin"}</span>
-            </div>
+            </Link>
           </div>
         </header>
 
@@ -194,7 +197,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], children }: { nam
           </AnimatePresence>
         </main>
 
-        <MobileNav items={sections.flatMap((x) => x.items)} activeHref={path} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} />
+        <MobileNav items={[...sections.flatMap((x) => x.items), PROFILE]} activeHref={path} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} />
       </div>
     </div>
   );

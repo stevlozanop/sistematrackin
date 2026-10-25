@@ -47,3 +47,4 @@ next-env.d.ts
 # Excel con datos de la empresa (no se suben al historial)
 *.xlsx
 *.xls
+ACCESOS-ENCARGADOS.md
