@@ -136,8 +136,8 @@ export default function MyWorkPage() {
                   <div className="text-[11px] opacity-70">{st.pending === 1 ? "unidad por registrar" : "unidades por registrar"}</div>
                   {(alertsOf(st, "VENCIDA") > 0 || alertsOf(st, "POR VENCER") > 0) && (
                     <div className="mt-1.5 flex flex-wrap gap-1 text-[10px] font-semibold">
-                      {alertsOf(st, "VENCIDA") > 0 && <span className={cn("rounded-full px-2 py-0.5", on ? "bg-sb-surface text-sb-on-surface" : "bg-sb-on-surface text-sb-surface")}>{alertsOf(st, "VENCIDA")} vencidas</span>}
-                      {alertsOf(st, "POR VENCER") > 0 && <span className="rounded-full bg-sb-surface-container-high px-2 py-0.5 text-sb-on-surface">{alertsOf(st, "POR VENCER")} por vencer</span>}
+                      {alertsOf(st, "VENCIDA") > 0 && <span className="rounded-full bg-sb-late px-2 py-0.5 text-white">{alertsOf(st, "VENCIDA")} vencidas</span>}
+                      {alertsOf(st, "POR VENCER") > 0 && <span className="rounded-full bg-sb-late-soft px-2 py-0.5 text-sb-on-surface">{alertsOf(st, "POR VENCER")} por vencer</span>}
                     </div>
                   )}
                 </button>
@@ -215,7 +215,7 @@ export default function MyWorkPage() {
                         <div className="col-start-2 md:col-start-auto md:text-right">
                           {u.alert ? (
                             <span className={cn("inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                              u.alert === "VENCIDA" ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container-high")}>{daysText(u.days_left)}</span>
+                              u.alert === "VENCIDA" ? "bg-sb-late text-white" : "bg-sb-late-soft text-sb-on-surface")}>{daysText(u.days_left)}</span>
                           ) : u.est_date ? <span className="text-[11px] text-muted">Estimada {fmtDate(u.est_date)}</span> : null}
                         </div>
                       </button>

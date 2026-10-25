@@ -8,6 +8,7 @@ import { Card, PageTitle } from "@/components/ui";
 import { Check } from "@/components/Check";
 import { ImportPanel, readExcel, type Preview } from "@/components/ImportPanel";
 import { ProcessRoute } from "@/components/ProcessRoute";
+import { ServiceBadge } from "@/components/Service";
 import {
   DELAY_REASONS, MONTHS, SITE_INFO, STATUS_LABEL, STATUS_STEP, daysText, fmtDate, isSite,
   type DateField, type Service, type Site, type Status,
@@ -97,12 +98,7 @@ function ReasonCell({ value, onSave, reasons }: { value: string | null; onSave: 
 }
 
 function ServiceChip({ s }: { s: Service | null }) {
-  if (!s) return <span className="text-[10px] text-muted">Sin plazo</span>;
-  return (
-    <Chip size="sm" className="whitespace-nowrap" variant={s === "A TIEMPO" ? "primary" : "soft"} color={s === "A TIEMPO" ? "accent" : "default"}>
-      {s === "A TIEMPO" ? "A tiempo" : "Fuera de tiempo"}
-    </Chip>
-  );
+  return <ServiceBadge s={s} />;
 }
 
 /** Select simple de HeroUI para filtros. */
@@ -383,7 +379,7 @@ export default function SitePage({ params, searchParams }: {
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   <ServiceChip s={u.service} />
                   {u.alert && (
-                    <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${u.alert === "VENCIDA" ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container-high"}`}>{daysText(u.days_left)}</span>
+                    <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${u.alert === "VENCIDA" ? "bg-sb-late text-white" : "bg-sb-late-soft text-sb-on-surface"}`}>{daysText(u.days_left)}</span>
                   )}
                   {u.delay_reason && <span className="text-[10px] text-muted">{u.delay_reason}</span>}
                 </div>
@@ -481,7 +477,7 @@ export default function SitePage({ params, searchParams }: {
                         {u.lead_time != null ? `${u.lead_time} días${site === "YUR" ? ` · ${u.season.toLowerCase()}` : ""}` : "Sin plazo configurado"}
                       </div>
                       {u.alert && (
-                        <span className={`mt-1 inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${u.alert === "VENCIDA" ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container-high"}`}>
+                        <span className={`mt-1 inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${u.alert === "VENCIDA" ? "bg-sb-late text-white" : "bg-sb-late-soft text-sb-on-surface"}`}>
                           {daysText(u.days_left)}
                         </span>
                       )}

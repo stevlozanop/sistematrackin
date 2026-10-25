@@ -77,8 +77,8 @@ export default function AlertsPage() {
                   <div className="text-[11px] text-muted">Responsable: {areaFor(r.site, r.field)}</div>
                 </div>
                 <div className="flex gap-1.5">
-                  {r.overdue > 0 && <Link href={unitLink(r.site, { pending: r.field, alert: "VENCIDA" })} className="rounded-full bg-sb-on-surface px-2.5 py-1 font-semibold text-sb-surface">{r.overdue} vencidas</Link>}
-                  {r.soon > 0 && <Link href={unitLink(r.site, { pending: r.field, alert: "POR VENCER" })} className="rounded-full bg-sb-surface-container-high px-2.5 py-1 font-semibold">{r.soon} por vencer</Link>}
+                  {r.overdue > 0 && <Link href={unitLink(r.site, { pending: r.field, alert: "VENCIDA" })} className="rounded-full bg-sb-late px-2.5 py-1 font-semibold text-white">{r.overdue} vencidas</Link>}
+                  {r.soon > 0 && <Link href={unitLink(r.site, { pending: r.field, alert: "POR VENCER" })} className="rounded-full bg-sb-late-soft px-2.5 py-1 font-semibold">{r.soon} por vencer</Link>}
                 </div>
               </li>
             ))}
@@ -93,7 +93,7 @@ export default function AlertsPage() {
               <li key={u.id}>
                 <Link href={unitLink(u.site, { q: u.chassis })} className="flex items-start gap-3 px-4 py-2.5 text-xs hover:bg-sb-surface-container-low">
                   <span className={cn("mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                    u.alert === "VENCIDA" ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container-high")}>
+                    u.alert === "VENCIDA" ? "bg-sb-late text-white" : "bg-sb-late-soft text-sb-on-surface")}>
                     {daysText(u.days_left)}
                   </span>
                   <div className="min-w-0 flex-1">

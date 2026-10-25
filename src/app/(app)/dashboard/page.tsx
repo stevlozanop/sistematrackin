@@ -5,7 +5,9 @@ import { ListBox, Select } from "@heroui/react";
 import { CheckCircle2, Clock, Gauge, Ship, Target, Truck } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
-import { ProcessRoute } from "@/components/ProcessRoute";
+import { ProcessRouteTabs } from "@/components/ProcessRoute";
+import { AnimatedNumber, SERVICE_STYLE, ServiceBadge, ServiceSplitBar } from "@/components/Service";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
 import { MONTHS, SITE_INFO, STATUS_LABEL, type Site, type Status } from "@/lib/hsp";
 
@@ -30,51 +32,92 @@ const drill = (site: Site, year: number, p: Record<string, string | number | und
   return `/units/${site.toLowerCase()}?${q}`;
 };
 
-/** Réplica de la tabla dinámica del Excel: mes × estado, con filas A TIEMPO / FUERA DE TIEMPO. */
+/** Fondo de la celda: más intenso cuanto mayor es el número (azul = a tiempo, rojo = fuera). */
+const heat = (sv: "A TIEMPO" | "FUERA DE TIEMPO", v: number, max: number) =>
+  v ? { background: `color-mix(in oklab, var(${sv === "A TIEMPO" ? "--sb-ontime" : "--sb-late"}) ${Math.round(12 + 48 * (v / Math.max(1, max)))}%, transparent)` } : undefined;
+
+/** Réplica de la tabla dinámica del Excel: mes × estado, con filas A TIEMPO (azul) / FUERA DE TIEMPO (rojo). */
 function StatusPivot({ site, cells, months, year }: { site: Site; cells: Cell[]; months: number[]; year: number }) {
   const statuses = SITE_INFO[site].statuses;
   const get = (m: number | null, st: Status | null, sv: string | null) =>
     cells.filter((c) => (m === null || c.m === m) && (st === null || c.status === st) && (sv === null || c.service === sv)).reduce((s, c) => s + c.n, 0);
   const rows = months.filter((m) => get(m, null, null));
-  const num = (v: number, href: string) => (v ? <Link href={href} className="hover:underline">{v.toLocaleString()}</Link> : "");
+  const max = (sv: string) => Math.max(1, ...rows.flatMap((m) => statuses.map((s) => get(m, s, sv))));
+  const maxOn = max("A TIEMPO"), maxLate = max("FUERA DE TIEMPO");
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] text-left text-xs">
-        <thead>
-          <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">
-            <th className="px-3 py-2.5 font-semibold">Mes fact.</th>
-            {statuses.map((s) => <th key={s} className="px-3 py-2.5 text-right font-semibold">{STATUS_LABEL[s]}</th>)}
-            <th className="px-3 py-2.5 text-right font-semibold">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {!rows.length && <tr><td colSpan={statuses.length + 2} className="px-3 py-8 text-center text-sb-on-surface-variant/60">Sin unidades para estos filtros.</td></tr>}
-          {rows.map((m) => (
-            <Fragment key={m}>
-              <tr className="border-t border-sb-outline-variant/40 bg-sb-surface-container-low font-semibold">
-                <td className="px-3 py-2">{MONTHS[m - 1]}</td>
-                {statuses.map((s) => <td key={s} className="px-3 py-2 text-right">{num(get(m, s, null), drill(site, year, { month: m, status: s }))}</td>)}
-                <td className="px-3 py-2 text-right">{num(get(m, null, null), drill(site, year, { month: m }))}</td>
-              </tr>
-              {(["A TIEMPO", "FUERA DE TIEMPO"] as const).map((sv) => (
-                <tr key={sv} className="text-sb-on-surface/80">
-                  <td className="py-1.5 pl-6 pr-3 text-[11px]">{sv === "A TIEMPO" ? "A tiempo" : "Fuera de tiempo"}</td>
-                  {statuses.map((s) => <td key={s} className="px-3 py-1.5 text-right">{num(get(m, s, sv), drill(site, year, { month: m, status: s, service: sv }))}</td>)}
-                  <td className="px-3 py-1.5 text-right">{num(get(m, null, sv), drill(site, year, { month: m, service: sv }))}</td>
-                </tr>
-              ))}
-            </Fragment>
-          ))}
-          {rows.length > 0 && (
-            <tr className="border-t-2 border-sb-outline-variant/60 font-bold">
-              <td className="px-3 py-2">Total</td>
-              {statuses.map((s) => <td key={s} className="px-3 py-2 text-right">{(rows.reduce((t, m) => t + get(m, s, null), 0) || "").toLocaleString()}</td>)}
-              <td className="px-3 py-2 text-right">{rows.reduce((t, m) => t + get(m, null, null), 0).toLocaleString()}</td>
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-3 px-4 pt-3 text-[11px] text-sb-on-surface-variant">
+        <ServiceBadge s="A TIEMPO" size="xs" /><ServiceBadge s="FUERA DE TIEMPO" size="xs" />
+        <span>Color más intenso = más unidades. Pasa el mouse por una celda para ver el detalle; haz clic para ver las unidades.</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px] border-separate border-spacing-y-[2px] text-left text-xs">
+          <thead>
+            <tr className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">
+              <th className="px-3 py-2 font-semibold">Mes fact.</th>
+              {statuses.map((s) => <th key={s} className="px-2 py-2 text-right font-semibold">{STATUS_LABEL[s]}</th>)}
+              <th className="px-3 py-2 text-right font-semibold">Total</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {!rows.length && <tr><td colSpan={statuses.length + 2} className="px-3 py-8 text-center text-sb-on-surface-variant/60">Sin unidades para estos filtros.</td></tr>}
+            {rows.map((m, i) => {
+              const on = get(m, null, "A TIEMPO"), late = get(m, null, "FUERA DE TIEMPO");
+              return (
+                <Fragment key={m}>
+                  <motion.tr initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} className="bg-sb-surface-container-low font-semibold">
+                    <td className="rounded-l-xl px-3 py-2">
+                      <div>{MONTHS[m - 1]}</div>
+                      <ServiceSplitBar onTime={on} late={late} className="mt-1 w-40" />
+                    </td>
+                    {statuses.map((s) => {
+                      const v = get(m, s, null);
+                      return <td key={s} className="px-2 py-2 text-right">{v ? <Link href={drill(site, year, { month: m, status: s })} className="hover:underline"><AnimatedNumber value={v} /></Link> : ""}</td>;
+                    })}
+                    <td className="rounded-r-xl px-3 py-2 text-right"><Link href={drill(site, year, { month: m })} className="hover:underline"><AnimatedNumber value={get(m, null, null)} /></Link></td>
+                  </motion.tr>
+                  {(["A TIEMPO", "FUERA DE TIEMPO"] as const).map((sv, j) => (
+                    <motion.tr key={sv} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 + 0.05 * (j + 1) }}>
+                      <td className="py-1 pl-5 pr-3"><ServiceBadge s={sv} size="xs" /></td>
+                      {statuses.map((s) => {
+                        const v = get(m, s, sv), stTotal = get(m, s, null);
+                        return (
+                          <td key={s} className="px-1 py-1 text-right">
+                            {v > 0 && (
+                              <Link
+                                href={drill(site, year, { month: m, status: s, service: sv })}
+                                title={`${MONTHS[m - 1]} · ${STATUS_LABEL[s]} · ${SERVICE_STYLE[sv].label}: ${v.toLocaleString()} (${Math.round((v / stTotal) * 100)}% de esa etapa)`}
+                                style={heat(sv, v, sv === "A TIEMPO" ? maxOn : maxLate)}
+                                className="block rounded-lg px-2 py-1 font-semibold transition-transform hover:scale-105"
+                              >
+                                <AnimatedNumber value={v} />
+                              </Link>
+                            )}
+                          </td>
+                        );
+                      })}
+                      <td className="px-3 py-1 text-right">
+                        <span className={cn("inline-flex items-center gap-1.5 font-semibold")}>
+                          <span className={cn("h-2 w-2 rounded-full", SERVICE_STYLE[sv].dot)} />
+                          <AnimatedNumber value={get(m, null, sv)} />
+                        </span>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </Fragment>
+              );
+            })}
+            {rows.length > 0 && (
+              <tr className="font-bold">
+                <td className="border-t-2 border-sb-outline-variant/60 px-3 py-2">Total</td>
+                {statuses.map((s) => <td key={s} className="border-t-2 border-sb-outline-variant/60 px-2 py-2 text-right">{(rows.reduce((t, m) => t + get(m, s, null), 0) || "").toLocaleString()}</td>)}
+                <td className="border-t-2 border-sb-outline-variant/60 px-3 py-2 text-right">{rows.reduce((t, m) => t + get(m, null, null), 0).toLocaleString()}</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -173,9 +216,8 @@ export default function DashboardPage() {
           <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold">
             Recorrido de una unidad <span className="text-[11px] font-normal text-sb-on-surface-variant">(clic para ocultar / mostrar)</span>
           </summary>
-          <div className="flex flex-col gap-4 border-t border-sb-outline-variant/40 px-4 py-3">
-            <ProcessRoute site="PCL" showBefore />
-            <ProcessRoute site="YUR" />
+          <div className="border-t border-sb-outline-variant/40 px-4 py-4">
+            <ProcessRouteTabs />
           </div>
         </details>
       </Card>
@@ -210,12 +252,15 @@ export default function DashboardPage() {
                 return (
                   <tr key={m} className="border-b border-sb-outline-variant/25 last:border-0 hover:bg-sb-surface-container-low">
                     <td className="px-3 py-2 font-medium">{MONTHS[m - 1]}</td>
-                    <td className="px-3 py-2 text-right">{p.n ? <Link className="hover:underline" href={drill("PCL", data.year, { month: m, service: "A TIEMPO" })}>{fmtPct(p.p)}</Link> : "—"}</td>
-                    <td className="px-3 py-2 text-right text-sb-on-surface-variant">{p.n ? <Link className="hover:underline" href={drill("PCL", data.year, { month: m, service: "FUERA DE TIEMPO" })}>{fmtPct(100 - (p.p ?? 0))}</Link> : "—"}</td>
-                    <td className="px-3 py-2 text-right">{y.n ? <Link className="hover:underline" href={drill("YUR", data.year, { month: m, service: "A TIEMPO" })}>{fmtPct(y.p)}</Link> : "—"}</td>
-                    <td className="px-3 py-2 text-right text-sb-on-surface-variant">{y.n ? <Link className="hover:underline" href={drill("YUR", data.year, { month: m, service: "FUERA DE TIEMPO" })}>{fmtPct(100 - (y.p ?? 0))}</Link> : "—"}</td>
+                    <td className="px-3 py-2 text-right">{p.n ? <Link className="hover:underline" href={drill("PCL", data.year, { month: m, service: "A TIEMPO" })}><span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-sb-ontime" />{fmtPct(p.p)}</Link> : "—"}</td>
+                    <td className="px-3 py-2 text-right text-sb-on-surface-variant">{p.n ? <Link className="hover:underline" href={drill("PCL", data.year, { month: m, service: "FUERA DE TIEMPO" })}><span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-sb-late" />{fmtPct(100 - (p.p ?? 0))}</Link> : "—"}</td>
+                    <td className="px-3 py-2 text-right">{y.n ? <Link className="hover:underline" href={drill("YUR", data.year, { month: m, service: "A TIEMPO" })}><span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-sb-ontime" />{fmtPct(y.p)}</Link> : "—"}</td>
+                    <td className="px-3 py-2 text-right text-sb-on-surface-variant">{y.n ? <Link className="hover:underline" href={drill("YUR", data.year, { month: m, service: "FUERA DE TIEMPO" })}><span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-sb-late" />{fmtPct(100 - (y.p ?? 0))}</Link> : "—"}</td>
                     <td className="px-3 py-2 text-right">
-                      <span className={cn("inline-flex min-w-12 justify-end rounded-full px-2 py-0.5 font-semibold", ok ? "bg-sb-on-surface text-sb-surface" : "")}>{fmtPct(hsp)}</span>
+                      <div className="ml-auto flex w-32 flex-col items-end gap-1">
+                        <span className={cn("inline-flex min-w-12 justify-end rounded-full px-2 py-0.5 font-semibold", ok ? "bg-sb-ontime text-white" : "")}>{fmtPct(hsp)}{ok ? " ✓" : ""}</span>
+                        {hsp !== null && <ServiceSplitBar onTime={hsp} late={100 - hsp} labels={false} className="w-full" />}
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-right text-sb-on-surface-variant">{hsp === null ? "—" : fmtPct(100 - hsp)}</td>
                     <td className="px-3 py-2 text-right text-sb-on-surface-variant">{data.target}%</td>
@@ -236,7 +281,7 @@ export default function DashboardPage() {
           </table>
         </div>
         <p className="border-t border-sb-outline-variant/40 px-4 py-2 text-[11px] text-sb-on-surface-variant/70">
-          HSP = promedio de PCL y YUR. Resaltado = cumple la meta. Haz clic en un % para ver esas unidades.
+          HSP = promedio de PCL y YUR. Azul con ✓ = cumple la meta. Haz clic en un % para ver esas unidades.
         </p>
       </Card>
 

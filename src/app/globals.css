@@ -18,6 +18,11 @@
   --sb-primary: #161618;
   --sb-on-primary: #ffffff;
   --page-bg: #f5f5f5;
+  /* Nivel de servicio (par azul/rojo validado para daltonismo y contraste) */
+  --sb-ontime: #2a78d6;
+  --sb-late: #e34948;
+  --sb-ontime-soft: color-mix(in oklab, #2a78d6 12%, transparent);
+  --sb-late-soft: color-mix(in oklab, #e34948 12%, transparent);
 }
 html.dark {
   --sb-background: #0a0a0b;
@@ -34,6 +39,10 @@ html.dark {
   --sb-primary: #ffffff;
   --sb-on-primary: #0a0a0b;
   --page-bg: #000000;
+  --sb-ontime: #3987e5;
+  --sb-late: #e66767;
+  --sb-ontime-soft: color-mix(in oklab, #3987e5 18%, transparent);
+  --sb-late-soft: color-mix(in oklab, #e66767 18%, transparent);
 }
 
 @theme inline {
@@ -49,6 +58,10 @@ html.dark {
   --color-sb-outline-variant: var(--sb-outline-variant);
   --color-sb-primary: var(--sb-primary);
   --color-sb-on-primary: var(--sb-on-primary);
+  --color-sb-ontime: var(--sb-ontime);
+  --color-sb-late: var(--sb-late);
+  --color-sb-ontime-soft: var(--sb-ontime-soft);
+  --color-sb-late-soft: var(--sb-late-soft);
   --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
