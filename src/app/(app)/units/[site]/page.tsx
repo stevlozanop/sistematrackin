@@ -3,7 +3,7 @@ import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { notFound } from "next/navigation";
 import { Button, Chip, Input, Label, ListBox, Modal, Select, Table, toast, useOverlayState } from "@heroui/react";
 import type { Key, Selection, SortDescriptor } from "@heroui/react";
-import { Check as CheckIcon, ChevronLeft, ChevronRight, Lock, MoreHorizontal, Search, Trash2, Upload, X } from "lucide-react";
+import { Check as CheckIcon, ChevronLeft, ChevronRight, Lock, MoreHorizontal, Search, SlidersHorizontal, Trash2, Upload, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { Check } from "@/components/Check";
 import { ImportPanel, readExcel, type Preview } from "@/components/ImportPanel";
@@ -147,6 +147,7 @@ export default function SitePage({ params, searchParams }: {
   const [sort, setSort] = useState<SortDescriptor>({ column: "billing_date", direction: "descending" });
   const [selected, setSelected] = useState<Selection>(new Set());
   const [reload, setReload] = useState(0);
+  const [showFilters, setShowFilters] = useState(false); // en celular los filtros se abren con un botón
 
   const bulk = useOverlayState();
   const [bulkField, setBulkField] = useState<Key | null>(info.dates[0].key);
@@ -307,12 +308,20 @@ export default function SitePage({ params, searchParams }: {
       )}
       {preview && <ImportPanel preview={preview} saving={saving} onSave={savePreview} onClose={() => setPreview(null)} />}
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
-        <label className="sbf-search lg:w-80">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <label className="sbf-search w-full lg:w-80">
           <Search className="h-4 w-4 opacity-40" />
           <input placeholder="Buscar chasis, motor, lote, factura, guía, pedido…" value={qInput} onChange={(e) => setQInput(e.target.value)} />
           {qInput && <button onClick={() => setQInput("")} className="opacity-40 hover:opacity-100"><X className="h-4 w-4" /></button>}
         </label>
+      </div>
+      <div className="flex items-center gap-2 lg:hidden">
+        <button className={`sbf-chip flex items-center gap-1.5 ${showFilters ? "active" : ""}`} onClick={() => setShowFilters((v) => !v)}>
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          Filtros{Object.entries(f).filter(([k, v]) => v && k !== "q" && k !== "status").length ? ` (${Object.entries(f).filter(([k, v]) => v && k !== "q" && k !== "status").length})` : ""}
+        </button>
+      </div>
+      <div className={`${showFilters ? "flex" : "hidden"} flex-col gap-3 lg:flex lg:flex-row lg:flex-wrap lg:items-center`}>
         <Filter label="Todos los dealers" className="lg:w-64" value={f.dealer} onChange={(v) => setFilter("dealer", v)} options={meta.dealers.map((d) => ({ id: d, label: d }))} />
         <Filter label={`${info.zoneLabel}: todos`} className="lg:w-52" value={f.zone} onChange={(v) => setFilter("zone", v)} options={meta.zones.map((d) => ({ id: d, label: d }))} />
         <Filter label="Año: todos" className="lg:w-36" value={f.year} onChange={(v) => setFilter("year", v)} options={meta.years.map((y) => ({ id: String(y), label: String(y) }))} />
@@ -347,7 +356,52 @@ export default function SitePage({ params, searchParams }: {
         ))}
       </div>
 
-      <Card className="sb-anim-table-in overflow-hidden">
+      {/* Celular: tarjetas (toca una para ver y registrar sus fechas) */}
+      <div className="flex flex-col gap-2 md:hidden">
+        {!rows.length && (
+          <Card className="px-4 py-10 text-center text-sm text-sb-on-surface-variant/60">
+            {loading ? "Cargando…" : Object.values(f).some(Boolean) ? "Ninguna unidad coincide con los filtros." : "Sin unidades."}
+          </Card>
+        )}
+        {rows.map((u) => {
+          const on = selected === "all" || (selected as Set<Key>).has(u.id);
+          return (
+            <Card key={u.id} className={`flex gap-3 p-3 ${on ? "ring-1 ring-sb-on-surface" : ""}`}>
+              <input type="checkbox" aria-label={`Seleccionar ${u.chassis}`} checked={on}
+                onChange={() => setSelected((p) => { const n = new Set(p === "all" ? rows.map((r) => r.id) : (p as Set<Key>)); if (n.has(u.id)) n.delete(u.id); else n.add(u.id); return n; })}
+                className="mt-1 h-5 w-5 shrink-0 accent-[var(--sb-primary)]" />
+              <button type="button" onClick={() => setEditId(u.id)} className="min-w-0 flex-1 text-left">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate font-mono text-xs font-semibold">{u.chassis}</div>
+                    <div className="truncate text-[11px] text-muted">{u.material} · {u.category}</div>
+                  </div>
+                  <Chip size="sm" className="shrink-0 whitespace-nowrap" variant={u.status === "ENTREGADO" ? "primary" : "soft"} color={u.status === "ENTREGADO" ? "accent" : "default"}>{STATUS_LABEL[u.status]}</Chip>
+                </div>
+                <div className="mt-1 truncate text-xs">{u.dealer}</div>
+                <div className="text-[11px] text-muted">{u.zone ?? "Sin zona"} · Fact. {fmtDate(u.billing_date) || "—"} · Est. {fmtDate(u.est_date) || "—"}</div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <ServiceChip s={u.service} />
+                  {u.alert && (
+                    <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${u.alert === "VENCIDA" ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container-high"}`}>{daysText(u.days_left)}</span>
+                  )}
+                  {u.delay_reason && <span className="text-[10px] text-muted">{u.delay_reason}</span>}
+                </div>
+              </button>
+            </Card>
+          );
+        })}
+        <div className="flex items-center justify-between px-1 text-[11px] text-sb-on-surface-variant">
+          <span>{selIds.length ? `${selIds.length} seleccionadas` : `${total.toLocaleString()} resultados`}</span>
+          <div className="flex items-center gap-1">
+            <button className="rounded-full p-2 hover:bg-sb-surface-container disabled:opacity-30" aria-label="Página anterior" disabled={page <= 1} onClick={() => { setPage(page - 1); setSelected(new Set()); }}><ChevronLeft className="h-4 w-4" /></button>
+            <span className="min-w-16 text-center font-medium text-sb-on-surface">{page.toLocaleString()} / {pages.toLocaleString()}</span>
+            <button className="rounded-full p-2 hover:bg-sb-surface-container disabled:opacity-30" aria-label="Página siguiente" disabled={page >= pages} onClick={() => { setPage(page + 1); setSelected(new Set()); }}><ChevronRight className="h-4 w-4" /></button>
+          </div>
+        </div>
+      </div>
+
+      <Card className="sb-anim-table-in hidden overflow-hidden md:block">
         <Table>
           <Table.ScrollContainer>
             <Table.Content

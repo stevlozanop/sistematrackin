@@ -146,9 +146,15 @@ export default function MyWorkPage() {
           </div>
 
           {[...new Set(me.pending.map((p) => p.site))].map((site) => (
-            <Card key={site} className="p-4">
-              <p className="mb-2 text-xs font-semibold">Dónde está tu trabajo en el recorrido ({SITE_INFO[site].title}):</p>
-              <ProcessRoute site={site} mine={me.pending.filter((p) => p.site === site).map((p) => p.field)} />
+            <Card key={site} className="p-0">
+              <details className="group">
+                <summary className="cursor-pointer list-none px-4 py-3 text-xs font-semibold">
+                  Ver el recorrido y dónde está tu paso ({SITE_INFO[site].title}) <span className="font-normal text-muted group-open:hidden">▸</span><span className="hidden font-normal text-muted group-open:inline">▾</span>
+                </summary>
+                <div className="border-t border-sb-outline-variant/40 px-4 py-3">
+                  <ProcessRoute site={site} mine={me.pending.filter((p) => p.site === site).map((p) => p.field)} />
+                </div>
+              </details>
             </Card>
           ))}
 

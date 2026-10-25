@@ -10,7 +10,7 @@ export const PageTitle = ({ title, sub, children }: { title: string; sub?: strin
       <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
       {sub && <p className="mt-0.5 text-[12px] text-sb-on-surface-variant/70">{sub}</p>}
     </div>
-    {children && <div className="flex items-center gap-2">{children}</div>}
+    {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
   </div>
 );
 

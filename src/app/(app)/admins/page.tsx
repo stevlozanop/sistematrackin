@@ -125,7 +125,43 @@ export default function AdminsPage() {
         {q && <button type="button" onClick={() => setQ("")} className="opacity-40 hover:opacity-100"><X className="h-4 w-4" /></button>}
       </label>
 
-      <Card className="sb-anim-table-in overflow-hidden">
+      {/* Celular: tarjetas */}
+      <div className="flex flex-col gap-2 md:hidden">
+        {!list.length && <Card className="px-4 py-10 text-center text-sm text-sb-on-surface-variant/60">{q ? "Sin resultados." : "Aún no hay usuarios. Crea el primer encargado."}</Card>}
+        {list.map((a) => (
+          <Card key={a.id} className="flex flex-col gap-2 p-3">
+            <div className="flex items-start gap-3">
+              <Avatar size="sm"><Avatar.Fallback>{initials(a.name)}</Avatar.Fallback></Avatar>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  {a.name}
+                  {!!Number(a.online) && <span className="h-2 w-2 rounded-full bg-sb-on-surface" title="En línea" />}
+                </div>
+                <div className="truncate text-[11px] text-muted">{a.email}</div>
+              </div>
+              <Chip size="sm" variant={a.role === "admin" ? "secondary" : "soft"}>{ROLE_LABEL[a.role]}</Chip>
+            </div>
+            <div className="text-xs">
+              {a.role === "admin" ? <span className="text-muted">Ve todo, corrige y supervisa</span> : (
+                <>
+                  <b>{a.area && a.area !== "CUSTOM" ? areaOf(a.area)?.label : "Personalizado"}</b>{a.carrier ? ` · ${a.carrier}` : ""}
+                  <div className="text-[11px] text-muted">{a.stages.map((st) => `${st.site} · ${stageLabel(st.site, st.field)}`).join(", ") || "Sin etapas"}</div>
+                </>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {a.role === "operator" && (
+                <Button size="sm" variant="secondary" className="rounded-full" onPress={() => { setEditStages(a); setDraftAsg({ area: a.area ?? "CUSTOM", stages: a.stages, carrier: a.carrier ?? "" }); }}><ListChecks className="h-3.5 w-3.5" /> Área</Button>
+              )}
+              <Button size="sm" variant="secondary" className="rounded-full" onPress={() => copy(a.email, "Correo copiado")}><Copy className="h-3.5 w-3.5" /> Usuario</Button>
+              <Button size="sm" variant="secondary" className="rounded-full" onPress={() => reset(a)}><KeyRound className="h-3.5 w-3.5" /> Contraseña</Button>
+              <Button size="sm" variant="danger-soft" className="rounded-full" onPress={() => setToDelete(a)}><Trash2 className="h-3.5 w-3.5" /> Eliminar</Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="sb-anim-table-in hidden overflow-hidden md:block">
         <Table>
           <Table.ScrollContainer>
             <Table.Content aria-label="Usuarios" className="min-w-[900px]" selectionMode="multiple" selectedKeys={selected} onSelectionChange={setSelected} sortDescriptor={sort} onSortChange={setSort}>

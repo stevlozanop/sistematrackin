@@ -34,7 +34,7 @@ function Step({ n, label, place, date, on, mine, done, lima }: {
 }) {
   return (
     <div className={cn(
-      "flex min-w-[6.5rem] flex-col rounded-xl border px-2 py-1.5",
+      "flex flex-col rounded-xl border px-2 py-1.5 sm:min-w-[6.5rem]",
       on ? "border-sb-on-surface bg-sb-on-surface text-sb-surface"
         : mine ? "border-sb-on-surface border-dashed"
         : done ? "border-sb-outline-variant/60 bg-sb-surface-container-low"
@@ -49,7 +49,8 @@ function Step({ n, label, place, date, on, mine, done, lima }: {
   );
 }
 
-const Arrow = () => <ChevronRight className="h-3.5 w-3.5 shrink-0 self-center opacity-40" />;
+// En celular los pasos van uno debajo del otro (flecha hacia abajo); en pantallas grandes, en fila
+const Arrow = () => <ChevronRight className="ml-4 h-3.5 w-3.5 shrink-0 rotate-90 opacity-40 sm:ml-0 sm:rotate-0 sm:self-center" />;
 
 /**
  * Recorrido de una unidad, numerado como en el Excel.
@@ -76,7 +77,7 @@ export function ProcessRoute({ site, current, mine, dates, viaLima, showBefore }
           <span className="opacity-40">→ se factura y empieza el seguimiento:</span>
         </div>
       )}
-      <div className="flex flex-wrap items-stretch gap-1">
+      <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-stretch">
         {steps.map((s, i) => (
           <Fragment key={s.n}>
             {i > 0 && <Arrow />}
