@@ -1,17 +1,44 @@
 "use client";
+import { useState } from "react";
 import { cn } from "@/lib/cn";
+import { SITE_INFO, type Site } from "@/lib/hsp";
 import { AREAS, areaOf, stageLabel, type Stage } from "@/lib/workflow";
 import { StagePicker } from "@/components/StagePicker";
 
 export type Assignment = { area: string; stages: Stage[]; carrier: string };
 
-/** Elegir el área del encargado (las etapas se asignan solas) y, si es transporte, su empresa. */
+/**
+ * Paso 1: módulo (PCL Pucallpa o YUR Yurimaguas). Paso 2: área de ese módulo (las etapas se asignan solas).
+ * El encargado solo verá el módulo que se elija aquí.
+ */
 export function AreaPicker({ value, onChange, carriers }: { value: Assignment; onChange: (v: Assignment) => void; carriers: string[] }) {
   const area = areaOf(value.area);
+  const [module, setModule] = useState<Site | "CUSTOM" | null>(area ? (area.site ?? "CUSTOM") : null);
+  const pick = (m: Site | "CUSTOM") => {
+    setModule(m);
+    if (m === "CUSTOM") onChange({ area: "CUSTOM", stages: value.area === "CUSTOM" ? value.stages : [], carrier: "" });
+    else if (area?.site !== m) onChange({ area: "", stages: [], carrier: "" });
+  };
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[11px] font-semibold text-sb-on-surface-variant">1. ¿En qué módulo trabaja?</span>
+        <div className="grid grid-cols-2 gap-2">
+          {(["PCL", "YUR"] as const).map((m) => (
+            <button key={m} type="button" onClick={() => pick(m)}
+              className={cn("rounded-xl border p-2.5 text-left transition-colors", module === m ? "border-sb-on-surface bg-sb-on-surface text-sb-surface" : "border-sb-outline-variant/60 hover:bg-sb-surface-container-low")}>
+              <div className="text-sm font-semibold">{SITE_INFO[m].title}</div>
+              <div className="text-[10px] opacity-70">{m === "PCL" ? "Iquitos → Pucallpa → dealers (y Ruta Lima)" : "Iquitos → Yurimaguas → dealers"}</div>
+            </button>
+          ))}
+        </div>
+        <button type="button" onClick={() => pick("CUSTOM")} className={cn("self-start text-[11px] underline underline-offset-2", module === "CUSTOM" ? "font-semibold" : "text-sb-on-surface-variant")}>
+          Personalizado: elegir etapas a mano (puede mezclar PCL y YUR)
+        </button>
+      </div>
+      {module && module !== "CUSTOM" && <span className="text-[11px] font-semibold text-sb-on-surface-variant">2. ¿Qué área de {SITE_INFO[module].title}?</span>}
       <div className="grid gap-2 sm:grid-cols-2">
-        {AREAS.map((a) => {
+        {AREAS.filter((a) => module && module !== "CUSTOM" && a.site === module).map((a) => {
           const on = value.area === a.id;
           return (
             <button

@@ -25,6 +25,11 @@ export async function GET(req: Request) {
   const p = new URL(req.url).searchParams;
   const site = p.get("site");
   if (!isSite(site)) return NextResponse.json({ error: "Módulo inválido" }, { status: 400 });
+  // Encargado: solo el módulo donde tiene etapas (y, si es de una empresa de transporte, solo sus unidades)
+  const scope = isSuper(s.role) ? null : await getScope(s.id);
+  if (scope && !scope.stages.some((st) => st.site === site)) {
+    return NextResponse.json({ error: "No tienes acceso a este módulo" }, { status: 403 });
+  }
 
   if (p.get("meta")) {
     const [dealers, zones, years, reasons] = await Promise.all([
@@ -54,8 +59,6 @@ export async function GET(req: Request) {
   // Bandeja: unidades que esperan una etapa (pending=d_zarpe) o las etapas del usuario (mine=1)
   const pending = p.get("pending");
   if (pending && (DATE_FIELDS as string[]).includes(pending)) where.push(`(${pendingSql(site, pending as DateField)})`);
-  // Encargado de una empresa de transporte: solo ve las unidades de su empresa
-  const scope = isSuper(s.role) ? null : await getScope(s.id);
   if (scope?.carrier) { where.push("carrier = ?"); args.push(scope.carrier); }
   if (p.get("mine")) {
     const mine = (scope?.stages ?? []).filter((st) => st.site === site);

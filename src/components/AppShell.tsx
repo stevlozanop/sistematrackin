@@ -97,7 +97,7 @@ const Heading = ({ children }: { children: React.ReactNode }) => (
   <h3 className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/50">{children}</h3>
 );
 
-export function AppShell({ name, role, children }: { name: string; role: Role; children: React.ReactNode }) {
+export function AppShell({ name, role, sites = ["PCL", "YUR"], children }: { name: string; role: Role; sites?: string[]; children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(true);
@@ -121,7 +121,12 @@ export function AppShell({ name, role, children }: { name: string; role: Role; c
   };
 
   const sections = SECTIONS.filter((s) => !s.roles || s.roles.includes(role))
-    .map((s) => ({ ...s, items: s.items.filter((i) => !i.roles || i.roles.includes(role)) }));
+    .map((s) => ({
+      ...s,
+      items: s.items.filter((i) => (!i.roles || i.roles.includes(role)) &&
+        // módulos PCL / YUR: solo los que le corresponden
+        (!i.href.startsWith("/units/") || sites.includes(i.href.slice(7).toUpperCase()))),
+    }));
   const pageName = sections.flatMap((s) => s.items).find((i) => path.startsWith(i.href))?.title ?? "";
   const initials = name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 

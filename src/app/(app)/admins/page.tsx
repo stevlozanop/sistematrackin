@@ -292,7 +292,7 @@ export default function AdminsPage() {
               <Modal.CloseTrigger aria-label="Cerrar" /><Modal.Header><Modal.Heading>Área de {editStages?.name}</Modal.Heading></Modal.Header>
               <Modal.Body className="flex flex-col gap-3 p-1">
                 <p className="text-xs text-muted">El cambio aplica al instante en su pantalla «Mi trabajo».</p>
-                <AreaPicker value={draftAsg} onChange={setDraftAsg} carriers={carriers} />
+                <AreaPicker key={editStages?.id ?? 0} value={draftAsg} onChange={setDraftAsg} carriers={carriers} />
               </Modal.Body>
               <Modal.Footer>
                 <Button variant="secondary" className="rounded-full" onPress={() => setEditStages(null)}>Cancelar</Button>
