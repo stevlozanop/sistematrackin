@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { Button, Modal } from "@heroui/react";
-import { AlertTriangle, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, PackageCheck, Search, Truck, X } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Download, PackageCheck, Search, Truck, X } from "lucide-react";
 import { Card, PageTitle, Pill } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
 import { ServiceBadge } from "@/components/Service";
@@ -12,10 +12,11 @@ import { SITE_INFO, STATUS_LABEL, STATUS_STEP, fmtDate, type DateField, type Ser
 type Unit = {
   id: number; site: Site; chassis: string; motor: string | null; material: string | null; category: string | null; guia: string | null; invoice: string | null;
   billing_date: string | null; status: Status; est_date: string | null; service: Service | null; days_left: number | null; alert: string | null;
-  real_days: number | null; lead_time: number | null; via_lima: number;
+  real_days: number | null; lead_time: number | null; via_lima: number; dealer: string | null;
 } & Partial<Record<DateField, string | null>>;
+type Store = { id: number; name: string; department: string | null; district: string | null; coast: number };
 type Data = {
-  dealer: { id: number; name: string; department: string | null; district: string | null; coast: number };
+  client: string; stores: Store[]; store: number | null;
   stats: { all: number; open: number; delivered: number; on_time: number; late: number; soon: number; next_eta: string | null };
   total: number; page: number; size: number; units: Unit[];
 };
@@ -56,6 +57,7 @@ export default function PortalPage() {
   const [qInput, setQInput] = useState("");
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
+  const [store, setStore] = useState(0); // 0 = todas sus tiendas
   const [open, setOpen] = useState<Unit | null>(null);
 
   useEffect(() => {
@@ -63,7 +65,7 @@ export default function PortalPage() {
     return () => clearTimeout(t);
   }, [qInput]);
 
-  const url = useMemo(() => `/api/portal?${new URLSearchParams({ tab, q, page: String(page) })}`, [tab, q, page]);
+  const url = useMemo(() => `/api/portal?${new URLSearchParams({ tab, q, page: String(page), store: String(store) })}`, [tab, q, page, store]);
   useEffect(() => {
     let alive = true;
     const load = () => fetch(url).then(async (r) => {
@@ -79,16 +81,26 @@ export default function PortalPage() {
   if (error) return <Card className="mt-4 px-5 py-8 text-center text-sm text-sb-on-surface-variant">{error}</Card>;
   if (!data) return <div className="p-6 text-sm text-sb-on-surface-variant">Cargando tus unidades…</div>;
 
-  const { dealer, stats } = data;
+  const { client, stores, stats } = data;
+  const depts = [...new Set(stores.map((x) => x.department).filter(Boolean))].join(", ");
   const pages = Math.max(1, Math.ceil(data.total / data.size));
   const onTimePct = stats.delivered ? Math.round((100 * stats.on_time) / stats.delivered) : null;
 
   return (
     <div className="flex flex-col gap-4">
       <PageTitle
-        title={dealer.name}
-        sub={`${[dealer.district, dealer.department].filter(Boolean).join(", ")}${dealer.coast ? " · Ruta Lima" : ""} · se actualiza solo cada 30 segundos`}
+        title={client}
+        sub={`${stores.length} ${stores.length === 1 ? "tienda" : "tiendas"}${depts ? ` · ${depts}` : ""} · se actualiza solo cada 30 segundos`}
       />
+
+      {stores.length > 1 && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label="Tiendas">
+          <button className={`sbf-chip whitespace-nowrap ${store === 0 ? "active" : ""}`} onClick={() => { setStore(0); setPage(1); }}>Todas mis tiendas</button>
+          {stores.map((x) => (
+            <button key={x.id} className={`sbf-chip whitespace-nowrap ${store === x.id ? "active" : ""}`} onClick={() => { setStore(x.id); setPage(1); }}>{x.name}</button>
+          ))}
+        </div>
+      )}
 
       <StatGrid
         className="grid-cols-2 lg:grid-cols-4"
@@ -113,7 +125,10 @@ export default function PortalPage() {
             <button key={t.id} className={`sbf-chip ${tab === t.id ? "active" : ""}`} onClick={() => { setTab(t.id); setPage(1); }}>{t.label}</button>
           ))}
         </div>
-        <label className="sbf-search w-full lg:ml-auto lg:w-80">
+        <a href="/api/report" className="sbf-chip flex w-fit items-center gap-1.5 whitespace-nowrap lg:ml-auto" title="Excel con el estado de todas tus unidades">
+          <Download className="h-3.5 w-3.5" /> Descargar mis unidades
+        </a>
+        <label className="sbf-search w-full lg:w-80">
           <Search className="h-4 w-4 opacity-40" />
           <input placeholder="Buscar chasis, motor, modelo, guía…" value={qInput} onChange={(e) => setQInput(e.target.value)} />
           {qInput && <button onClick={() => setQInput("")} className="opacity-40 hover:opacity-100" aria-label="Borrar búsqueda"><X className="h-4 w-4" /></button>}
@@ -131,6 +146,7 @@ export default function PortalPage() {
                     <div className="min-w-0">
                       <p className="truncate font-mono text-sm font-semibold">{u.chassis}</p>
                       <p className="truncate text-[11px] text-sb-on-surface-variant">{u.material ?? "—"}{u.category ? ` · ${u.category}` : ""} · {SITE_INFO[u.site].short}</p>
+                      {stores.length > 1 && <p className="truncate text-[11px] font-medium text-sb-on-surface-variant">{u.dealer}</p>}
                     </div>
                     {(u.d_entrega || u.alert === "VENCIDA") && <ServiceBadge s={u.service} size="xs" />}
                   </div>
@@ -168,7 +184,7 @@ export default function PortalPage() {
                 <>
                   <Modal.Header className="flex flex-col gap-1">
                     <Modal.Heading className="font-mono">{open.chassis}</Modal.Heading>
-                    <p className="text-xs text-sb-on-surface-variant">{open.material ?? "—"} · motor {open.motor ?? "—"} · {SITE_INFO[open.site].title}</p>
+                    <p className="text-xs text-sb-on-surface-variant">{open.material ?? "—"} · motor {open.motor ?? "—"} · {SITE_INFO[open.site].title}{open.dealer ? ` · ${open.dealer}` : ""}</p>
                   </Modal.Header>
                   <Modal.Body className="flex max-h-[65vh] flex-col gap-4 overflow-y-auto p-1">
                     <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">

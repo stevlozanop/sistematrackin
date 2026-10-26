@@ -51,7 +51,8 @@ export async function GET(req: Request) {
     `SELECT u.id, u.name, u.email, u.role, u.area, u.carrier, u.can_import, DATE_FORMAT(u.created_at,'%Y-%m-%d %H:%i') AS created_at,
        DATE_FORMAT(u.last_seen,'%Y-%m-%d %H:%i:%s') AS last_seen,
        (u.last_seen > NOW() - INTERVAL 60 SECOND) AS online,
-       u.company_id, c.name AS company, u.dealer_id, d.name AS dealer, (c.owner_id <=> u.id) AS is_owner
+       u.company_id, c.name AS company, u.dealer_id, d.name AS dealer, u.client,
+       (SELECT COUNT(*) FROM dealers dc WHERE dc.client = u.client) AS client_stores, (c.owner_id <=> u.id) AS is_owner
      FROM users u LEFT JOIN companies c ON c.id = u.company_id LEFT JOIN dealers d ON d.id = u.dealer_id
      WHERE u.role IN (?) AND (? = 'dev' OR u.role <> 'admin' OR u.company_id <=> ?) ORDER BY u.id DESC`,
     [roles, s.role, s.role === "dev" ? null : await companyOf(s.id)],
@@ -69,11 +70,15 @@ export async function POST(req: Request) {
   const password = String(b.password ?? "");
   const role: Role = ROLES.includes(b.role) ? b.role : "admin";
   const asg = role === "operator" ? parseAssignment(b) : { area: null, stages: [], carrier: null, canImport: 0 };
-  // Dealer: la tienda cuyas unidades verá. Empresa: la elegida, o la del supervisor que crea la cuenta.
+  // Cuenta de cliente de Honda: ve todas las tiendas de su cliente (o, si se elige una tienda, solo esa).
+  // Empresa: la elegida, o la del supervisor que crea la cuenta.
   const dealerId = role === "dealer" ? Number(b.dealerId) || null : null;
+  const client = role === "dealer" && b.client ? String(b.client).trim().toUpperCase().slice(0, 120) : null;
   if (role === "dealer") {
-    const [d] = dealerId ? await query("SELECT id FROM dealers WHERE id=?", [dealerId]) : [];
-    if (!d) return NextResponse.json({ error: "Elige el dealer" }, { status: 400 });
+    const ok = client
+      ? (await query("SELECT 1 FROM dealers WHERE client=? LIMIT 1", [client])).length
+      : dealerId ? (await query("SELECT 1 FROM dealers WHERE id=?", [dealerId])).length : 0;
+    if (!ok) return NextResponse.json({ error: "Elige el cliente" }, { status: 400 });
   }
   const [creator] = await query<{ company_id: number | null }>("SELECT company_id FROM users WHERE id=?", [s.id]);
   // Empresa de la cuenta: SWM Labs (dev) elige cualquiera; un supervisor, su empresa o uno de sus consorcios cliente
@@ -100,8 +105,8 @@ export async function POST(req: Request) {
   if (role === "operator" && !asg.stages.length) return NextResponse.json({ error: "Elige el área o al menos una etapa" }, { status: 400 });
   try {
     await tx(async (c) => {
-      const [r] = await c.query("INSERT INTO users(name,email,password_hash,role,area,carrier,can_import,company_id,dealer_id) VALUES (?,?,?,?,?,?,?,?,?)", [
-        name, email, bcrypt.hashSync(password, 10), role, asg.area, asg.carrier, asg.canImport, companyId, dealerId,
+      const [r] = await c.query("INSERT INTO users(name,email,password_hash,role,area,carrier,can_import,company_id,dealer_id,client) VALUES (?,?,?,?,?,?,?,?,?,?)", [
+        name, email, bcrypt.hashSync(password, 10), role, asg.area, asg.carrier, asg.canImport, companyId, client ? null : dealerId, client,
       ]);
       const id = (r as { insertId: number }).insertId;
       // La primera cuenta de supervisor de una transportista es su cuenta principal («Empresa»)

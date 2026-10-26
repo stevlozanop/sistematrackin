@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS users (
   role          ENUM('dev','admin','operator','viewer','dealer') NOT NULL,
   company_id    INT UNSIGNED NULL,   -- empresa a la que pertenece (companies)
   dealer_id     INT UNSIGNED NULL,   -- cuenta de dealer: la tienda cuyas unidades ve (dealers)
+  client        VARCHAR(120) NULL,   -- cuenta de cliente: ve todas las tiendas de ese cliente (dealers.client)
   last_seen     DATETIME NULL,
   area          VARCHAR(40) NULL,    -- área del encargado (src/lib/workflow.ts → AREAS)
   carrier       VARCHAR(120) NULL,   -- empresa de transporte: si tiene valor, solo ve esas unidades
@@ -48,7 +49,9 @@ CREATE TABLE IF NOT EXISTS dealers (
   name       VARCHAR(160) NOT NULL UNIQUE,   -- tienda (PCL: Nombre Tienda · YUR: Destinatario)
   department VARCHAR(60),
   district   VARCHAR(60),
-  coast      TINYINT(1) NOT NULL DEFAULT 0   -- 1 = Ruta Lima: sus unidades pasan por 5.1 (almacén Lima) y 5.2 (tránsito dealer 2)
+  coast      TINYINT(1) NOT NULL DEFAULT 0,  -- 1 = Ruta Lima: sus unidades pasan por 5.1 (almacén Lima) y 5.2 (tránsito dealer 2)
+  client     VARCHAR(120) NULL,              -- cliente de Honda dueño de la tienda (SORSA MOTORS, CREDIVARGAS…); sus cuentas ven todas sus tiendas
+  KEY idx_dealers_client (client)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS units (

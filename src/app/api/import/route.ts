@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { queryList, tx } from "@/lib/db";
 import { guard, SUPER } from "@/lib/guard";
 import { dedupe, existing, parseWorkbook, saveRows, stash, takeStash } from "@/lib/importer";
+import { fillDealerClients } from "@/lib/clients";
 
 export const maxDuration = 300;
 
@@ -19,6 +20,7 @@ export async function POST(req: Request) {
       const p = takeStash(String(token ?? ""));
       if (!p) return NextResponse.json({ error: "La vista previa expiró. Vuelve a cargar el Excel." }, { status: 400 });
       const res = await tx((c) => saveRows(c, p.rows));
+      await fillDealerClients(); // las tiendas nuevas quedan con su cliente (SORSA, CREDIVARGAS…)
       return NextResponse.json(res);
     }
 

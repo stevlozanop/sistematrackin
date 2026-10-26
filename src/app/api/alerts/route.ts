@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { query, queryList } from "@/lib/db";
 import { EVERYONE, getScope, guard } from "@/lib/guard";
 import { seesAll } from "@/lib/workflow";
+import { dealerScope } from "@/lib/clients";
 
 /**
  * Alertas de unidades sin entregar: VENCIDA (pasó la fecha estimada) y POR VENCER (faltan pocos días),
@@ -25,7 +26,12 @@ export async function GET(req: Request) {
     if (scope.carrier) { where.push("carrier = ?"); args.push(scope.carrier); }
   }
   // Dealer: solo las alertas de sus propias unidades
-  if (dealer) { where.push("dealer_id = (SELECT dealer_id FROM users WHERE id = ?)"); args.push(s.id); }
+  if (dealer) {
+    // Cliente de Honda: solo las alertas de sus tiendas
+    const sc = await dealerScope(s.id);
+    if (!sc) return NextResponse.json({ total: 0, bySite: [], byStage: [], noReason: 0, alertDays: 2, units: [] });
+    where.push(sc.sql); args.push(...sc.args);
+  }
   const w = where.join(" AND ");
 
   const [bySite, byStage, [noReason], [settings]] = await Promise.all([

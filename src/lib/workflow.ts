@@ -11,7 +11,7 @@ export const isSuper = (role?: Role | null) => role === "dev" || role === "admin
 /** Ve todas las unidades (sin poder editar si es viewer). */
 export const seesAll = (role?: Role | null) => role === "dev" || role === "admin" || role === "viewer";
 
-export const ROLE_LABEL: Record<Role, string> = { dev: "SWM Labs", admin: "Supervisor", operator: "Encargado", viewer: "Solo lectura", dealer: "Dealer" };
+export const ROLE_LABEL: Record<Role, string> = { dev: "SWM Labs", admin: "Supervisor", operator: "Encargado", viewer: "Solo lectura", dealer: "Cliente" };
 
 /** Código de empresa según su orden de registro: 1 -> «EMP-01». */
 export const companyCode = (id: number) => `EMP-${String(id).padStart(2, "0")}`;

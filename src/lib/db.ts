@@ -48,6 +48,10 @@ const MIGRATIONS = [
   // cuenta principal de la empresa (se muestra como «Empresa 01» en vez de «Supervisor»)
   "ALTER TABLE companies ADD COLUMN owner_id INT UNSIGNED NULL AFTER parent_id",
   "ALTER TABLE companies ADD CONSTRAINT fk_companies_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL",
+  // cliente de Honda al que pertenece cada tienda (SORSA, CREDIVARGAS…) y cuentas de cliente que ven todas sus tiendas
+  "ALTER TABLE dealers ADD COLUMN client VARCHAR(120) NULL",
+  "ALTER TABLE dealers ADD KEY idx_dealers_client (client)",
+  "ALTER TABLE users ADD COLUMN client VARCHAR(120) NULL AFTER dealer_id",
 ];
 
 /** Crea el usuario dev inicial si todavía no existe (el esquema vive en database/schema.sql). */

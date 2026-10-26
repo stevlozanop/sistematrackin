@@ -13,24 +13,30 @@ import { ROLE_LABEL, USER_DOMAIN, companyCode, roleLabel, areaOf, stageLabel, su
 type Admin = {
   id: number; name: string; email: string; role: Exclude<Role, "dev">; created_at: string; last_seen: string | null; online: number;
   stages: Stage[]; area: string | null; carrier: string | null; can_import: number; company: string | null; dealer: string | null; is_owner?: number; company_id?: number | null;
+  client?: string | null; client_stores?: number;
 };
 type NewRole = "operator" | "admin" | "viewer" | "dealer";
 
 /** Qué puede hacer cada tipo de cuenta (se muestra al crearla). */
 const ROLE_HELP: Record<NewRole, string> = {
   operator: "Registra solo las fechas de su área, en orden. Entra directo a «Mi trabajo».",
-  admin: "Ve todo (dashboard, en vivo), carga el Excel, corrige fechas y crea encargados y cuentas de dealers.",
+  admin: "Ve todo (dashboard, en vivo), carga el Excel, corrige fechas y crea encargados y cuentas de clientes.",
   viewer: "Ve el dashboard, las alertas y las unidades en vivo, sin poder cambiar nada. Para Honda u otro cliente.",
-  dealer: "Ve solo las unidades de su tienda: en qué etapa van, cuándo llegan y si llegan a tiempo. No puede cambiar nada.",
+  dealer: "Cliente de Honda (SORSA, CREDIVARGAS…): ve las unidades de todas sus tiendas, en qué etapa van y si llegan a tiempo. No ve otros clientes ni puede cambiar nada.",
 };
-const ROLE_TITLE: Record<NewRole, string> = { operator: "Nuevo encargado", admin: "Nuevo supervisor", viewer: "Nueva cuenta de solo lectura", dealer: "Nueva cuenta de dealer" };
+const ROLE_TITLE: Record<NewRole, string> = { operator: "Nuevo encargado", admin: "Nuevo supervisor", viewer: "Nueva cuenta de solo lectura", dealer: "Nueva cuenta de cliente" };
 
 /** Lo que tiene a cargo o ve cada cuenta, en una línea. */
 function Scope({ a }: { a: Admin }) {
   if (a.role === "admin" && Number(a.is_owner)) return <span className="text-xs text-muted">Cuenta principal de la empresa{a.company ? ` · ${a.company}` : ""}</span>;
   if (a.role === "admin") return <span className="text-xs text-muted">Ve todo, corrige y supervisa{a.company ? ` · ${a.company}` : ""}</span>;
   if (a.role === "viewer") return <span className="text-xs text-muted">Ve todo en solo lectura{a.company ? ` · ${a.company}` : ""}</span>;
-  if (a.role === "dealer") return <span className="text-xs"><b className="font-medium">{a.dealer ?? "Sin dealer"}</b> <span className="text-muted">· solo sus unidades</span></span>;
+  if (a.role === "dealer") return (
+    <span className="text-xs">
+      <b className="font-medium">{a.client ?? a.dealer ?? "Sin cliente"}</b>{" "}
+      <span className="text-muted">· {a.client ? `${a.client_stores ?? 0} ${Number(a.client_stores) === 1 ? "tienda" : "tiendas"}` : "una tienda"} · solo lo suyo</span>
+    </span>
+  );
   return null;
 }
 
@@ -60,8 +66,14 @@ export default function AdminsPage() {
   const [password, setPassword] = useState(() => genPassword());
   const [saving, setSaving] = useState(false);
   const [role, setRole] = useState<NewRole>("operator");
-  const [dealers, setDealers] = useState<{ id: number; name: string; department: string | null }[]>([]);
-  const [dealerId, setDealerId] = useState("");
+  const [dealers, setDealers] = useState<{ id: number; name: string; client: string | null }[]>([]);
+  const [dealerId, setDealerId] = useState(""); // aquí guarda el cliente elegido
+  // Clientes de Honda con sus tiendas, para elegir a quién es la cuenta
+  const clientList = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const d of dealers) if (d.client) m.set(d.client, (m.get(d.client) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [dealers]);
   const emptyAsg: Assignment = { area: "", stages: [], carrier: "", canImport: true };
   const [asg, setAsg] = useState<Assignment>(emptyAsg);
   const [carriers, setCarriers] = useState<string[]>([]);
@@ -92,9 +104,9 @@ export default function AdminsPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (role === "operator" && !asg.area) return toast.danger("Elige el área del encargado");
-    if (role === "dealer" && !dealerId) return toast.danger("Elige el dealer");
+    if (role === "dealer" && !dealerId) return toast.danger("Elige el cliente");
     setSaving(true);
-    const r = await fetch("/api/admins", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email: shownEmail, password, role, dealerId: role === "dealer" ? Number(dealerId) : undefined, ...(role === "operator" ? asg : {}) }) });
+    const r = await fetch("/api/admins", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email: shownEmail, password, role, client: role === "dealer" ? dealerId : undefined, ...(role === "operator" ? asg : {}) }) });
     setSaving(false);
     if (!r.ok) return toast.danger((await r.json()).error);
     await navigator.clipboard?.writeText(`${shownEmail} / ${password}`).catch(() => {});
@@ -140,7 +152,7 @@ export default function AdminsPage() {
     <div className="flex flex-col gap-4">
       <PageTitle title="Usuarios" sub="Encargados registran las fechas de su área. Supervisores ven y corrigen todo. Dealers y cuentas de solo lectura (Honda) solo consultan.">
         <Button size="sm" variant="secondary" className="rounded-full" onPress={() => setBulkDealers(true)}>
-          <Store className="h-3.5 w-3.5" /> Cuentas de dealers
+          <Store className="h-3.5 w-3.5" /> Cuentas de clientes
         </Button>
         <Button size="sm" variant="primary" className="rounded-full" onPress={() => { setRole("operator"); setAsg(emptyAsg); create.open(); }}>
           <Plus className="h-3.5 w-3.5" /> Nuevo usuario
@@ -267,18 +279,18 @@ export default function AdminsPage() {
                 <Modal.Body className="flex flex-col gap-4 p-1">
                   <div className="flex flex-wrap gap-1.5">
                     <button type="button" className={`sbf-chip ${role === "operator" ? "active" : ""}`} onClick={() => setRole("operator")}>Encargado de etapa</button>
-                    <button type="button" className={`sbf-chip ${role === "dealer" ? "active" : ""}`} onClick={() => setRole("dealer")}>Dealer</button>
+                    <button type="button" className={`sbf-chip ${role === "dealer" ? "active" : ""}`} onClick={() => setRole("dealer")}>Cliente de Honda</button>
                     <button type="button" className={`sbf-chip ${role === "viewer" ? "active" : ""}`} onClick={() => setRole("viewer")}>Solo lectura (Honda)</button>
                     <button type="button" className={`sbf-chip ${role === "admin" ? "active" : ""}`} onClick={() => setRole("admin")}>Supervisor</button>
                   </div>
                   <p className="-mt-2 text-xs text-muted">{ROLE_HELP[role]}</p>
                   {role === "dealer" && (
                     <label className="flex flex-col gap-1.5 text-sm">
-                      <Label>Dealer</Label>
-                      <select required value={dealerId} onChange={(e) => setDealerId(e.target.value)} aria-label="Dealer"
+                      <Label>Cliente</Label>
+                      <select required value={dealerId} onChange={(e) => setDealerId(e.target.value)} aria-label="Cliente"
                         className="h-9 rounded-xl border border-sb-outline-variant bg-sb-surface-container-low px-2 text-sm outline-none focus:border-sb-primary">
-                        <option value="">Elige la tienda…</option>
-                        {dealers.map((d) => <option key={d.id} value={d.id}>{d.name}{d.department ? ` · ${d.department}` : ""}</option>)}
+                        <option value="">Elige el cliente…</option>
+                        {clientList.map(([c, n]) => <option key={c} value={c}>{c} · {n} {n === 1 ? "tienda" : "tiendas"}</option>)}
                       </select>
                     </label>
                   )}

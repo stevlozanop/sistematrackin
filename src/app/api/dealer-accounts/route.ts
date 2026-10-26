@@ -3,21 +3,20 @@ import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { query, queryList, tx } from "@/lib/db";
 import { guard, SUPER } from "@/lib/guard";
+import { fillDealerClients } from "@/lib/clients";
 import { USER_DOMAIN } from "@/lib/workflow";
 
 /**
- * Cuentas de dealers en bloque (SWM Labs y supervisores de la transportista).
- * GET  -> todos los dealers, con su cuenta (si ya tiene) y sus unidades.
- * POST { dealerIds } -> crea una cuenta para cada dealer que todavía no tiene y devuelve
+ * Cuentas de los clientes de Honda en bloque (SWM Labs y la empresa).
+ * Un cliente (SORSA, CREDIVARGAS…) tiene una o varias tiendas; su cuenta ve todas sus tiendas y nada más.
+ * GET  -> los clientes, con sus tiendas, unidades y la cuenta (si ya tiene).
+ * POST { clients: string[] } -> crea una cuenta por cada cliente que todavía no tiene y devuelve
  *       usuario + contraseña UNA sola vez, para descargarlos y entregarlos.
  */
-const SUFFIX = new Set(["sac", "s", "a", "c", "eirl", "srl", "sa", "e", "i", "r", "l", "de", "la", "del", "y"]);
 
-/** «COMERCIAL ROMAMOTOR - DOS DE MAYO» -> «comercialromamotordos» (letras, sin razón social). */
+/** «CREDIVARGAS» -> «credivargas» · «GRUPO MALCA» -> «grupomalca» (para el usuario). */
 function slug(name: string) {
-  const words = name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z\s]/g, " ").split(/\s+/)
-    .filter((w) => w && !SUFFIX.has(w));
-  return words.slice(0, 3).join("").slice(0, 24) || "dealer";
+  return name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 24) || "cliente";
 }
 
 function password() {
@@ -25,52 +24,59 @@ function password() {
   return Array.from(crypto.randomBytes(10), (n) => chars[n % chars.length]).join("") + "!";
 }
 
-const title = (s: string) => s.toLowerCase().replace(/(^|[\s\-(&])(\p{L})/gu, (_, a, b) => a + b.toUpperCase());
+const title = (s: string) => s.toLowerCase().replace(/(^|[\s\-(&.])(\p{L})/gu, (_, a, b) => a + b.toUpperCase());
 
 export async function GET() {
   const { err } = await guard(SUPER);
   if (err) return err;
-  const rows = await query(
-    `SELECT d.id, d.name, d.department, d.district,
-       COUNT(un.id) units, SUM(un.d_entrega IS NULL) open,
-       (SELECT GROUP_CONCAT(u.email ORDER BY u.id SEPARATOR ', ') FROM users u WHERE u.dealer_id = d.id) accounts
+  await fillDealerClients();
+  const rows = await query<{ client: string; stores: string; departments: string | null; units: number; open: number; accounts: string | null }>(
+    `SELECT d.client,
+       GROUP_CONCAT(DISTINCT d.name ORDER BY d.name SEPARATOR '|') stores,
+       GROUP_CONCAT(DISTINCT d.department ORDER BY d.department SEPARATOR ', ') departments,
+       COUNT(un.id) units, SUM(un.d_entrega IS NULL AND un.id IS NOT NULL) open,
+       (SELECT GROUP_CONCAT(u.email ORDER BY u.id SEPARATOR ', ') FROM users u
+         WHERE u.role = 'dealer' AND (u.client = d.client OR u.dealer_id IN (SELECT id FROM dealers x WHERE x.client = d.client))) accounts
      FROM dealers d LEFT JOIN units un ON un.dealer_id = d.id
-     GROUP BY d.id ORDER BY d.department, d.name`,
+     WHERE d.client IS NOT NULL
+     GROUP BY d.client ORDER BY units DESC`,
   );
-  return NextResponse.json(rows.map((r) => ({ ...r, units: Number(r.units ?? 0), open: Number(r.open ?? 0) })));
+  return NextResponse.json(rows.map((r) => ({ ...r, stores: r.stores.split("|"), units: Number(r.units ?? 0), open: Number(r.open ?? 0) })));
 }
 
 export async function POST(req: Request) {
   const { s, err } = await guard(SUPER);
   if (err) return err;
   const b = await req.json().catch(() => ({}));
-  const ids = Array.isArray(b.dealerIds) ? b.dealerIds.map(Number).filter((n: number) => n > 0) : [];
-  if (!ids.length) return NextResponse.json({ error: "Elige al menos un dealer" }, { status: 400 });
+  const wanted: string[] = Array.isArray(b.clients) ? b.clients.map((c: unknown) => String(c).trim().toUpperCase()).filter(Boolean) : [];
+  if (!wanted.length) return NextResponse.json({ error: "Elige al menos un cliente" }, { status: 400 });
 
-  // Solo los que todavía no tienen cuenta
-  const dealers = await queryList<{ id: number; name: string; department: string | null }>(
-    "SELECT d.id, d.name, d.department FROM dealers d WHERE d.id IN (?) AND NOT EXISTS (SELECT 1 FROM users u WHERE u.dealer_id = d.id) ORDER BY d.name",
-    [ids],
+  // Solo clientes que existen y todavía no tienen cuenta
+  const clients = await queryList<{ client: string; stores: number; departments: string | null }>(
+    `SELECT d.client, COUNT(*) stores, GROUP_CONCAT(DISTINCT d.department SEPARATOR ', ') departments FROM dealers d
+     WHERE d.client IN (?) AND NOT EXISTS (SELECT 1 FROM users u WHERE u.role = 'dealer' AND u.client = d.client)
+     GROUP BY d.client ORDER BY d.client`,
+    [wanted],
   );
-  if (!dealers.length) return NextResponse.json({ created: [] });
-  // Los dealers pertenecen al sistema de la transportista: la empresa de quien los crea o, si es SWM Labs, la transportista
+  if (!clients.length) return NextResponse.json({ created: [] });
+  // Los clientes pertenecen al sistema de la transportista: la empresa de quien los crea o, si es SWM Labs, la transportista
   const [creator] = await query<{ company_id: number | null }>(
     "SELECT COALESCE(company_id, (SELECT id FROM companies WHERE kind='transport' ORDER BY id LIMIT 1)) company_id FROM users WHERE id=?", [s.id],
   );
   const taken = new Set((await query<{ email: string }>("SELECT email FROM users")).map((u) => u.email));
 
-  const created = dealers.map((d) => {
-    const base = `${slug(d.name)}.dealer`;
+  const created = clients.map((c) => {
+    const base = `${slug(c.client)}.cliente`;
     let email = `${base}@${USER_DOMAIN}`;
     for (let n = 2; taken.has(email); n++) email = `${base}${n}@${USER_DOMAIN}`;
     taken.add(email);
-    return { dealerId: d.id, dealer: d.name, department: d.department, name: title(d.name), email, password: password() };
+    return { client: c.client, stores: Number(c.stores), departments: c.departments, name: title(c.client), email, password: password() };
   });
 
   await tx(async (c) => {
     await c.query(
-      "INSERT INTO users(name, email, password_hash, role, company_id, dealer_id) VALUES ?",
-      [created.map((a) => [a.name.slice(0, 120), a.email, bcrypt.hashSync(a.password, 10), "dealer", creator?.company_id ?? null, a.dealerId])],
+      "INSERT INTO users(name, email, password_hash, role, company_id, client) VALUES ?",
+      [created.map((a) => [a.name.slice(0, 120), a.email, bcrypt.hashSync(a.password, 10), "dealer", creator?.company_id ?? null, a.client])],
     );
   });
   return NextResponse.json({ created }, { status: 201 });

@@ -2,10 +2,11 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ListBox, Select } from "@heroui/react";
-import { CheckCircle2, Clock, Gauge, Ship, Target, Truck } from "lucide-react";
+import { CheckCircle2, Clock, Download, Gauge, Ship, Target, Truck } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
 import { ProcessRouteTabs } from "@/components/ProcessRoute";
+import { MonthClosing } from "@/components/MonthClosing";
 import { AnimatedNumber, SERVICE_STYLE, ServiceBadge, ServiceSplitBar } from "@/components/Service";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
@@ -182,6 +183,10 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-4">
       <PageTitle title="Dashboard · Nivel de servicio HSP" sub="Igual que la hoja TABLA del HSP-OFICIAL. A tiempo = entregado (o aún en camino) hasta la fecha estimada.">
+        {/* Reporte de estados en Excel: el que Leyva le pasa a Honda (o Honda descarga con su usuario) */}
+        <a href="/api/report" className="sbf-chip flex items-center gap-1.5" title="Resumen por mes y estado, unidades sin entregar (FIFO) y por cliente">
+          <Download className="h-3.5 w-3.5" /> Descargar reporte
+        </a>
         <Select aria-label="Año" className="w-32" variant="secondary" value={String(data.year)} onChange={(v) => { setYear(Number(v)); setMonths(null); }}>
           <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
           <Select.Popover>
@@ -210,6 +215,8 @@ export default function DashboardPage() {
           <span className="text-xs underline underline-offset-2">Ver alertas →</span>
         </Link>
       )}
+
+      <MonthClosing />
 
       <Card className="sb-anim-item-in p-0">
         <details open className="group">
