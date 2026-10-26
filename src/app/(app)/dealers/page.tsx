@@ -160,7 +160,7 @@ export default function DealersPage() {
                   <div className="text-[11px] text-muted">{d.district ?? "—"}</div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 text-xs">
-                  <Link className="underline underline-offset-2" href={link(d)}>{count(d).toLocaleString()} unidades</Link>
+                  <Link className="underline underline-offset-2" href={link(d)}>{count(d).toLocaleString()} {count(d) === 1 ? "unidad" : "unidades"}</Link>
                   <span className="text-muted">Sin entregar: {pend(d) || 0}</span>
                 </div>
                 <label className="flex flex-col gap-1 text-[11px] text-muted">Cliente{clientInput(d)}</label>
