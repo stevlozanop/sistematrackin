@@ -12,7 +12,7 @@ import { isColor } from "@/lib/theme";
  * Las cuentas de cada empresa se crean con /api/admins + companyId.
  */
 type Company = {
-  id: number; name: string; kind: "transport" | "client"; parent_id: number | null; logo_v?: string | null; parent?: string | null; ruc: string | null; members: string | null;
+  id: number; name: string; kind: "transport" | "client"; parent_id: number | null; owner_id?: number | null; logo_v?: string | null; parent?: string | null; ruc: string | null; members: string | null;
   address: string | null; phone: string | null; email: string | null; website: string | null; notes: string | null; created_at: string;
 };
 
@@ -45,7 +45,7 @@ export async function GET() {
   const mine = await myCompany(s);
   if (s.role !== "dev" && !mine) return NextResponse.json({ companies: [], carriers: [], mine: null });
   const companies = await query<Company>(
-    `SELECT c.id, c.name, c.kind, c.parent_id, c.color, p.name parent, c.ruc, c.members, c.address, c.phone, c.email, c.website, c.notes,
+    `SELECT c.id, c.name, c.kind, c.parent_id, c.owner_id, c.color, p.name parent, c.ruc, c.members, c.address, c.phone, c.email, c.website, c.notes,
        DATE_FORMAT(c.created_at,'%Y-%m-%d') created_at, UNIX_TIMESTAMP(c.logo_updated) logo_v
      FROM companies c LEFT JOIN companies p ON p.id = c.parent_id
      ${s.role === "dev" ? "" : "WHERE c.id = ? OR c.parent_id = ?"}
@@ -110,9 +110,17 @@ export async function PATCH(req: Request) {
   if ("error" in r) return NextResponse.json({ error: r.error }, { status: 400 });
   // El supervisor edita datos de contacto; el tipo, la jerarquía y los transportistas los define SWM Labs
   if (s.role !== "dev") { delete r.data.kind; delete r.data.parent_id; delete r.data.members; }
+  // Cuenta principal: solo SWM Labs la cambia, y debe ser un supervisor de esa empresa
+  if (s.role === "dev" && b.owner_id !== undefined) {
+    const owner = Number(b.owner_id) || null;
+    if (owner && !(await query("SELECT 1 FROM users WHERE id=? AND company_id=? AND role='admin'", [owner, Number(b.id)])).length) {
+      return NextResponse.json({ error: "La cuenta principal debe ser un supervisor de esa empresa" }, { status: 400 });
+    }
+    await run("UPDATE companies SET owner_id=? WHERE id=?", [owner, Number(b.id)]);
+  }
   if (r.data.name === null) return NextResponse.json({ error: "El nombre no puede quedar vacío" }, { status: 400 });
   const keys = Object.keys(r.data);
-  if (!keys.length) return NextResponse.json({ ok: true });
+  if (!keys.length) return NextResponse.json({ ok: true }); // (la cuenta principal ya se guardó arriba)
   try {
     await run(`UPDATE companies SET ${keys.map((k) => `${k}=?`).join(",")} WHERE id=?`, [...Object.values(r.data), Number(b.id)]);
   } catch {

@@ -18,12 +18,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     brandCompany(s.id, s.role),
     ownCompany(s.id),
   ]);
+  const isOwner = !!own && (await query("SELECT 1 FROM companies WHERE owner_id=?", [s.id])).length > 0;
   // Tema: SWM Labs en blanco y negro; las demás cuentas con el color de su empresa
   const swm = s.role === "dev";
   return (
     <>
     <style dangerouslySetInnerHTML={{ __html: themeCss(brand?.color ?? null, swm) }} />
-    <AppShell name={s.name} role={s.role} sites={sites} firstGuide={!!u && !Number(u.guide_seen)} brand={brand} own={own} swm={swm}>
+    <AppShell name={s.name} role={s.role} sites={sites} firstGuide={!!u && !Number(u.guide_seen)} brand={brand} own={own} swm={swm} isOwner={isOwner}>
       {children}
     </AppShell>
     </>

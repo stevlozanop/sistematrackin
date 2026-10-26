@@ -45,6 +45,9 @@ const MIGRATIONS = [
   "ALTER TABLE companies ADD COLUMN logo_updated DATETIME NULL",
   // color principal de cada empresa (tema de sus cuentas: Leyva verde, Honda rojo…)
   "ALTER TABLE companies ADD COLUMN color VARCHAR(7) NULL AFTER parent_id",
+  // cuenta principal de la empresa (se muestra como «Empresa 01» en vez de «Supervisor»)
+  "ALTER TABLE companies ADD COLUMN owner_id INT UNSIGNED NULL AFTER parent_id",
+  "ALTER TABLE companies ADD CONSTRAINT fk_companies_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL",
 ];
 
 /** Crea el usuario dev inicial si todavía no existe (el esquema vive en database/schema.sql). */

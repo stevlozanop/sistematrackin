@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Modal, toast } from "@heroui/react";
 import { Building2, Copy, Eye, Globe, MapPin, Pencil, Phone, Plus, ShieldCheck, Trash2, Truck, UserPlus } from "lucide-react";
 import { Card, PageTitle, Pill } from "@/components/ui";
-import { ROLE_LABEL, suggestEmail, type Role } from "@/lib/workflow";
+import { ROLE_LABEL, companyCode, suggestEmail, type Role } from "@/lib/workflow";
 import { LogoBadge, LogoPicker } from "@/components/CompanyLogo";
 import { DEFAULT_COLOR, PRESETS, onColor } from "@/lib/theme";
 import { useRouter } from "next/navigation";
@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 type Stats = { units: number; delivered: number; onTime: number; open: number } | null;
 type User = { id: number; name: string; email: string; role: Role; online: number };
 type Company = {
-  id: number; name: string; kind: "transport" | "client"; parent_id: number | null; parent: string | null; logo_v: string | null; color: string | null; ruc: string | null; members: string | null; address: string | null;
+  id: number; name: string; kind: "transport" | "client"; parent_id: number | null; parent: string | null; logo_v: string | null; color: string | null; owner_id: number | null; ruc: string | null; members: string | null; address: string | null;
   phone: string | null; email: string | null; website: string | null; notes: string | null; created_at: string; stats: Stats; users: User[];
 };
 type Form = Record<"name" | "kind" | "parent_id" | "color" | "ruc" | "members" | "address" | "phone" | "email" | "website" | "notes", string>;
@@ -107,6 +107,14 @@ export default function CompaniesPage() {
     await navigator.clipboard?.writeText(`${accEmail} / ${acc.password}`).catch(() => {});
     toast.success(`Cuenta creada para ${acc.company.name}`, { description: `${accEmail} · contraseña: ${acc.password} (copiado)`, timeout: 20000 });
     setAcc(null);
+    load();
+  }
+
+  /** SWM Labs elige la cuenta principal de la empresa. */
+  async function setOwner(c: Company, userId: number) {
+    const r = await fetch("/api/companies", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c.id, owner_id: userId }) });
+    if (!r.ok) return toast.danger((await r.json().catch(() => ({}))).error ?? "No se pudo cambiar");
+    toast.success("Cuenta principal actualizada");
     load();
   }
 
@@ -217,7 +225,19 @@ export default function CompaniesPage() {
                     <div key={u.id} className="flex items-center gap-2 border-b border-sb-outline-variant/25 py-2 text-xs last:border-0">
                       <span className={`h-2 w-2 shrink-0 rounded-full ${Number(u.online) ? "bg-emerald-500" : "bg-sb-surface-container-highest"}`} title={Number(u.online) ? "En línea" : "Desconectado"} />
                       <span className="min-w-0 flex-1 truncate"><b className="font-medium">{u.name}</b> <span className="text-sb-on-surface-variant">· {u.email}</span></span>
-                      <Pill>{ROLE_LABEL[u.role]}</Pill>
+                      {u.id === c.owner_id ? (
+                        <Pill active>Empresa {companyCode(c.id)}</Pill>
+                      ) : (
+                        <>
+                          {dev && c.kind === "transport" && u.role === "admin" && (
+                            <button className="rounded-full px-2 py-0.5 text-[10px] text-sb-on-surface-variant hover:bg-sb-surface-container hover:text-sb-on-surface"
+                              title="Que esta sea la cuenta de la empresa (se muestra como «Empresa»)" onClick={() => setOwner(c, u.id)}>
+                              Hacer principal
+                            </button>
+                          )}
+                          <Pill>{ROLE_LABEL[u.role]}</Pill>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>

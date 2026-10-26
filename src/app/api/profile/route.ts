@@ -23,13 +23,13 @@ export async function GET() {
   ]);
   if (!u) return NextResponse.json({ error: "No existe" }, { status: 404 });
   // Empresa de la cuenta y si puede cambiar su foto (supervisor o cuenta de solo lectura de esa empresa)
-  const [company] = await query<{ id: number; name: string; kind: string; v: string | null }>(
-    "SELECT c.id, c.name, c.kind, UNIX_TIMESTAMP(c.logo_updated) v FROM users us JOIN companies c ON c.id = us.company_id WHERE us.id = ?",
+  const [company] = await query<{ id: number; name: string; kind: string; v: string | null; is_owner: number }>(
+    "SELECT c.id, c.name, c.kind, UNIX_TIMESTAMP(c.logo_updated) v, (c.owner_id <=> us.id) is_owner FROM users us JOIN companies c ON c.id = us.company_id WHERE us.id = ?",
     [s.id],
   );
   return NextResponse.json({
     ...u, id: s.id, area: scope.area, carrier: scope.carrier, canImport: scope.canImport, stages: scope.stages,
-    company: company ? { ...company, canEdit: s.role === "admin" || s.role === "viewer" } : null,
+    company: company ? { ...company, isOwner: !!Number(company.is_owner), canEdit: s.role === "admin" || s.role === "viewer" } : null,
     activity: { total: Number(act?.total ?? 0), today: Number(act?.today ?? 0), week: Number(act?.week ?? 0), last: act?.last ?? null },
   });
 }

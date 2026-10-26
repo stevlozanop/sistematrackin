@@ -6,17 +6,16 @@ import { Activity, CalendarDays, Clock, KeyRound, Save, Upload } from "lucide-re
 import { Card, PageTitle, Pill } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
 import { SITE_INFO, type Site } from "@/lib/hsp";
-import { ROLE_LABEL, areaOf, type Role } from "@/lib/workflow";
+import { areaOf, companyCode, roleLabel, type Role } from "@/lib/workflow";
 import { LogoBadge, LogoPicker } from "@/components/CompanyLogo";
 
 type Profile = {
   id: number; name: string; email: string; role: Role; created_at: string; last_seen: string | null;
   area: string | null; carrier: string | null; canImport: boolean; stages: { site: Site; field: string }[];
   activity: { total: number; today: number; week: number; last: string | null };
-  company: { id: number; name: string; kind: string; v: string | null; canEdit: boolean } | null;
+  company: { id: number; name: string; kind: string; v: string | null; canEdit: boolean; isOwner: boolean } | null;
 };
 
-const ROLE = ROLE_LABEL;
 const ROLE_DESC: Record<Role, string> = {
   dev: "Ves y corriges todo el sistema, y creas empresas, supervisores y encargados.",
   admin: "Supervisas el avance, corriges fechas y creas encargados y cuentas de dealers.",
@@ -75,6 +74,7 @@ export default function ProfilePage() {
   const initials = p.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
   const area = areaOf(p.area);
   const isOperator = p.role === "operator";
+  const owner = !!p.company?.isOwner; // cuenta principal de su empresa
 
   return (
     <div className="flex flex-col gap-4">
@@ -83,7 +83,10 @@ export default function ProfilePage() {
       {p.company && (
         <Card className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-sm font-semibold">{p.company.name}</h3>
+            <h3 className="text-sm font-semibold">
+              {p.company.isOwner && <span className="mr-1.5 rounded-full bg-sb-primary px-2 py-0.5 text-[10px] font-semibold text-sb-on-primary">Empresa {companyCode(p.company.id)}</span>}
+              {p.company.name}
+            </h3>
             <p className="text-[12px] text-sb-on-surface-variant">
               {p.company.canEdit ? "Foto de perfil de tu empresa: se ve en el menú de todas sus cuentas." : "Tu empresa."}
             </p>
@@ -102,7 +105,7 @@ export default function ProfilePage() {
           <h3 className="truncate text-lg font-semibold tracking-tight">{p.name}</h3>
           <p className="truncate text-sm text-sb-on-surface-variant">{p.email}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            <Pill active>{ROLE[p.role]}</Pill>
+            <Pill active>{roleLabel(p.role, owner)}</Pill>
             {area && area.id !== "CUSTOM" && <Pill>{area.label}</Pill>}
             {p.carrier && <Pill>{p.carrier}</Pill>}
           </div>
@@ -122,8 +125,10 @@ export default function ProfilePage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-5">
           <h3 className="mb-1 text-sm font-semibold">Mi cuenta</h3>
-          <p className="mb-2 text-[12px] text-sb-on-surface-variant/70">{ROLE_DESC[p.role]}</p>
-          <Row label="Rol">{ROLE[p.role]}</Row>
+          <p className="mb-2 text-[12px] text-sb-on-surface-variant/70">
+            {owner ? `Cuenta principal de la empresa ${companyCode(p.company!.id)}: administras todo tu sistema, tus supervisores, consorcios y dealers.` : ROLE_DESC[p.role]}
+          </p>
+          <Row label="Rol">{owner ? `Empresa ${companyCode(p.company!.id)}` : roleLabel(p.role)}</Row>
           {isOperator && <Row label="Área">{area?.label ?? "—"}</Row>}
           {isOperator && <Row label="Empresa de transporte">{p.carrier ?? "Todas"}</Row>}
           {isOperator && <Row label="Carga de Excel">{p.canImport ? "Permitida" : "No permitida"}</Row>}

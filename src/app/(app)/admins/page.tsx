@@ -8,11 +8,11 @@ import { StatGrid } from "@/components/StatCard";
 import { Check } from "@/components/Check";
 import { AreaPicker, type Assignment } from "@/components/AreaPicker";
 import { DealerAccounts } from "@/components/DealerAccounts";
-import { ROLE_LABEL, USER_DOMAIN, areaOf, stageLabel, suggestEmail, type Role, type Stage } from "@/lib/workflow";
+import { ROLE_LABEL, USER_DOMAIN, roleLabel, areaOf, stageLabel, suggestEmail, type Role, type Stage } from "@/lib/workflow";
 
 type Admin = {
   id: number; name: string; email: string; role: Exclude<Role, "dev">; created_at: string; last_seen: string | null; online: number;
-  stages: Stage[]; area: string | null; carrier: string | null; can_import: number; company: string | null; dealer: string | null;
+  stages: Stage[]; area: string | null; carrier: string | null; can_import: number; company: string | null; dealer: string | null; is_owner?: number;
 };
 type NewRole = "operator" | "admin" | "viewer" | "dealer";
 
@@ -27,6 +27,7 @@ const ROLE_TITLE: Record<NewRole, string> = { operator: "Nuevo encargado", admin
 
 /** Lo que tiene a cargo o ve cada cuenta, en una línea. */
 function Scope({ a }: { a: Admin }) {
+  if (a.role === "admin" && Number(a.is_owner)) return <span className="text-xs text-muted">Cuenta principal de la empresa{a.company ? ` · ${a.company}` : ""}</span>;
   if (a.role === "admin") return <span className="text-xs text-muted">Ve todo, corrige y supervisa{a.company ? ` · ${a.company}` : ""}</span>;
   if (a.role === "viewer") return <span className="text-xs text-muted">Ve todo en solo lectura{a.company ? ` · ${a.company}` : ""}</span>;
   if (a.role === "dealer") return <span className="text-xs"><b className="font-medium">{a.dealer ?? "Sin dealer"}</b> <span className="text-muted">· solo sus unidades</span></span>;
@@ -169,7 +170,7 @@ export default function AdminsPage() {
                 </div>
                 <div className="truncate text-[11px] text-muted">{a.email}</div>
               </div>
-              <Chip size="sm" variant={a.role === "admin" ? "secondary" : "soft"}>{ROLE_LABEL[a.role]}</Chip>
+              <Chip size="sm" variant={a.role === "admin" ? "secondary" : "soft"}>{roleLabel(a.role, a.is_owner)}</Chip>
             </div>
             <div className="text-xs">
               {a.role !== "operator" ? <Scope a={a} /> : (
@@ -222,7 +223,7 @@ export default function AdminsPage() {
                         </div>
                       </div>
                     </Table.Cell>
-                    <Table.Cell><Chip size="sm" variant={a.role === "admin" ? "secondary" : "soft"}>{ROLE_LABEL[a.role]}</Chip></Table.Cell>
+                    <Table.Cell><Chip size="sm" variant={a.role === "admin" ? "secondary" : "soft"}>{roleLabel(a.role, a.is_owner)}</Chip></Table.Cell>
                     <Table.Cell>
                       {a.role !== "operator" ? <Scope a={a} /> : (
                         <div className="flex max-w-[24rem] flex-wrap items-center gap-1">

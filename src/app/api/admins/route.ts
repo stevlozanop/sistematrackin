@@ -13,6 +13,8 @@ type Role = "admin" | "operator" | "viewer" | "dealer";
 const ROLES: Role[] = ["admin", "operator", "viewer", "dealer"];
 /** Un supervisor (la transportista que compró el sistema) también crea supervisores, pero solo de su propia empresa. */
 const manageable = (me: string): Role[] => (me === "dev" ? ROLES : ["admin", "operator", "viewer", "dealer"]);
+/** ¿Es la cuenta principal de alguna empresa? */
+const isOwner = async (id: number) => (await query("SELECT 1 FROM companies WHERE owner_id=?", [id])).length > 0;
 const companyOf = async (id: number) => (await query<{ company_id: number | null }>("SELECT company_id FROM users WHERE id=?", [id]))[0]?.company_id ?? null;
 
 /** Valida la lista de etapas [{ site, field }] contra las etapas de cada módulo. */
@@ -49,7 +51,7 @@ export async function GET(req: Request) {
     `SELECT u.id, u.name, u.email, u.role, u.area, u.carrier, u.can_import, DATE_FORMAT(u.created_at,'%Y-%m-%d %H:%i') AS created_at,
        DATE_FORMAT(u.last_seen,'%Y-%m-%d %H:%i:%s') AS last_seen,
        (u.last_seen > NOW() - INTERVAL 60 SECOND) AS online,
-       u.company_id, c.name AS company, u.dealer_id, d.name AS dealer
+       u.company_id, c.name AS company, u.dealer_id, d.name AS dealer, (c.owner_id <=> u.id) AS is_owner
      FROM users u LEFT JOIN companies c ON c.id = u.company_id LEFT JOIN dealers d ON d.id = u.dealer_id
      WHERE u.role IN (?) AND (? = 'dev' OR u.role <> 'admin' OR u.company_id <=> ?) ORDER BY u.id DESC`,
     [roles, s.role, s.role === "dev" ? null : await companyOf(s.id)],
@@ -102,6 +104,10 @@ export async function POST(req: Request) {
         name, email, bcrypt.hashSync(password, 10), role, asg.area, asg.carrier, asg.canImport, companyId, dealerId,
       ]);
       const id = (r as { insertId: number }).insertId;
+      // La primera cuenta de supervisor de una transportista es su cuenta principal («Empresa»)
+      if (role === "admin" && companyId) {
+        await c.query("UPDATE companies SET owner_id=? WHERE id=? AND kind='transport' AND owner_id IS NULL", [id, companyId]);
+      }
       if (asg.stages.length) await c.query("INSERT INTO user_stages(user_id, site, field) VALUES ?", [asg.stages.map((st) => [id, st.site, st.field])]);
     });
   } catch {
@@ -118,6 +124,9 @@ export async function PATCH(req: Request) {
   const id = Number(b.id);
   const [u] = await query<{ role: Role }>("SELECT role FROM users WHERE id=?", [id]);
   if (!u || !manageable(s.role).includes(u.role)) return NextResponse.json({ error: "No existe" }, { status: 404 });
+  if (s.role !== "dev" && id !== s.id && (await isOwner(id))) {
+    return NextResponse.json({ error: "Solo SWM Labs puede cambiar la cuenta principal de la empresa" }, { status: 403 });
+  }
   if (u.role === "admin" && s.role !== "dev" && (await companyOf(id)) !== (await companyOf(s.id))) {
     return NextResponse.json({ error: "No existe" }, { status: 404 });
   }
@@ -143,6 +152,9 @@ export async function DELETE(req: Request) {
   const id = Number(new URL(req.url).searchParams.get("id"));
   if (!id) return NextResponse.json({ error: "Falta el usuario" }, { status: 400 });
   if (id === s.id) return NextResponse.json({ error: "No puedes eliminar tu propia cuenta" }, { status: 400 });
+  if (s.role !== "dev" && (await isOwner(id))) {
+    return NextResponse.json({ error: "Solo SWM Labs puede eliminar la cuenta principal de la empresa" }, { status: 403 });
+  }
   // Un supervisor solo elimina supervisores de su propia empresa
   const [t] = await query<{ role: string; company_id: number | null }>("SELECT role, company_id FROM users WHERE id=?", [id]);
   if (t?.role === "admin" && s.role !== "dev" && t.company_id !== (await companyOf(s.id))) {

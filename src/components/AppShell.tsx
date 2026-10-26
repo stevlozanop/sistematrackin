@@ -12,7 +12,7 @@ import { LogoBadge } from "@/components/CompanyLogo";
 
 type Co = { id: number; name: string; v: string | null; color?: string | null } | null;
 
-import { ROLE_LABEL, type Role } from "@/lib/workflow";
+import { roleLabel, type Role } from "@/lib/workflow";
 
 type Item = { title: string; href: string; icon: LucideIcon; roles?: Role[] };
 const SUPER: Role[] = ["dev", "admin"];
@@ -119,8 +119,8 @@ const Heading = ({ children }: { children: React.ReactNode }) => (
   <h3 className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/50">{children}</h3>
 );
 
-export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = false, brand = null, own = null, swm = false, children }: {
-  name: string; role: Role; sites?: string[]; firstGuide?: boolean; brand?: Co; own?: Co; swm?: boolean; children: React.ReactNode;
+export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = false, brand = null, own = null, swm = false, isOwner = false, children }: {
+  name: string; role: Role; sites?: string[]; firstGuide?: boolean; brand?: Co; own?: Co; swm?: boolean; isOwner?: boolean; children: React.ReactNode;
 }) {
   const path = usePathname();
   const router = useRouter();
@@ -237,7 +237,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = fals
                 </div>
               )}
               <span className="hidden text-[10px] text-sb-on-surface-variant sm:block">{name}</span>
-              <span className="text-[10px] font-medium uppercase text-sb-on-surface-variant">{ROLE_LABEL[role]}</span>
+              <span className="text-[10px] font-medium uppercase text-sb-on-surface-variant">{roleLabel(role, isOwner)}</span>
             </Link>
           </div>
         </header>
