@@ -28,7 +28,7 @@ export function AlertBell({ href }: { href: string }) {
       {!!n?.total && (
         <span className={cn(
           "absolute -right-1 -top-1 min-w-[18px] rounded-full px-1 text-center text-[10px] font-bold leading-[18px]",
-          n.overdue ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container-highest text-sb-on-surface",
+          n.overdue ? "bg-sb-primary text-sb-on-primary" : "bg-sb-surface-container-highest text-sb-on-surface",
         )}>
           {n.total > 999 ? "999+" : n.total}
         </span>

@@ -205,7 +205,7 @@ export default function DashboardPage() {
       />
 
       {alerts && (alerts.overdue > 0 || alerts.soon > 0) && (
-        <Link href="/alerts" className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-sb-on-surface px-4 py-3 text-sm text-sb-surface">
+        <Link href="/alerts" className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-sb-primary px-4 py-3 text-sm text-sb-on-primary">
           <span><b>{alerts.overdue.toLocaleString()}</b> unidades vencidas sin entregar · <b>{alerts.soon.toLocaleString()}</b> por vencer en {alerts.days} días o menos</span>
           <span className="text-xs underline underline-offset-2">Ver alertas →</span>
         </Link>
