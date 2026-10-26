@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import { query, queryList, tx } from "@/lib/db";
 import { guard, SUPER } from "@/lib/guard";
 import { fillDealerClients } from "@/lib/clients";
+import { clientsConsortium } from "@/lib/companies";
 import { USER_DOMAIN } from "@/lib/workflow";
 
 /**
@@ -60,9 +61,10 @@ export async function POST(req: Request) {
   );
   if (!clients.length) return NextResponse.json({ created: [] });
   // Los clientes pertenecen al sistema de la transportista: la empresa de quien los crea o, si es The Iceberg Labs, la transportista
-  const [creator] = await query<{ company_id: number | null }>(
-    "SELECT COALESCE(company_id, (SELECT id FROM companies WHERE kind='transport' ORDER BY id LIMIT 1)) company_id FROM users WHERE id=?", [s.id],
-  );
+  const [creator] = await query<{ company_id: number | null }>("SELECT company_id FROM users WHERE id=?", [s.id]);
+  // Las cuentas quedan en el consorcio Honda (sus colores y su logo); si no existe, en la transportista
+  const companyId = (await clientsConsortium(creator?.company_id ?? null))
+    ?? creator?.company_id ?? (await query<{ id: number }>("SELECT id FROM companies WHERE kind='transport' ORDER BY id LIMIT 1"))[0]?.id ?? null;
   const taken = new Set((await query<{ email: string }>("SELECT email FROM users")).map((u) => u.email));
 
   const created = clients.map((c) => {
@@ -76,7 +78,7 @@ export async function POST(req: Request) {
   await tx(async (c) => {
     await c.query(
       "INSERT INTO users(name, email, password_hash, role, company_id, client) VALUES ?",
-      [created.map((a) => [a.name.slice(0, 120), a.email, bcrypt.hashSync(a.password, 10), "dealer", creator?.company_id ?? null, a.client])],
+      [created.map((a) => [a.name.slice(0, 120), a.email, bcrypt.hashSync(a.password, 10), "dealer", companyId, a.client])],
     );
   });
   return NextResponse.json({ created }, { status: 201 });

@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Button, Modal, toast } from "@heroui/react";
 import { Building2, Copy, Eye, Globe, MapPin, Pencil, Phone, Plus, ShieldCheck, Trash2, Truck, UserPlus } from "lucide-react";
 import { Card, CodeTag, PageTitle, Pill } from "@/components/ui";
@@ -195,16 +196,16 @@ export default function CompaniesPage() {
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/60">Cuentas ({c.users.length})</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/60">Cuentas ({c.users.filter((u) => u.role !== "dealer").length})</span>
             {canAddAccount(c) && (
               <Button size="sm" variant="secondary" className="rounded-full" onPress={() => openAccount(c)}>
                 <UserPlus className="h-3.5 w-3.5" /> {c.kind === "transport" ? "Agregar administrador" : "Agregar cuenta"}
               </Button>
             )}
           </div>
-          {c.users.length ? (
+          {c.users.some((u) => u.role !== "dealer") ? (
             <div className="flex flex-col">
-              {c.users.map((u) => (
+              {c.users.filter((u) => u.role !== "dealer").map((u) => (
                 <div key={u.id} className="flex items-center gap-2 border-b border-sb-outline-variant/25 py-2 text-xs last:border-0">
                   <span className={`h-2 w-2 shrink-0 rounded-full ${Number(u.online) ? "bg-emerald-500" : "bg-sb-surface-container-highest"}`} title={Number(u.online) ? "En línea" : "Desconectado"} />
                   <span className="min-w-0 flex-1 truncate"><b className="font-medium">{u.name}</b> <span className="text-sb-on-surface-variant">· {u.email}</span></span>
@@ -226,6 +227,13 @@ export default function CompaniesPage() {
             </div>
           ) : (
             <p className="text-[12px] text-sb-on-surface-variant">Sin cuentas todavía.</p>
+          )}
+          {/* Las cuentas de los clientes de Honda (SORSA, SERVIHONDA…) son muchas: solo el total; el detalle está en Usuarios */}
+          {c.users.some((u) => u.role === "dealer") && (
+            <Link href="/admins" className="flex items-center justify-between rounded-xl bg-sb-surface-container-low px-3 py-2 text-xs hover:bg-sb-surface-container">
+              <span><b>{c.users.filter((u) => u.role === "dealer").length}</b> cuentas de clientes (SORSA, CREDIVARGAS…) · ven sus unidades con los colores de {c.name}</span>
+              <span className="text-sb-primary">Ver en Usuarios →</span>
+            </Link>
           )}
         </div>
       </Card>

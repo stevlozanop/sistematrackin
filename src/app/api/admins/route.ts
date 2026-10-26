@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { query, queryList, run, tx } from "@/lib/db";
 import { guard, SUPER } from "@/lib/guard";
+import { clientsConsortium } from "@/lib/companies";
 import { SITE_INFO, isSite } from "@/lib/hsp";
 import { areaOf, areaStages } from "@/lib/workflow";
 
@@ -87,11 +88,11 @@ export async function POST(req: Request) {
     ? await query<{ id: number; kind: string; parent_id: number | null }>("SELECT id, kind, parent_id FROM companies WHERE id=?", [wanted])
     : [];
   let companyId = s.role === "dev" ? target?.id ?? null : creator?.company_id ?? null;
-  // Un dealer creado por The Iceberg Labs sin empresa queda en la transportista (los dealers son parte de su sistema)
-  if (!companyId && role === "dealer") companyId = (await query<{ id: number }>("SELECT id FROM companies WHERE kind='transport' ORDER BY id LIMIT 1"))[0]?.id ?? null;
   if (s.role !== "dev" && target && creator?.company_id && (target.id === creator.company_id || target.parent_id === creator.company_id)) companyId = target.id;
-  // En un consorcio cliente (Honda…) solo hay cuentas de solo lectura
-  if (companyId && companyId === target?.id && target.kind === "client" && role !== "viewer") {
+  // Los clientes de Honda (dealers) pertenecen al consorcio Honda: ven sus colores y su logo
+  if (role === "dealer") companyId = (await clientsConsortium(companyId ?? creator?.company_id ?? null)) ?? companyId;
+  // En un consorcio cliente (Honda…) solo hay cuentas que consultan: solo lectura o clientes
+  if (companyId && companyId === target?.id && target.kind === "client" && role !== "viewer" && role !== "dealer") {
     return NextResponse.json({ error: "Las cuentas de un consorcio cliente son de solo lectura" }, { status: 400 });
   }
   if (!manageable(s.role).includes(role)) return NextResponse.json({ error: "No puedes crear ese tipo de usuario" }, { status: 403 });

@@ -44,3 +44,20 @@ export async function ownCompany(userId: number) {
   );
   return c ?? null;
 }
+
+/**
+ * Consorcio al que pertenecen los clientes de Honda (SORSA, SERVIHONDA…): el consorcio cliente de la transportista.
+ * Así sus cuentas ven el sistema con los colores y el logo de Honda, no con los de Leyva.
+ * companyId = empresa de quien crea la cuenta (o null para The Iceberg Labs → la primera transportista).
+ */
+export async function clientsConsortium(companyId: number | null) {
+  const [c] = await query<{ id: number }>(
+    `SELECT c.id FROM companies c
+     WHERE c.kind = 'client' AND c.parent_id = COALESCE(
+       (SELECT IF(kind = 'client', parent_id, id) FROM companies WHERE id = ?),
+       (SELECT id FROM companies WHERE kind = 'transport' ORDER BY id LIMIT 1))
+     ORDER BY c.id LIMIT 1`,
+    [companyId],
+  );
+  return c?.id ?? null;
+}
