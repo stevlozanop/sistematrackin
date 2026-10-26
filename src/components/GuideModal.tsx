@@ -130,7 +130,7 @@ function superSteps(role: Role): Step[] {
   return [
     {
       icon: BookOpen,
-      title: dev ? "Bienvenido, Super admin" : "Bienvenido, Supervisor",
+      title: dev ? "Bienvenido, The Iceberg Labs" : "Bienvenido, Supervisor",
       body: (
         <>
           <P><b>System Trackin</b> sigue cada moto desde que se factura en Iquitos hasta que llega al dealer, y mide si llegó a tiempo. Reemplaza al Excel <b>HSP-OFICIAL</b>: las mismas hojas PCL, YUR y TABLA, pero en vivo y con cada persona registrando su parte.</P>
@@ -146,8 +146,8 @@ function superSteps(role: Role): Step[] {
       title: "Los tipos de cuenta",
       body: (
         <div className="flex flex-col">
-          <Term k="Super admin (dev)">Ve y corrige todo. Es el único que registra <b>empresas</b> y crea <b>supervisores</b>. También crea encargados, cambia plazos y carga el Excel general.</Term>
-          <Term k="Supervisor">El administrador de la empresa (por ejemplo, Consorcio Leyva). Ve todo, corrige fechas, carga el Excel y crea <b>encargados</b> y cuentas de <b>dealers</b> y de solo lectura.</Term>
+          <Term k="The Iceberg Labs (dev)">Desarrolla y supervisa la plataforma. Registra las <b>empresas</b> y sus cuentas, y ve la consola y la base de datos. La operación (fechas, Excel, plazos, dealers) <b>solo la ve</b>: es de la empresa.</Term>
+          <Term k="Empresa / Supervisor">La empresa que opera el sistema (Consorcio Leyva, código EMP-01) y sus supervisores. Ven todo, corrigen fechas, cargan el Excel, cambian plazos y crean <b>encargados</b>, <b>consorcios</b> y cuentas de <b>clientes</b>.</Term>
           <Term k="Encargado">Una persona del recorrido (puerto, almacén, transporte). Solo registra las fechas de <b>su área</b>, en orden. Entra directo a su pantalla <b>Mi trabajo</b>.</Term>
           <Term k="Solo lectura">Para Honda u otro cliente: ve el dashboard, las alertas y las unidades en vivo, pero <b>no puede cambiar nada</b>.</Term>
           <Term k="Dealer">Cada tienda ve <b>solo sus unidades</b>: en qué etapa van, cuándo llegan y si llegan a tiempo. Tampoco puede cambiar nada.</Term>
@@ -211,7 +211,9 @@ function superSteps(role: Role): Step[] {
           <P>Son las hojas PCL y YUR del Excel: una tabla con todas las unidades, sus fechas, estado, fecha estimada y nivel de servicio. Se actualiza sola cada 10 segundos.</P>
           <List items={[
             <>Busca por chasis, motor, lote, factura, guía o pedido, y filtra por estado, mes o nivel de servicio.</>,
-            <>Tú puedes <b>corregir cualquier fecha</b>, incluso las bloqueadas.</>,
+            dev
+              ? <>Tú (The Iceberg Labs) <b>solo los ves</b>: las fechas las registran los encargados y las corrige la empresa.</>
+              : <>Tú puedes <b>corregir cualquier fecha</b>, incluso las bloqueadas.</>,
             <>Si una unidad llega tarde, se pide el <b>motivo de demora</b>.</>,
           ]} />
         </>
@@ -250,7 +252,7 @@ function superSteps(role: Role): Step[] {
       title: "Dealers y Plazos y meta",
       body: (
         <div className="flex flex-col">
-          <Term k="Dealers">Lista de tiendas. Aquí marcas cuáles son <b>Ruta Lima</b>: sus unidades pasarán por los pasos 5.1 y 5.2.</Term>
+          <Term k="Dealers">Tiendas por módulo (Pucallpa / Yurimaguas) y por región; clic en una región para abrirla. {dev ? "La empresa" : "Aquí"} marca el cliente de cada tienda y cuáles van por <b>Ruta Lima</b> (pasos 5.1 y 5.2).</Term>
           <Term k="Plazos y meta">Días de plazo por departamento (PCL) o ruta (YUR), los meses de creciente del río, la meta % y los días de aviso de «por vencer». Al guardar, todas las fechas estimadas se recalculan.</Term>
           <Term k="Zonas sin plazo">Si una zona tiene unidades pero no tiene plazo, aparece abajo para agregarla con un clic.</Term>
         </div>

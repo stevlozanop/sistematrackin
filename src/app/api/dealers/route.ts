@@ -27,7 +27,7 @@ export async function GET() {
  * PATCH { id, client } — cambia el cliente de Honda al que pertenece la tienda (sus cuentas ven todas sus tiendas).
  */
 export async function PATCH(req: Request) {
-  const { err } = await guard(["admin"]); // cliente y Ruta Lima: los cambia la empresa (SWM Labs solo mira)
+  const { err } = await guard(["admin"]); // cliente y Ruta Lima: los cambia la empresa (The Iceberg Labs solo mira)
   if (err) return err;
   const { id, coast, client } = await req.json().catch(() => ({}));
   if (client !== undefined) {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { guard } from "@/lib/guard";
 
-/** Consola SWM Labs · resumen: empresas y consorcios, cuentas por tipo, datos y actividad reciente. */
+/** Consola The Iceberg Labs · resumen: empresas y consorcios, cuentas por tipo, datos y actividad reciente. */
 export async function GET() {
   const { err } = await guard(["dev"]);
   if (err) return err;

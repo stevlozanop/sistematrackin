@@ -50,7 +50,7 @@ export default function CompaniesPage() {
   // Cuenta nueva para una empresa
   const [acc, setAcc] = useState<{ company: Company; name: string; email: string; password: string; edited: boolean } | null>(null);
   const [toDelete, setToDelete] = useState<Company | null>(null);
-  // SWM Labs (dev) ve todas las empresas; el supervisor de la transportista, su empresa y sus consorcios
+  // The Iceberg Labs (dev) ve todas las empresas; el supervisor de la transportista, su empresa y sus consorcios
   const [mine, setMine] = useState<number | null>(null);
   const [role, setRole] = useState<Role | null>(null);
   const dev = role === "dev";
@@ -59,7 +59,7 @@ export default function CompaniesPage() {
   useEffect(() => { load(); fetch("/api/me").then((r) => r.json()).then((m) => setRole(m.role)); }, [load]);
   const transports = (rows ?? []).filter((c) => c.kind === "transport");
   const canDelete = (c: Company) => dev || (c.parent_id !== null && c.parent_id === mine);
-  // Cuentas: en la transportista son supervisores (solo las crea SWM Labs); en un consorcio, de solo lectura
+  // Cuentas: en la transportista son supervisores (solo las crea The Iceberg Labs); en un consorcio, de solo lectura
   const canAddAccount = (c: Company) => dev || c.kind === "client";
 
   const setF = (k: keyof Form, v: string) => edit && setEdit({ ...edit, form: { ...edit.form, [k]: v } });
@@ -110,7 +110,7 @@ export default function CompaniesPage() {
     load();
   }
 
-  /** SWM Labs elige la cuenta principal de la empresa. */
+  /** The Iceberg Labs elige la cuenta principal de la empresa. */
   async function setOwner(c: Company, userId: number) {
     const r = await fetch("/api/companies", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c.id, owner_id: userId }) });
     if (!r.ok) return toast.danger((await r.json().catch(() => ({}))).error ?? "No se pudo cambiar");
@@ -236,7 +236,7 @@ export default function CompaniesPage() {
       <PageTitle
         title={dev ? "Empresas" : "Consorcios"}
         sub={dev
-          ? "SWM Labs · todas las empresas del sistema: la transportista (Consorcio Leyva) y los consorcios que ella creó."
+          ? "The Iceberg Labs · todas las empresas del sistema: la transportista (Consorcio Leyva) y los consorcios que ella creó."
           : "Los consorcios que creaste para compartir tu sistema (Honda y otros). Sus cuentas solo pueden consultar."}
       >
         <Button size="sm" variant="primary" className="rounded-full" onPress={() => setEdit({ id: 0, form: { ...EMPTY, kind: dev ? "transport" : "client" } })}>
@@ -257,7 +257,7 @@ export default function CompaniesPage() {
       )}
 
       {dev ? (
-        // SWM Labs: cada empresa y, debajo, los consorcios que ella creó
+        // The Iceberg Labs: cada empresa y, debajo, los consorcios que ella creó
         <div className="flex flex-col gap-6">
           {transports.map((t) => {
             const kids = rows.filter((c) => c.parent_id === t.id);

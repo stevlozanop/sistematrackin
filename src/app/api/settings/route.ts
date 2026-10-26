@@ -35,7 +35,7 @@ export async function GET() {
 
 /** PUT { target, creciente: number[], leadTimes: LeadTime[] } — reemplaza la configuración completa. */
 export async function PUT(req: Request) {
-  const { err } = await guard(["admin"]); // plazos y meta: los cambia la empresa (SWM Labs solo mira)
+  const { err } = await guard(["admin"]); // plazos y meta: los cambia la empresa (The Iceberg Labs solo mira)
   if (err) return err;
   const body = await req.json().catch(() => null);
   const target = Number(body?.target);

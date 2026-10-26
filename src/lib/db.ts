@@ -96,7 +96,7 @@ export async function run(sql: string, params: unknown[] = []): Promise<ResultSe
 }
 
 /**
- * Consola SQL de SWM Labs: ejecuta UNA consulta dentro de una transacción de solo lectura, con límite de tiempo.
+ * Consola SQL de The Iceberg Labs: ejecuta UNA consulta dentro de una transacción de solo lectura, con límite de tiempo.
  * Aunque la consulta intente escribir, la base la rechaza.
  */
 export async function readOnlyQuery(sql: string) {
@@ -115,7 +115,7 @@ export async function readOnlyQuery(sql: string) {
   }
 }
 
-/** Datos de la conexión (sin la contraseña), para la consola de SWM Labs. */
+/** Datos de la conexión (sin la contraseña), para la consola de The Iceberg Labs. */
 export const connectionInfo = () => ({
   host: process.env.DB_HOST ?? "127.0.0.1",
   port: Number(process.env.DB_PORT ?? 3306),

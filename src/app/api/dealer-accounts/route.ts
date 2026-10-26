@@ -7,7 +7,7 @@ import { fillDealerClients } from "@/lib/clients";
 import { USER_DOMAIN } from "@/lib/workflow";
 
 /**
- * Cuentas de los clientes de Honda en bloque (SWM Labs y la empresa).
+ * Cuentas de los clientes de Honda en bloque (The Iceberg Labs y la empresa).
  * Un cliente (SORSA, CREDIVARGAS…) tiene una o varias tiendas; su cuenta ve todas sus tiendas y nada más.
  * GET  -> los clientes, con sus tiendas, unidades y la cuenta (si ya tiene).
  * POST { clients: string[] } -> crea una cuenta por cada cliente que todavía no tiene y devuelve
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     [wanted],
   );
   if (!clients.length) return NextResponse.json({ created: [] });
-  // Los clientes pertenecen al sistema de la transportista: la empresa de quien los crea o, si es SWM Labs, la transportista
+  // Los clientes pertenecen al sistema de la transportista: la empresa de quien los crea o, si es The Iceberg Labs, la transportista
   const [creator] = await query<{ company_id: number | null }>(
     "SELECT COALESCE(company_id, (SELECT id FROM companies WHERE kind='transport' ORDER BY id LIMIT 1)) company_id FROM users WHERE id=?", [s.id],
   );

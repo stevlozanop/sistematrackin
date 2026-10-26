@@ -12,7 +12,7 @@ type Past = { sql: string; at: string; ok: boolean; rows?: number };
 /** Consultas listas para lo que más se revisa. */
 const EXAMPLES: { label: string; sql: string }[] = [
   { label: "Empresas y consorcios", sql: "SELECT c.id, c.name, c.kind, p.name AS creada_por, c.created_at,\n  (SELECT COUNT(*) FROM users u WHERE u.company_id = c.id) AS cuentas\nFROM companies c LEFT JOIN companies p ON p.id = c.parent_id\nORDER BY c.id" },
-  { label: "Cuentas por empresa y tipo", sql: "SELECT IFNULL(c.name, 'SWM Labs / sin empresa') AS empresa, u.role, COUNT(*) AS cuentas\nFROM users u LEFT JOIN companies c ON c.id = u.company_id\nGROUP BY empresa, u.role ORDER BY empresa, u.role" },
+  { label: "Cuentas por empresa y tipo", sql: "SELECT IFNULL(c.name, 'The Iceberg Labs / sin empresa') AS empresa, u.role, COUNT(*) AS cuentas\nFROM users u LEFT JOIN companies c ON c.id = u.company_id\nGROUP BY empresa, u.role ORDER BY empresa, u.role" },
   { label: "Dealers sin cuenta", sql: "SELECT d.id, d.name, d.department, COUNT(un.id) AS unidades\nFROM dealers d LEFT JOIN units un ON un.dealer_id = d.id\nWHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.dealer_id = d.id)\nGROUP BY d.id ORDER BY unidades DESC" },
   { label: "% a tiempo por transportista", sql: "SELECT UPPER(carrier) AS transportista, COUNT(*) AS unidades,\n  ROUND(100 * SUM(service = 'A TIEMPO') / COUNT(*)) AS pct_a_tiempo\nFROM v_units WHERE carrier IS NOT NULL AND carrier <> ''\nGROUP BY UPPER(carrier) ORDER BY unidades DESC LIMIT 20" },
   { label: "Unidades por estado", sql: "SELECT site, status, COUNT(*) AS unidades FROM v_units GROUP BY site, status ORDER BY site, unidades DESC" },

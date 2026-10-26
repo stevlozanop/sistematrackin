@@ -3,7 +3,7 @@ import { connectionInfo, query, queryList } from "@/lib/db";
 import { guard } from "@/lib/guard";
 
 /**
- * Consola SWM Labs · base de datos.
+ * Consola The Iceberg Labs · base de datos.
  * GET           -> conexión, motor y tablas (filas, tamaño, actualización)
  * GET ?table=x  -> columnas, índices y las últimas 20 filas de esa tabla (sin contraseñas)
  */

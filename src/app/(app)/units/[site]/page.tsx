@@ -161,7 +161,7 @@ export default function SitePage({ params, searchParams }: {
   const editing = rows.find((u) => u.id === editId) ?? null;
 
   // Usuario actual: la empresa (Leyva) y sus supervisores corrigen todo; el encargado solo la siguiente etapa que le toca.
-  // SWM Labs (dev) y Honda solo miran: la operación es de Leyva.
+  // The Iceberg Labs (dev) y Honda solo miran: la operación es de Leyva.
   const [me, setMe] = useState<{ role: Role; stages: Stage[] } | null>(null);
   const sup = me?.role === "admin";
   const dev = me?.role === "dev";
@@ -367,7 +367,7 @@ export default function SitePage({ params, searchParams }: {
       {!sup && me && (
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-sb-on-surface-variant">
           {dev ? (
-            <span>SWM Labs: solo visualización. Las fechas las registran los encargados y las corrige la empresa (Leyva).</span>
+            <span>The Iceberg Labs: solo visualización. Las fechas las registran los encargados y las corrige la empresa (Leyva).</span>
           ) : viewer ? (
             <span>Cuenta de solo lectura: ves todas las unidades en vivo, pero no puedes cambiar fechas ni datos.</span>
           ) : myFields.size ? (

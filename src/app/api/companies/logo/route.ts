@@ -6,7 +6,7 @@ import { canManage, myCompany } from "@/lib/companies";
 /**
  * Logo (foto de perfil) de una empresa, guardado en la base.
  * GET    ?id=  -> la imagen (cualquier cuenta con sesión; se usa en el menú y la barra superior)
- * PUT    ?id=  { dataUrl } -> cambia el logo (SWM Labs: todas · supervisor: su empresa y sus consorcios ·
+ * PUT    ?id=  { dataUrl } -> cambia el logo (The Iceberg Labs: todas · supervisor: su empresa y sus consorcios ·
  *                            cuenta de solo lectura: el de su propia empresa)
  * DELETE ?id=  -> quita el logo
  * La pantalla reduce la imagen a 256 px antes de enviarla.

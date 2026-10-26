@@ -1,6 +1,6 @@
 /**
  * Tema de colores por cuenta.
- * - SWM Labs (dev): blanco y negro.
+ * - The Iceberg Labs (dev): blanco y negro.
  * - Cuentas de una empresa: el color de su empresa (Leyva verde, Honda rojo…).
  * Se genera como CSS que redefine los tokens --sb-* y los de HeroUI (--accent, --focus).
  */

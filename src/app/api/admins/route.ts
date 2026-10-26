@@ -81,13 +81,13 @@ export async function POST(req: Request) {
     if (!ok) return NextResponse.json({ error: "Elige el cliente" }, { status: 400 });
   }
   const [creator] = await query<{ company_id: number | null }>("SELECT company_id FROM users WHERE id=?", [s.id]);
-  // Empresa de la cuenta: SWM Labs (dev) elige cualquiera; un supervisor, su empresa o uno de sus consorcios cliente
+  // Empresa de la cuenta: The Iceberg Labs (dev) elige cualquiera; un supervisor, su empresa o uno de sus consorcios cliente
   const wanted = Number(b.companyId) || null;
   const [target] = wanted
     ? await query<{ id: number; kind: string; parent_id: number | null }>("SELECT id, kind, parent_id FROM companies WHERE id=?", [wanted])
     : [];
   let companyId = s.role === "dev" ? target?.id ?? null : creator?.company_id ?? null;
-  // Un dealer creado por SWM Labs sin empresa queda en la transportista (los dealers son parte de su sistema)
+  // Un dealer creado por The Iceberg Labs sin empresa queda en la transportista (los dealers son parte de su sistema)
   if (!companyId && role === "dealer") companyId = (await query<{ id: number }>("SELECT id FROM companies WHERE kind='transport' ORDER BY id LIMIT 1"))[0]?.id ?? null;
   if (s.role !== "dev" && target && creator?.company_id && (target.id === creator.company_id || target.parent_id === creator.company_id)) companyId = target.id;
   // En un consorcio cliente (Honda…) solo hay cuentas de solo lectura
@@ -130,7 +130,7 @@ export async function PATCH(req: Request) {
   const [u] = await query<{ role: Role }>("SELECT role FROM users WHERE id=?", [id]);
   if (!u || !manageable(s.role).includes(u.role)) return NextResponse.json({ error: "No existe" }, { status: 404 });
   if (s.role !== "dev" && id !== s.id && (await isOwner(id))) {
-    return NextResponse.json({ error: "Solo SWM Labs puede cambiar la cuenta principal de la empresa" }, { status: 403 });
+    return NextResponse.json({ error: "Solo The Iceberg Labs puede cambiar la cuenta principal de la empresa" }, { status: 403 });
   }
   if (u.role === "admin" && s.role !== "dev" && (await companyOf(id)) !== (await companyOf(s.id))) {
     return NextResponse.json({ error: "No existe" }, { status: 404 });
@@ -158,7 +158,7 @@ export async function DELETE(req: Request) {
   if (!id) return NextResponse.json({ error: "Falta el usuario" }, { status: 400 });
   if (id === s.id) return NextResponse.json({ error: "No puedes eliminar tu propia cuenta" }, { status: 400 });
   if (s.role !== "dev" && (await isOwner(id))) {
-    return NextResponse.json({ error: "Solo SWM Labs puede eliminar la cuenta principal de la empresa" }, { status: 403 });
+    return NextResponse.json({ error: "Solo The Iceberg Labs puede eliminar la cuenta principal de la empresa" }, { status: 403 });
   }
   // Un supervisor solo elimina supervisores de su propia empresa
   const [t] = await query<{ role: string; company_id: number | null }>("SELECT role, company_id FROM users WHERE id=?", [id]);

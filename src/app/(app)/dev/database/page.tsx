@@ -22,7 +22,7 @@ type Detail = {
 const ABOUT: Record<string, string> = {
   units: "Cada moto o motokar: chasis, dealer y las fechas de cada etapa.",
   v_units: "Vista: unidades con estado, plazo, fecha estimada y nivel de servicio ya calculados.",
-  users: "Cuentas: SWM Labs, supervisores, encargados, solo lectura y dealers.",
+  users: "Cuentas: The Iceberg Labs, supervisores, encargados, solo lectura y dealers.",
   companies: "Empresas: la transportista (Consorcio Leyva) y sus consorcios (Honda…).",
   dealers: "Tiendas que reciben las unidades (se crean con el Excel).",
   unit_events: "Historial: cada fecha registrada, quién y cuándo.",

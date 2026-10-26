@@ -7,7 +7,7 @@ import { SITE_INFO, STATUS_LABEL, type Status } from "@/lib/hsp";
 
 /**
  * Reporte de estados en Excel (lo que Leyva le pasa a Honda, o lo que Honda descarga con su usuario).
- * - SWM Labs, la empresa, sus supervisores y Honda (solo lectura): todas las unidades.
+ * - The Iceberg Labs, la empresa, sus supervisores y Honda (solo lectura): todas las unidades.
  * - Cliente de Honda: solo las de sus tiendas.
  * Hojas: Resumen por mes y estado · Sin entregar (más antiguas primero, FIFO) · Por cliente.
  */

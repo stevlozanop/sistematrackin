@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ownCompany(s.id),
   ]);
   const isOwner = !!own && (await query("SELECT 1 FROM companies WHERE owner_id=?", [s.id])).length > 0;
-  // Tema: SWM Labs en blanco y negro; las demás cuentas con el color de su empresa
+  // Tema: The Iceberg Labs en blanco y negro; las demás cuentas con el color de su empresa
   const swm = s.role === "dev";
   return (
     <>

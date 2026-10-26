@@ -3,7 +3,7 @@ import { readOnlyQuery } from "@/lib/db";
 import { guard } from "@/lib/guard";
 
 /**
- * Consola SQL de SWM Labs: solo consultas de lectura (SELECT, SHOW, DESCRIBE, EXPLAIN, WITH).
+ * Consola SQL de The Iceberg Labs: solo consultas de lectura (SELECT, SHOW, DESCRIBE, EXPLAIN, WITH).
  * Una sola consulta, en una transacción de solo lectura, con 10 s como máximo y hasta 1000 filas.
  */
 const READ = /^\s*(SELECT|SHOW|DESCRIBE|DESC|EXPLAIN|WITH)\b/i;

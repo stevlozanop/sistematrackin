@@ -11,7 +11,7 @@ export const maxDuration = 300;
  * Paso 2 (JSON { token }): guarda en la base de datos lo leído en el paso 1.
  */
 export async function POST(req: Request) {
-  const { err } = await guard(["admin"]); // cargar el Excel: solo la empresa (SWM Labs no opera)
+  const { err } = await guard(["admin"]); // cargar el Excel: solo la empresa (The Iceberg Labs no opera)
   if (err) return err;
 
   try {

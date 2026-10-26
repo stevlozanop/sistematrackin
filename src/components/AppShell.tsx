@@ -45,8 +45,8 @@ const SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
     ],
   },
   {
-    // Consola de la plataforma: solo SWM Labs (dev)
-    title: "SWM Labs",
+    // Consola de la plataforma: solo The Iceberg Labs (dev)
+    title: "The Iceberg Labs",
     roles: ["dev"],
     items: [
       { title: "Consola", href: "/dev", icon: Terminal },
@@ -169,8 +169,8 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = fals
       <aside className={cn("z-10 hidden h-screen shrink-0 flex-col overflow-hidden bg-sb-surface transition-[width] duration-200 ease-out md:flex", open ? "w-[240px]" : "w-[64px]")}>
         <div className={cn("flex h-14 shrink-0 items-center", open ? "gap-2.5 px-4" : "justify-center")}>
           {swm ? (
-            // SWM Labs: la plataforma, en blanco y negro
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sb-on-surface text-[9px] font-bold tracking-tight text-sb-surface">SWM</span>
+            // The Iceberg Labs: la plataforma, en blanco y negro
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sb-on-surface text-[9px] font-bold tracking-tight text-sb-surface">TIL</span>
           ) : brand?.v ? (
             <LogoBadge id={brand.id} name={brand.name} v={brand.v} className="h-8 w-8 rounded-lg border border-sb-outline-variant/40" />
           ) : (
@@ -179,7 +179,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = fals
           {open && (
             <span className="flex min-w-0 flex-col leading-tight">
               <span className="truncate text-[13px] font-semibold tracking-tight">System Trackin</span>
-              <span className="truncate text-[10px] font-medium text-sb-primary">{swm ? "SWM Labs · plataforma" : brand?.name ?? "System Trackin"}</span>
+              <span className="truncate text-[10px] font-medium text-sb-primary">{swm ? "The Iceberg Labs · plataforma" : brand?.name ?? "System Trackin"}</span>
             </span>
           )}
         </div>

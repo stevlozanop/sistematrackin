@@ -6,7 +6,7 @@ import { isColor } from "@/lib/theme";
 
 /**
  * Empresas y consorcios.
- * - SWM Labs (dev): ve y administra todas; registra la transportista (Consorcio Leyva).
+ * - The Iceberg Labs (dev): ve y administra todas; registra la transportista (Consorcio Leyva).
  * - Supervisor de la transportista (admin): ve su empresa y crea sus consorcios cliente (Honda…),
  *   que quedan con parent_id = su empresa. Solo puede editar o borrar esos consorcios.
  * Las cuentas de cada empresa se crean con /api/admins + companyId.
@@ -50,7 +50,7 @@ export async function GET() {
      FROM companies c LEFT JOIN companies p ON p.id = c.parent_id
      ${s.role === "dev" ? "" : "WHERE c.parent_id = ?"}
      ORDER BY c.parent_id IS NOT NULL, c.name`,
-    // SWM Labs ve todas (empresas y los consorcios que cada una creó); una empresa, solo los consorcios que ella creó
+    // The Iceberg Labs ve todas (empresas y los consorcios que cada una creó); una empresa, solo los consorcios que ella creó
     s.role === "dev" ? [] : [mine],
   );
   const users = await query<{ id: number; name: string; email: string; role: string; company_id: number; online: number }>(
@@ -109,9 +109,9 @@ export async function PATCH(req: Request) {
   if (!(await canManage(s, Number(b.id), true))) return NextResponse.json({ error: "No puedes editar esa empresa" }, { status: 403 });
   const r = clean(b);
   if ("error" in r) return NextResponse.json({ error: r.error }, { status: 400 });
-  // El supervisor edita datos de contacto; el tipo, la jerarquía y los transportistas los define SWM Labs
+  // El supervisor edita datos de contacto; el tipo, la jerarquía y los transportistas los define The Iceberg Labs
   if (s.role !== "dev") { delete r.data.kind; delete r.data.parent_id; delete r.data.members; }
-  // Cuenta principal: solo SWM Labs la cambia, y debe ser un supervisor de esa empresa
+  // Cuenta principal: solo The Iceberg Labs la cambia, y debe ser un supervisor de esa empresa
   if (s.role === "dev" && b.owner_id !== undefined) {
     const owner = Number(b.owner_id) || null;
     if (owner && !(await query("SELECT 1 FROM users WHERE id=? AND company_id=? AND role='admin'", [owner, Number(b.id)])).length) {

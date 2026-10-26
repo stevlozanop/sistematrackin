@@ -38,7 +38,7 @@ const LINKS = [
   ] },
 ];
 
-/** Árbol de empresas: SWM Labs → transportista → sus consorcios. */
+/** Árbol de empresas: The Iceberg Labs → transportista → sus consorcios. */
 function Tree({ companies }: { companies: Company[] }) {
   const roots = companies.filter((c) => !c.parent_id);
   const kids = (id: number) => companies.filter((c) => c.parent_id === id);
@@ -60,8 +60,8 @@ function Tree({ companies }: { companies: Company[] }) {
   return (
     <div className="flex flex-col">
       <div className="flex items-center gap-2 border-b border-sb-outline-variant/25 pb-2.5 text-xs">
-        <span className="grid h-7 w-7 place-items-center rounded-lg bg-sb-on-surface text-[9px] font-bold text-sb-surface">SWM</span>
-        <span className="flex-1"><b className="font-medium">SWM Labs</b> <span className="text-sb-on-surface-variant">· desarrolla y supervisa la plataforma</span></span>
+        <span className="grid h-7 w-7 place-items-center rounded-lg bg-sb-on-surface text-[9px] font-bold text-sb-surface">TIL</span>
+        <span className="flex-1"><b className="font-medium">The Iceberg Labs</b> <span className="text-sb-on-surface-variant">· desarrolla y supervisa la plataforma</span></span>
       </div>
       {roots.map((r) => (
         <div key={r.id} className="pl-4">
@@ -77,7 +77,7 @@ function Tree({ companies }: { companies: Company[] }) {
 export default function DevConsole() {
   const [d, setD] = useState<Data | null>(null);
   useEffect(() => {
-    // Si la sesión venció o no es SWM Labs, la API responde error: no reemplazar los datos con él
+    // Si la sesión venció o no es The Iceberg Labs, la API responde error: no reemplazar los datos con él
     const load = () => fetch("/api/dev/overview").then((r) => (r.ok ? r.json() : null)).then((x) => x && setD(x)).catch(() => {});
     load();
     const t = setInterval(load, 15_000);
@@ -88,7 +88,7 @@ export default function DevConsole() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageTitle title="Consola SWM Labs" sub="Lo que pasa en la plataforma: empresas y consorcios creados, cuentas, datos y base de datos. Se actualiza cada 15 segundos." />
+      <PageTitle title="Consola The Iceberg Labs" sub="Lo que pasa en la plataforma: empresas y consorcios creados, cuentas, datos y base de datos. Se actualiza cada 15 segundos." />
 
       <StatGrid
         className="grid-cols-2 lg:grid-cols-5"

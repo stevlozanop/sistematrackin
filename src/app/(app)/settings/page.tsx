@@ -15,7 +15,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(true);
 
-  // Solo la empresa (Leyva) cambia plazos y meta; SWM Labs y Honda solo miran
+  // Solo la empresa (Leyva) cambia plazos y meta; The Iceberg Labs y Honda solo miran
   const [canEdit, setCanEdit] = useState(false);
   const load = () => fetch("/api/settings").then((r) => r.json()).then((d) => { setCfg(d); setSaved(true); });
   useEffect(() => {

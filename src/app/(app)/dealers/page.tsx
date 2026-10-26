@@ -2,7 +2,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Switch, toast } from "@heroui/react";
-import { MapPin, Search, Ship, Truck, X } from "lucide-react";
+import { ChevronRight, MapPin, Search, Ship, Truck, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
@@ -35,7 +35,16 @@ export default function DealersPage() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [site, setSite] = useState<Site>("pcl");
-  // Solo la empresa (Leyva) cambia el cliente y la Ruta Lima; SWM Labs y Honda solo miran
+  // Regiones abiertas (clic en la región la abre; otro clic la cierra). Al buscar se abren todas.
+  const [opened, setOpened] = useState<Set<string>>(new Set());
+  const isOpen = (region: string) => !!q.trim() || opened.has(`${site}|${region}`);
+  const toggle = (region: string) => setOpened((p) => {
+    const k = `${site}|${region}`;
+    const n = new Set(p);
+    if (n.has(k)) n.delete(k); else n.add(k);
+    return n;
+  });
+  // Solo la empresa (Leyva) cambia el cliente y la Ruta Lima; The Iceberg Labs y Honda solo miran
   const [canEdit, setCanEdit] = useState(false);
   useEffect(() => {
     fetch("/api/dealers").then((r) => r.json()).then((d) => { setRows(d); setLoading(false); });
@@ -122,11 +131,15 @@ export default function DealersPage() {
         )}
       </div>
 
-      <label className="sbf-search lg:w-96">
+      <div className="flex flex-wrap items-center gap-2">
+      <label className="sbf-search w-full lg:w-96">
         <Search className="h-4 w-4 opacity-40" />
         <input placeholder={`Buscar dealer, cliente o ${info.regionLabel.toLowerCase()}…`} value={q} onChange={(e) => setQ(e.target.value)} />
         {q && <button onClick={() => setQ("")} className="opacity-40 hover:opacity-100" aria-label="Borrar búsqueda"><X className="h-4 w-4" /></button>}
       </label>
+        <button className="sbf-chip" onClick={() => setOpened((p) => new Set([...p, ...groups.map((g) => `${site}|${g.region}`)]))}>Abrir todas</button>
+        <button className="sbf-chip" onClick={() => setOpened((p) => new Set([...p].filter((k) => !k.startsWith(`${site}|`))))}>Cerrar todas</button>
+      </div>
 
       {!total && <Card className="px-4 py-10 text-center text-sm text-sb-on-surface-variant/60">{loading ? "Cargando…" : q ? "Sin resultados." : "Aún no hay dealers en este módulo."}</Card>}
 
@@ -134,10 +147,13 @@ export default function DealersPage() {
       <div className="flex flex-col gap-4 md:hidden">
         {groups.map((g) => (
           <section key={g.region} className="flex flex-col gap-2">
-            <h3 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/70">
-              <MapPin className="h-3.5 w-3.5" /> {g.region} <span className="font-normal">· {g.dealers.length}</span>
-            </h3>
-            {g.dealers.map((d) => (
+            <button type="button" onClick={() => toggle(g.region)} aria-expanded={isOpen(g.region)}
+              className="flex items-center gap-1.5 rounded-xl bg-sb-surface px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-sb-on-surface-variant">
+              <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", isOpen(g.region) && "rotate-90")} />
+              <MapPin className="h-3.5 w-3.5 text-sb-primary" /> {g.region}
+              <span className="ml-auto font-normal normal-case">{g.dealers.length} {g.dealers.length === 1 ? "tienda" : "tiendas"}</span>
+            </button>
+            {isOpen(g.region) && g.dealers.map((d) => (
               <Card key={d.id} className="flex flex-col gap-2 p-3">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold">{d.name}</div>
@@ -173,15 +189,20 @@ export default function DealersPage() {
                 {groups.map((g) => (
                   <Fragment key={g.region}>
                     {/* Encabezado de la región */}
-                    <tr className="bg-sb-surface-container-low">
-                      <td colSpan={site === "pcl" ? 6 : 5} className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-sb-on-surface-variant">
-                        <span className="inline-flex items-center gap-1.5">
+                    <tr className="cursor-pointer border-b border-sb-outline-variant/25 bg-sb-surface-container-low transition-colors hover:bg-sb-surface-container" onClick={() => toggle(g.region)}>
+                      <td colSpan={site === "pcl" ? 6 : 5} className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-sb-on-surface-variant">
+                        <button type="button" aria-expanded={isOpen(g.region)} className="inline-flex w-full items-center gap-1.5 text-left uppercase"
+                          onClick={(e) => { e.stopPropagation(); toggle(g.region); }}>
+                          <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", isOpen(g.region) && "rotate-90")} />
                           <MapPin className="h-3.5 w-3.5 text-sb-primary" /> {g.region}
-                          <span className="font-normal normal-case">· {g.dealers.length} {g.dealers.length === 1 ? "tienda" : "tiendas"} · {g.dealers.reduce((n, d) => n + count(d), 0).toLocaleString()} unidades</span>
-                        </span>
+                          <span className="font-normal normal-case">
+                            · {g.dealers.length} {g.dealers.length === 1 ? "tienda" : "tiendas"} · {(() => { const n = g.dealers.reduce((t, d) => t + count(d), 0); return `${n.toLocaleString()} ${n === 1 ? "unidad" : "unidades"}`; })()}
+                            {g.dealers.some((d) => pend(d)) && ` · ${g.dealers.reduce((n, d) => n + pend(d), 0).toLocaleString()} sin entregar`}
+                          </span>
+                        </button>
                       </td>
                     </tr>
-                    {g.dealers.map((d) => (
+                    {isOpen(g.region) && g.dealers.map((d) => (
                       <tr key={d.id} className="border-b border-sb-outline-variant/25 transition-colors hover:bg-sb-surface-container-low">
                         <td className="px-3 py-2 font-medium text-sb-on-surface">{d.name}</td>
                         <td className="px-3 py-2">{clientInput(d)}</td>

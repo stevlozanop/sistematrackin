@@ -114,7 +114,7 @@ export async function GET(req: Request) {
  * Super admin: puede corregir cualquier campo. Cada cambio queda en unit_events (seguimiento en vivo).
  */
 export async function PATCH(req: Request) {
-  // Registran fechas los encargados; corrige la empresa. SWM Labs y Honda solo miran.
+  // Registran fechas los encargados; corrige la empresa. The Iceberg Labs y Honda solo miran.
   const { s, err } = await guard(["admin", "operator"]);
   if (err) return err;
   const { ids, changes } = await req.json().catch(() => ({}));

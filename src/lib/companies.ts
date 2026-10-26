@@ -1,7 +1,7 @@
 import { query } from "./db";
 import type { Session } from "./auth";
 
-/** Empresa de la cuenta (null para SWM Labs / dev). */
+/** Empresa de la cuenta (null para The Iceberg Labs / dev). */
 export async function myCompany(s: Session) {
   if (s.role === "dev") return null;
   const [u] = await query<{ company_id: number | null }>("SELECT company_id FROM users WHERE id=?", [s.id]);
@@ -19,7 +19,7 @@ export async function canManage(s: Session, id: number, own = false) {
 
 /**
  * Marca (nombre, logo y color) que ve cada cuenta en el menú:
- * - SWM Labs (dev): null → se muestra SWM Labs en blanco y negro.
+ * - The Iceberg Labs (dev): null → se muestra The Iceberg Labs en blanco y negro.
  * - Cuenta de una empresa (Leyva, Honda…): su propia empresa.
  * - Dealer: la empresa a la que pertenece (la transportista).
  * - Cuenta sin empresa: la primera transportista registrada.
