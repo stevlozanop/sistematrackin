@@ -18,7 +18,9 @@ import { CodeTag } from "@/components/ui";
 type Item = { title: string; href: string; icon: LucideIcon; roles?: Role[] };
 const SUPER: Role[] = ["dev", "admin"];
 const READ: Role[] = ["dev", "admin", "viewer"]; // ven todo (viewer = solo lectura, Honda)
-const MODULES: Role[] = ["dev", "admin", "viewer", "operator"];
+// PCL / YUR en el menú: quien opera o supervisa. Honda (solo lectura) no los necesita en el menú;
+// llega al detalle desde el dashboard o las alertas.
+const MODULES: Role[] = ["dev", "admin", "operator"];
 
 const SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
   {

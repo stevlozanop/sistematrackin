@@ -35,18 +35,21 @@ export async function GET() {
   if (s && s.role === "viewer" && !(await clientConsortiumOf(s))) return NextResponse.json({ error: "No tienes permiso para esta acción" }, { status: 403 });
   if (err) return err;
   await fillDealerClients();
-  const rows = await query<{ client: string; stores: string; departments: string | null; units: number; open: number; accounts: string | null }>(
+  const rows = await query<{ client: string; stores: string; departments: string | null; units: number; open: number; accounts: string | null; own: number }>(
     `SELECT d.client,
        GROUP_CONCAT(DISTINCT d.name ORDER BY d.name SEPARATOR '|') stores,
        GROUP_CONCAT(DISTINCT d.department ORDER BY d.department SEPARATOR ', ') departments,
        COUNT(un.id) units, SUM(un.d_entrega IS NULL AND un.id IS NOT NULL) open,
        (SELECT GROUP_CONCAT(u.email ORDER BY u.id SEPARATOR ', ') FROM users u
-         WHERE u.role = 'dealer' AND (u.client = d.client OR u.dealer_id IN (SELECT id FROM dealers x WHERE x.client = d.client))) accounts
+         WHERE u.role = 'dealer' AND (u.client = d.client OR u.dealer_id IN (SELECT id FROM dealers x WHERE x.client = d.client))) accounts,
+       -- el cliente ya es una cuenta de la empresa o del consorcio (ej. SERVIHONDA es la cuenta principal de Honda)
+       EXISTS (SELECT 1 FROM users u WHERE u.role <> 'dealer' AND u.client = d.client) own
      FROM dealers d LEFT JOIN units un ON un.dealer_id = d.id
      WHERE d.client IS NOT NULL
      GROUP BY d.client ORDER BY units DESC`,
   );
-  return NextResponse.json(rows.map((r) => ({ ...r, stores: r.stores.split("|"), units: Number(r.units ?? 0), open: Number(r.open ?? 0) })));
+  // No se ofrece dar acceso a un cliente que ya es una cuenta de la empresa o del consorcio
+  return NextResponse.json(rows.filter((r) => !Number(r.own)).map((r) => ({ ...r, stores: r.stores.split("|"), units: Number(r.units ?? 0), open: Number(r.open ?? 0) })));
 }
 
 export async function POST(req: Request) {
@@ -62,7 +65,7 @@ export async function POST(req: Request) {
   // Solo clientes que existen y todavía no tienen cuenta
   const clients = await queryList<{ client: string; stores: number; departments: string | null }>(
     `SELECT d.client, COUNT(*) stores, GROUP_CONCAT(DISTINCT d.department SEPARATOR ', ') departments FROM dealers d
-     WHERE d.client IN (?) AND NOT EXISTS (SELECT 1 FROM users u WHERE u.role = 'dealer' AND u.client = d.client)
+     WHERE d.client IN (?) AND NOT EXISTS (SELECT 1 FROM users u WHERE u.client = d.client)
      GROUP BY d.client ORDER BY d.client`,
     [wanted],
   );
