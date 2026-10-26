@@ -10,7 +10,7 @@ import { AlertBell } from "@/components/AlertBell";
 import { GuideModal } from "@/components/GuideModal";
 import { LogoBadge } from "@/components/CompanyLogo";
 
-type Co = { id: number; name: string; v: string | null; color?: string | null } | null;
+type Co = { id: number; name: string; v: string | null; color?: string | null; kind?: string } | null;
 
 import { companyCode, roleLabel, type Role } from "@/lib/workflow";
 import { CodeTag } from "@/components/ui";
@@ -33,7 +33,7 @@ const SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
       { title: "YUR · Yurimaguas", href: "/units/yur", icon: Truck, roles: MODULES },
       { title: "Dealers", href: "/dealers", icon: Store, roles: SUPER },
       // Honda (solo lectura de su consorcio) da acceso a sus clientes y saca reportes
-      { title: "Clientes", href: "/clients", icon: Users, roles: ["viewer"] },
+      { title: "Equipo y clientes", href: "/clients", icon: Users, roles: ["viewer"] },
       { title: "Reportes", href: "/reports", icon: FileSpreadsheet, roles: READ },
       { title: "Plazos y meta", href: "/settings", icon: SlidersHorizontal, roles: SUPER },
     ],
@@ -246,7 +246,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = fals
               )}
               <span className="hidden text-[10px] text-sb-on-surface-variant sm:block">{name}</span>
               {isOwner && own ? (
-                <CodeTag code={companyCode(own.id)} size="xs" />
+                <CodeTag code={companyCode(own.id, own.kind)} size="xs" />
               ) : (
                 <span className="text-[10px] font-medium uppercase text-sb-on-surface-variant">{roleLabel(role)}</span>
               )}

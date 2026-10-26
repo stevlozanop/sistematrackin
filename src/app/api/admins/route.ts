@@ -52,7 +52,7 @@ export async function GET(req: Request) {
     `SELECT u.id, u.name, u.email, u.role, u.area, u.carrier, u.can_import, DATE_FORMAT(u.created_at,'%Y-%m-%d %H:%i') AS created_at,
        DATE_FORMAT(u.last_seen,'%Y-%m-%d %H:%i:%s') AS last_seen,
        (u.last_seen > NOW() - INTERVAL 60 SECOND) AS online,
-       u.company_id, c.name AS company, u.dealer_id, d.name AS dealer, u.client,
+       u.company_id, c.name AS company, c.kind AS company_kind, u.dealer_id, d.name AS dealer, u.client,
        (SELECT COUNT(*) FROM dealers dc WHERE dc.client = u.client) AS client_stores, (c.owner_id <=> u.id) AS is_owner
      FROM users u LEFT JOIN companies c ON c.id = u.company_id LEFT JOIN dealers d ON d.id = u.dealer_id
      WHERE u.role IN (?) AND (? = 'dev' OR u.role <> 'admin' OR u.company_id <=> ?) ORDER BY u.id DESC`,

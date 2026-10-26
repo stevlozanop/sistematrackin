@@ -85,7 +85,7 @@ export default function ProfilePage() {
           <div>
             <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold">
               {p.company.name}
-              {p.company.isOwner && <CodeTag code={companyCode(p.company.id)} />}
+              {p.company.isOwner && <CodeTag code={companyCode(p.company.id, p.company.kind)} />}
             </h3>
             <p className="text-[12px] text-sb-on-surface-variant">
               {p.company.canEdit ? "Foto de perfil de tu empresa: se ve en el menú de todas sus cuentas." : "Tu empresa."}
@@ -105,7 +105,7 @@ export default function ProfilePage() {
           <h3 className="truncate text-lg font-semibold tracking-tight">{p.name}</h3>
           <p className="truncate text-sm text-sb-on-surface-variant">{p.email}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {owner ? <CodeTag code={companyCode(p.company!.id)} /> : <Pill active>{roleLabel(p.role)}</Pill>}
+            {owner ? <CodeTag code={companyCode(p.company!.id, p.company!.kind)} /> : <Pill active>{roleLabel(p.role)}</Pill>}
             {area && area.id !== "CUSTOM" && <Pill>{area.label}</Pill>}
             {p.carrier && <Pill>{p.carrier}</Pill>}
           </div>
@@ -126,12 +126,14 @@ export default function ProfilePage() {
         <Card className="p-5">
           <h3 className="mb-1 text-sm font-semibold">Mi cuenta</h3>
           <p className="mb-2 text-[12px] text-sb-on-surface-variant/70">
-            {owner ? `Cuenta de ${p.company!.name}: administras todo tu sistema, tus supervisores, consorcios y dealers.` : ROLE_DESC[p.role]}
+            {!owner ? ROLE_DESC[p.role] : p.company!.kind === "client"
+              ? `Cuenta principal de ${p.company!.name}: creas a tus empleados y a tus clientes, y sacas los reportes.`
+              : `Cuenta de ${p.company!.name}: administras todo tu sistema, tus supervisores, consorcios y dealers.`}
           </p>
           {owner ? (
             <>
-              <Row label="Empresa">{p.company!.name}</Row>
-              <Row label="Código de empresa"><CodeTag code={companyCode(p.company!.id)} /></Row>
+              <Row label={p.company!.kind === "client" ? "Consorcio" : "Empresa"}>{p.company!.name}</Row>
+              <Row label={p.company!.kind === "client" ? "Código de consorcio" : "Código de empresa"}><CodeTag code={companyCode(p.company!.id, p.company!.kind)} /></Row>
             </>
           ) : (
             <Row label="Rol">{roleLabel(p.role)}</Row>

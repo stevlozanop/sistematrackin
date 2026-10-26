@@ -38,8 +38,8 @@ export async function brandCompany(userId: number, role: string) {
 
 /** Empresa propia de la cuenta (para el avatar de la barra superior). */
 export async function ownCompany(userId: number) {
-  const [c] = await query<{ id: number; name: string; v: string | null }>(
-    "SELECT c.id, c.name, UNIX_TIMESTAMP(c.logo_updated) v FROM users u JOIN companies c ON c.id = u.company_id WHERE u.id = ?",
+  const [c] = await query<{ id: number; name: string; v: string | null; kind: string }>(
+    "SELECT c.id, c.name, UNIX_TIMESTAMP(c.logo_updated) v, c.kind FROM users u JOIN companies c ON c.id = u.company_id WHERE u.id = ?",
     [userId],
   );
   return c ?? null;

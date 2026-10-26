@@ -13,8 +13,8 @@ export const seesAll = (role?: Role | null) => role === "dev" || role === "admin
 
 export const ROLE_LABEL: Record<Role, string> = { dev: "The Iceberg Labs", admin: "Supervisor", operator: "Encargado", viewer: "Solo lectura", dealer: "Cliente" };
 
-/** Código de empresa según su orden de registro: 1 -> «EMP-01». */
-export const companyCode = (id: number) => `EMP-${String(id).padStart(2, "0")}`;
+/** Código según su orden de registro: empresa 1 -> «EMP-01» · consorcio cliente 2 -> «CON-02». */
+export const companyCode = (id: number, kind?: string | null) => `${kind === "client" ? "CON" : "EMP"}-${String(id).padStart(2, "0")}`;
 
 /** Etiqueta de la cuenta: la cuenta principal de una empresa se llama «Empresa» (no «Supervisor»). */
 export const roleLabel = (role: Role, owner?: boolean | number | null) => (role === "admin" && Number(owner) ? "Empresa" : ROLE_LABEL[role]);

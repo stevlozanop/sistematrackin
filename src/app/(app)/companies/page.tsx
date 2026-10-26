@@ -210,7 +210,7 @@ export default function CompaniesPage() {
                   <span className={`h-2 w-2 shrink-0 rounded-full ${Number(u.online) ? "bg-emerald-500" : "bg-sb-surface-container-highest"}`} title={Number(u.online) ? "En línea" : "Desconectado"} />
                   <span className="min-w-0 flex-1 truncate"><b className="font-medium">{u.name}</b> <span className="text-sb-on-surface-variant">· {u.email}</span></span>
                   {u.id === c.owner_id ? (
-                    <CodeTag code={companyCode(c.id)} />
+                    <CodeTag code={companyCode(c.id, c.kind)} />
                   ) : (
                     <>
                       {dev && c.kind === "transport" && u.role === "admin" && (
