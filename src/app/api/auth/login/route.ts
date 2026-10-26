@@ -16,7 +16,7 @@ function entryFor(u: { role: Role; slug: string | null }) {
  * POST { email, password, portal?: { slug, audience: "staff" | "clients" } }
  * Desde la entrada propia de un consorcio solo pasan cuentas de esa puerta:
  * /honda → su cuenta principal y sus empleados · /honda/clientes → sus clientes.
- * El login principal (/login) acepta cualquier cuenta.
+ * El login principal (/login) acepta todas las cuentas menos los clientes de un consorcio.
  */
 export async function POST(req: Request) {
   const { email, password, portal } = await req.json().catch(() => ({}));
@@ -43,6 +43,9 @@ export async function POST(req: Request) {
           entry: entryFor(u),
         }, { status: 403 });
       }
+    } else if (u.role === "dealer" && u.slug) {
+      // Los clientes de un consorcio entran solo por la entrada de su consorcio (/honda/clientes)
+      return NextResponse.json({ error: "Los clientes ingresan por la entrada de su consorcio", entry: entryFor(u) }, { status: 403 });
     }
 
     await createSession({ id: u.id, name: u.name, email: u.email, role: u.role });
