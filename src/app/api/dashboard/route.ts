@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { queryList } from "@/lib/db";
-import { guard } from "@/lib/guard";
+import { guard, READ } from "@/lib/guard";
 
 /**
  * GET /api/dashboard?year=2026&cl=3101,3106
@@ -8,7 +8,7 @@ import { guard } from "@/lib/guard";
  * para PCL (filtrado por CL) y YUR.
  */
 export async function GET(req: Request) {
-  const { err } = await guard();
+  const { err } = await guard(READ);
   if (err) return err;
   const p = new URL(req.url).searchParams;
 

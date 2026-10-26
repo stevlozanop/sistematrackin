@@ -1,13 +1,17 @@
 /** Reglas de edición por etapas: orden estricto, bloqueo y encargados. Se usa en el servidor y en la pantalla. */
 import { SITE_INFO, type DateField, type Site } from "./hsp";
 
-export type Role = "dev" | "admin" | "operator";
+/** dev/admin = super admin · operator = encargado · viewer = solo lectura de todo (Honda) · dealer = solo sus unidades */
+export type Role = "dev" | "admin" | "operator" | "viewer" | "dealer";
 export type Stage = { site: Site; field: DateField };
 
 /** dev y admin = super admin: ven todo, cargan Excel y pueden corregir fechas bloqueadas. */
 export const isSuper = (role?: Role | null) => role === "dev" || role === "admin";
 
-export const ROLE_LABEL: Record<Role, string> = { dev: "Super admin", admin: "Supervisor", operator: "Encargado" };
+/** Ve todas las unidades (sin poder editar si es viewer). */
+export const seesAll = (role?: Role | null) => role === "dev" || role === "admin" || role === "viewer";
+
+export const ROLE_LABEL: Record<Role, string> = { dev: "SWM Labs", admin: "Supervisor", operator: "Encargado", viewer: "Solo lectura", dealer: "Dealer" };
 
 /**
  * Áreas de trabajo: al crear un encargado se elige su área y las etapas se asignan solas.
@@ -114,12 +118,12 @@ export const USER_DOMAIN = "trackin.pe";
  * Usuario sugerido: 3 letras del nombre + apellido + "." + área.
  * Ej.: "Steven Lozano", Almacén PCL -> stelozano.almacenpcl@trackin.pe
  */
-export function suggestEmail(fullName: string, role: "admin" | "operator", areaId?: string | null) {
+export function suggestEmail(fullName: string, role: "admin" | "operator" | "viewer" | "dealer", areaId?: string | null) {
   const words = fullName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z\s]/g, "").split(/\s+/).filter(Boolean);
   if (!words.length) return "";
   // 2-3 palabras: nombre + 1er apellido (2da palabra). 4 o más: nombre, 2do nombre, apellidos -> 3ra palabra.
   const last = words.length >= 4 ? words[2] : words[1] ?? "";
   const base = last ? words[0].slice(0, 3) + last : words[0];
-  const tag = role === "admin" ? "supervisor" : areaOf(areaId)?.tag ?? "encargado";
+  const tag = role === "admin" ? "supervisor" : role === "viewer" ? "lectura" : role === "dealer" ? "dealer" : areaOf(areaId)?.tag ?? "encargado";
   return `${base}.${tag}@${USER_DOMAIN}`;
 }

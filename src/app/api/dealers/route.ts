@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { query, run } from "@/lib/db";
-import { guard, SUPER } from "@/lib/guard";
+import { guard, READ, SUPER } from "@/lib/guard";
 
 export async function GET() {
-  const { err } = await guard();
+  const { err } = await guard(READ);
   if (err) return err;
   return NextResponse.json(
     await query(

@@ -26,7 +26,7 @@ export function AreaPicker({ value, onChange, carriers }: { value: Assignment; o
         <div className="grid grid-cols-2 gap-2">
           {(["PCL", "YUR"] as const).map((m) => (
             <button key={m} type="button" onClick={() => pick(m)}
-              className={cn("rounded-xl border p-2.5 text-left transition-colors", module === m ? "border-sb-on-surface bg-sb-on-surface text-sb-surface" : "border-sb-outline-variant/60 hover:bg-sb-surface-container-low")}>
+              className={cn("rounded-xl border p-2.5 text-left transition-colors", module === m ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant/60 hover:bg-sb-surface-container-low")}>
               <div className="text-sm font-semibold">{SITE_INFO[m].title}</div>
               <div className="text-[10px] opacity-70">{m === "PCL" ? "Iquitos → Pucallpa → dealers (y Ruta Lima)" : "Iquitos → Yurimaguas → dealers"}</div>
             </button>
@@ -45,7 +45,7 @@ export function AreaPicker({ value, onChange, carriers }: { value: Assignment; o
               type="button"
               key={a.id}
               onClick={() => onChange({ ...value, area: a.id, stages: a.id === "CUSTOM" ? value.stages : [], carrier: a.carrier ? value.carrier : "" })}
-              className={cn("rounded-xl border p-2.5 text-left transition-colors", on ? "border-sb-on-surface bg-sb-on-surface text-sb-surface" : "border-sb-outline-variant/60 hover:bg-sb-surface-container-low")}
+              className={cn("rounded-xl border p-2.5 text-left transition-colors", on ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant/60 hover:bg-sb-surface-container-low")}
             >
               <div className="text-xs font-semibold">{a.label}</div>
               <div className="mt-0.5 text-[10px] leading-snug opacity-70">

@@ -70,7 +70,7 @@ function DateCell({ value, onSave, label, mode, min }: {
           title="Guardar (queda bloqueada)"
           disabled={!draft}
           onClick={() => onSave(draft)}
-          className="grid h-6 w-6 place-items-center rounded-full bg-sb-on-surface text-sb-surface transition-opacity disabled:opacity-25"
+          className="grid h-6 w-6 place-items-center rounded-full bg-sb-primary text-sb-on-primary transition-opacity disabled:opacity-25"
         >
           <CheckIcon className="h-3.5 w-3.5" />
         </button>
@@ -89,7 +89,8 @@ function DateCell({ value, onSave, label, mode, min }: {
   );
 }
 
-function ReasonCell({ value, onSave, reasons }: { value: string | null; onSave: (v: string) => void; reasons: string[] }) {
+function ReasonCell({ value, onSave, reasons, readOnly }: { value: string | null; onSave: (v: string) => void; reasons: string[]; readOnly?: boolean }) {
+  if (readOnly) return <span className="text-xs">{value ?? "—"}</span>;
   return (
     <select aria-label="Motivo de demora" value={value ?? ""} onChange={(e) => onSave(e.target.value)} className={`w-[11rem] ${field}`}>
       <option value="">— Sin motivo —</option>
@@ -162,6 +163,7 @@ export default function SitePage({ params, searchParams }: {
   // Usuario actual: el super admin edita todo; el encargado solo la siguiente etapa que le toca
   const [me, setMe] = useState<{ role: Role; stages: Stage[] } | null>(null);
   const sup = isSuper(me?.role);
+  const viewer = me?.role === "viewer"; // cuenta de solo lectura (Honda): ve todo, no cambia nada
   const myFields = useMemo(() => new Set(me?.stages.filter((st) => st.site === site).map((st) => st.field) ?? []), [me, site]);
   const modeOf = (u: Unit, k: DateField): CellMode => {
     if (!me) return u[k] ? "locked" : "wait";
@@ -296,13 +298,13 @@ export default function SitePage({ params, searchParams }: {
   return (
     <div className="flex flex-col gap-4">
       <PageTitle title={info.title} sub={`${total.toLocaleString()} unidades${Object.values(f).some(Boolean) ? " con los filtros actuales" : ""}${updatedAt ? ` · en vivo, actualizado ${updatedAt}` : ""}`}>
-        <Button size="sm" variant="secondary" className="rounded-full" isDisabled={!selIds.length} onPress={() => {
+        {!viewer && <Button size="sm" variant="secondary" className="rounded-full" isDisabled={!selIds.length} onPress={() => {
           setBulkField(sup ? info.dates[0].key : info.dates.find((d) => myFields.has(d.key))?.key ?? "delay_reason");
           setBulkValue("");
           bulk.open();
         }}>
           Cambio masivo ({selIds.length})
-        </Button>
+        </Button>}
         {sup && (
           <>
             <Button size="sm" variant="secondary" className="rounded-full" isDisabled={!total && !Object.values(f).some(Boolean)} onPress={wipe.open}>
@@ -361,7 +363,9 @@ export default function SitePage({ params, searchParams }: {
       </div>
       {!sup && me && (
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-sb-on-surface-variant">
-          {myFields.size ? (
+          {viewer ? (
+            <span>Cuenta de solo lectura: ves todas las unidades en vivo, pero no puedes cambiar fechas ni datos.</span>
+          ) : myFields.size ? (
             <>
               <button className={`sbf-chip ${f.mine ? "active" : ""}`} onClick={() => setFilter("mine", f.mine ? "" : "1")}>Mis pendientes</button>
               <span>Tus etapas: {info.dates.filter((d) => myFields.has(d.key)).map((d) => d.label).join(", ")}. Solo puedes registrar la siguiente etapa de cada unidad; al guardar queda bloqueada.</span>
@@ -428,7 +432,7 @@ export default function SitePage({ params, searchParams }: {
             <Table.Content
               aria-label={`Unidades ${site}`}
               className="min-w-[1900px]"
-              selectionMode="multiple"
+              selectionMode={viewer ? "none" : "multiple"}
               selectedKeys={selected}
               onSelectionChange={setSelected}
               sortDescriptor={sort}
@@ -497,7 +501,7 @@ export default function SitePage({ params, searchParams }: {
                       <Chip size="sm" className="whitespace-nowrap" variant={u.status === "ENTREGADO" ? "primary" : "soft"} color={u.status === "ENTREGADO" ? "accent" : "default"}>{STATUS_LABEL[u.status]}</Chip>
                       {u.last_at && (
                         <div className="mt-1 flex items-center gap-1 whitespace-nowrap text-[10px] text-muted" title={`Último registro: ${stageLabel(site, u.last_field ?? "")} · ${u.last_at}`}>
-                          {u.last_at.slice(0, 10) === today() && <span className="rounded-full bg-sb-on-surface px-1.5 py-px text-[9px] font-semibold uppercase text-sb-surface">Hoy</span>}
+                          {u.last_at.slice(0, 10) === today() && <span className="rounded-full bg-sb-primary px-1.5 py-px text-[9px] font-semibold uppercase text-sb-on-primary">Hoy</span>}
                           {u.last_by ?? "—"} · {fmtDate(u.last_at.slice(0, 10))} {u.last_at.slice(11)}
                         </div>
                       )}
@@ -517,7 +521,7 @@ export default function SitePage({ params, searchParams }: {
                       <ServiceChip s={u.service} />
                       {u.real_days != null && <div className="mt-1 text-[10px] text-muted">Real: {u.real_days} días</div>}
                     </Table.Cell>
-                    <Table.Cell><ReasonCell value={u.delay_reason} reasons={reasons} onSave={(v) => patch([u.id], { delay_reason: v || null })} /></Table.Cell>
+                    <Table.Cell><ReasonCell readOnly={viewer} value={u.delay_reason} reasons={reasons} onSave={(v) => patch([u.id], { delay_reason: v || null })} /></Table.Cell>
                     <Table.Cell>
                       <div className="flex justify-end">
                         <Button isIconOnly size="sm" variant="tertiary" aria-label={`Más opciones de ${u.chassis}`} onPress={() => setEditId(u.id)}>
@@ -653,7 +657,7 @@ export default function SitePage({ params, searchParams }: {
                     <div className="grid gap-3 sm:grid-cols-2">
                       <label className="flex flex-col gap-1 text-xs">
                         Motivo de demora
-                        <ReasonCell value={editing.delay_reason} reasons={reasons} onSave={(v) => patch([editing.id], { delay_reason: v || null })} />
+                        <ReasonCell readOnly={viewer} value={editing.delay_reason} reasons={reasons} onSave={(v) => patch([editing.id], { delay_reason: v || null })} />
                       </label>
                       {(site === "PCL"
                         ? [["nave", "Nave"], ["container", "Contenedor"], ["carrier", "Tramo final (transportista)"], ["plan_almacen", "Plan almacén"]]
@@ -676,6 +680,7 @@ export default function SitePage({ params, searchParams }: {
                           key={`${editing.id}-${editing.observation ?? ""}`}
                           defaultValue={editing.observation ?? ""}
                           rows={2}
+                          readOnly={viewer}
                           onBlur={(e) => e.target.value !== (editing.observation ?? "") && patch([editing.id], { observation: e.target.value || null })}
                           className={field}
                         />

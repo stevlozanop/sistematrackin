@@ -21,7 +21,7 @@ export function RouteBackdrop() {
             <animate attributeName="stroke-dashoffset" from="0" to="-56" dur="2.5s" repeatCount="indefinite" />
           </path>
           {[0, 0.5].map((o) => (
-            <circle key={o} r="4" fill="#fff">
+            <circle key={o} r="4" fill="#bedf3c">
               <animateMotion dur={r.dur} begin={`${-o * parseFloat(r.dur)}s`} repeatCount="indefinite">
                 <mpath href={`#${r.id}`} />
               </animateMotion>
@@ -32,8 +32,8 @@ export function RouteBackdrop() {
 
       {NODES.map((n, i) => (
         <g key={n.id}>
-          <circle cx={n.x} cy={n.y} r="6" fill="#fff" />
-          <circle cx={n.x} cy={n.y} r="6" fill="none" stroke="#fff">
+          <circle cx={n.x} cy={n.y} r="6" fill="#09ae04" />
+          <circle cx={n.x} cy={n.y} r="6" fill="none" stroke="#09ae04">
             <animate attributeName="r" values="6;30" dur="3s" begin={`${i * 0.7}s`} repeatCount="indefinite" />
             <animate attributeName="opacity" values="0.7;0" dur="3s" begin={`${i * 0.7}s`} repeatCount="indefinite" />
           </circle>

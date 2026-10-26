@@ -37,7 +37,7 @@ export const Empty = ({ cols, children }: { cols: number; children: React.ReactN
 );
 
 export const Pill = ({ active, children }: { active?: boolean; children: React.ReactNode }) => (
-  <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium", active ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container-high text-sb-on-surface-variant")}>
+  <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium", active ? "bg-sb-primary text-sb-on-primary" : "bg-sb-surface-container-high text-sb-on-surface-variant")}>
     {children}
   </span>
 );

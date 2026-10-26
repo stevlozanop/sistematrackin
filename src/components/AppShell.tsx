@@ -3,35 +3,54 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, BookOpen, ChevronLeft, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
+import { Activity, Bell, BookOpen, Building2, ChevronLeft, Database, SquareTerminal, Terminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
 import { GuideModal } from "@/components/GuideModal";
+import { LogoBadge } from "@/components/CompanyLogo";
 
-type Role = "dev" | "admin" | "operator";
+type Co = { id: number; name: string; v: string | null } | null;
+
+import { ROLE_LABEL, type Role } from "@/lib/workflow";
+
 type Item = { title: string; href: string; icon: LucideIcon; roles?: Role[] };
 const SUPER: Role[] = ["dev", "admin"];
+const READ: Role[] = ["dev", "admin", "viewer"]; // ven todo (viewer = solo lectura, Honda)
+const MODULES: Role[] = ["dev", "admin", "viewer", "operator"];
 
 const SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
   {
     title: "Principal",
     items: [
       { title: "Mi trabajo", href: "/my", icon: ClipboardCheck, roles: ["operator"] },
-      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: SUPER },
-      { title: "Alertas", href: "/alerts", icon: Bell, roles: SUPER },
-      { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship },
-      { title: "YUR · Yurimaguas", href: "/units/yur", icon: Truck },
+      { title: "Mis unidades", href: "/portal", icon: PackageSearch, roles: ["dealer"] },
+      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: READ },
+      { title: "Alertas", href: "/alerts", icon: Bell, roles: READ },
+      { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship, roles: MODULES },
+      { title: "YUR · Yurimaguas", href: "/units/yur", icon: Truck, roles: MODULES },
       { title: "Dealers", href: "/dealers", icon: Store, roles: SUPER },
       { title: "Plazos y meta", href: "/settings", icon: SlidersHorizontal, roles: SUPER },
     ],
   },
   {
     title: "Sistema",
-    roles: SUPER,
+    roles: READ,
     items: [
       { title: "En vivo", href: "/live", icon: Activity },
-      { title: "Usuarios", href: "/admins", icon: Users },
+      { title: "Usuarios", href: "/admins", icon: Users, roles: SUPER },
+      { title: "Empresas", href: "/companies", icon: Building2, roles: ["dev"] },
+      { title: "Consorcios", href: "/companies", icon: Building2, roles: ["admin"] },
+    ],
+  },
+  {
+    // Consola de la plataforma: solo SWM Labs (dev)
+    title: "SWM Labs",
+    roles: ["dev"],
+    items: [
+      { title: "Consola", href: "/dev", icon: Terminal },
+      { title: "Base de datos", href: "/dev/database", icon: Database },
+      { title: "Consola SQL", href: "/dev/sql", icon: SquareTerminal },
     ],
   },
 ];
@@ -49,7 +68,7 @@ function NavLink({ item, active, open }: { item: Item; active: boolean; open: bo
         "group flex items-center gap-2.5 transition-colors duration-300 ease-out",
         open ? "h-8 rounded-full px-2.5" : "relative mx-auto h-9 w-9 justify-center",
         active
-          ? open ? "bg-sb-on-surface text-sb-surface" : "text-sb-surface"
+          ? open ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-primary"
           : "text-sb-on-surface-variant/70 hover:text-sb-on-surface",
       )}
     >
@@ -57,8 +76,8 @@ function NavLink({ item, active, open }: { item: Item; active: boolean; open: bo
         <motion.span
           className="absolute inset-0"
           initial={false}
-          animate={{ borderRadius: active ? 14 : 999, backgroundColor: active ? "var(--sb-on-surface)" : "rgba(127,127,127,0)" }}
-          whileHover={{ backgroundColor: active ? "var(--sb-on-surface)" : "rgba(127,127,127,0.12)" }}
+          animate={{ borderRadius: active ? 14 : 999, backgroundColor: active ? "var(--sb-primary)" : "rgba(127,127,127,0)" }}
+          whileHover={{ backgroundColor: active ? "var(--sb-primary)" : "rgba(127,127,127,0.12)" }}
           transition={SPRING}
         />
       )}
@@ -100,7 +119,9 @@ const Heading = ({ children }: { children: React.ReactNode }) => (
   <h3 className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/50">{children}</h3>
 );
 
-export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = false, children }: { name: string; role: Role; sites?: string[]; firstGuide?: boolean; children: React.ReactNode }) {
+export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = false, brand = null, own = null, children }: {
+  name: string; role: Role; sites?: string[]; firstGuide?: boolean; brand?: Co; own?: Co; children: React.ReactNode;
+}) {
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(true);
@@ -136,23 +157,36 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = fals
         // módulos PCL / YUR: solo los que le corresponden
         (!i.href.startsWith("/units/") || sites.includes(i.href.slice(7).toUpperCase()))),
     }));
-  const pageName = [...sections.flatMap((s) => s.items), PROFILE].find((i) => path.startsWith(i.href))?.title ?? "";
+  // Título: la opción con la ruta más larga que coincide (/dev/database antes que /dev)
+  const pageName = [...sections.flatMap((s) => s.items), PROFILE].filter((i) => path === i.href || path.startsWith(i.href + "/"))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.title ?? "";
   const initials = name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f5f5f5] text-sb-on-background dark:bg-black">
+    <div className="flex h-screen overflow-hidden bg-[var(--page-bg)] text-sb-on-background">
       {/* Sidebar */}
       <aside className={cn("z-10 hidden h-screen shrink-0 flex-col overflow-hidden bg-sb-surface transition-[width] duration-200 ease-out md:flex", open ? "w-[240px]" : "w-[64px]")}>
         <div className={cn("flex h-14 shrink-0 items-center", open ? "gap-2.5 px-4" : "justify-center")}>
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-sb-on-surface text-[11px] font-bold text-sb-surface">ST</span>
-          {open && <span className="truncate text-[13px] font-medium tracking-tight">System Trackin</span>}
+          {brand?.v ? (
+            <LogoBadge id={brand.id} name={brand.name} v={brand.v} className="h-8 w-8 rounded-lg border border-sb-outline-variant/40" />
+          ) : (
+            <span className="relative grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-lg bg-leyva-green text-[11px] font-bold text-white">
+              ST<span className="absolute inset-x-0 bottom-0 h-[3px] bg-leyva-lime" />
+            </span>
+          )}
+          {open && (
+            <span className="flex min-w-0 flex-col leading-tight">
+              <span className="truncate text-[13px] font-semibold tracking-tight">System Trackin</span>
+              <span className="truncate text-[10px] font-medium text-leyva-green">{brand?.name ?? "Consorcio Leyva"}</span>
+            </span>
+          )}
         </div>
 
         <nav className={cn("flex flex-1 flex-col overflow-y-auto overflow-x-hidden px-2 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", open ? "gap-4" : "gap-2")}>
           {sections.map((s) => (
             <div key={s.title} className="flex flex-col gap-px">
               {open && <Heading>{s.title}</Heading>}
-              {s.items.map((i) => <NavLink key={i.href} item={i} active={path.startsWith(i.href)} open={open} />)}
+              {s.items.map((i) => <NavLink key={i.title} item={i} active={i.href === "/dev" ? path === "/dev" : path.startsWith(i.href)} open={open} />)}
             </div>
           ))}
         </nav>
@@ -189,16 +223,20 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = fals
           <h1 className="truncate text-sm font-medium text-sb-on-surface-variant">{pageName}</h1>
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" onClick={() => setGuide(true)} title="Cómo funciona el sistema"
-              className="flex h-8 items-center gap-1.5 rounded-full bg-sb-surface-container-high px-3 text-[11px] font-medium text-sb-on-surface-variant transition-colors hover:bg-sb-on-surface hover:text-sb-surface">
+              className="flex h-8 items-center gap-1.5 rounded-full bg-sb-surface-container-high px-3 text-[11px] font-medium text-sb-on-surface-variant transition-colors hover:bg-sb-primary hover:text-sb-on-primary">
               <BookOpen className="h-3.5 w-3.5" /><span className="hidden sm:inline">Guía</span>
             </button>
-            <AlertBell href={role === "operator" ? "/my" : "/alerts"} />
+            <AlertBell href={role === "operator" ? "/my" : role === "dealer" ? "/portal" : "/alerts"} />
             <Link href="/profile" title="Mi perfil" className="flex items-center gap-2 rounded-full bg-sb-surface-container-high px-3 py-1.5 transition-colors hover:bg-sb-surface-container-highest">
-              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-sb-surface-container-highest">
-                <span className="text-[8px] font-semibold text-sb-on-surface/80">{initials}</span>
-              </div>
+              {own?.v ? (
+                <LogoBadge id={own.id} name={own.name} v={own.v} className="h-5 w-5 rounded-full text-[8px]" />
+              ) : (
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-sb-surface-container-highest">
+                  <span className="text-[8px] font-semibold text-sb-on-surface/80">{initials}</span>
+                </div>
+              )}
               <span className="hidden text-[10px] text-sb-on-surface-variant sm:block">{name}</span>
-              <span className="text-[10px] font-medium uppercase text-sb-on-surface-variant">{role === "operator" ? "Encargado" : role === "admin" ? "Supervisor" : "Super admin"}</span>
+              <span className="text-[10px] font-medium uppercase text-sb-on-surface-variant">{ROLE_LABEL[role]}</span>
             </Link>
           </div>
         </header>

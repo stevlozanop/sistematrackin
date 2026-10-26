@@ -4,7 +4,9 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
-export type Session = { id: number; name: string; email: string; role: "dev" | "admin" | "operator" };
+import type { Role } from "./workflow";
+
+export type Session = { id: number; name: string; email: string; role: Role };
 
 function secret() {
   if (process.env.AUTH_SECRET) return new TextEncoder().encode(process.env.AUTH_SECRET);
@@ -29,7 +31,11 @@ export async function createSession(s: Session) {
 }
 
 export async function getSession(): Promise<Session | null> {
-  const t = (await cookies()).get("session")?.value;
+  return verifySession((await cookies()).get("session")?.value);
+}
+
+/** Valida el token de sesión (también lo usa src/proxy.ts, que no tiene acceso a cookies()). */
+export async function verifySession(t?: string): Promise<Session | null> {
   if (!t) return null;
   try {
     const { payload } = await jwtVerify(t, secret());

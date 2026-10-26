@@ -47,7 +47,7 @@ export function SlideToSubmit({ label, loading = false, onComplete }: { label: s
     <div ref={track} className="relative h-[72px] select-none overflow-hidden rounded-[50px] bg-white/[0.07]" style={{ padding: PAD }}>
       <motion.div
         aria-hidden
-        className="absolute rounded-[50px] bg-white"
+        className="absolute rounded-[50px] bg-leyva-lime"
         style={{ left: PAD, top: PAD, bottom: PAD, width: fill, opacity: fillOpacity }}
       />
 
@@ -71,11 +71,11 @@ export function SlideToSubmit({ label, loading = false, onComplete }: { label: s
         whileHover={{ scale: 1.03 }}
         whileTap={{ scale: 0.96, cursor: "grabbing" }}
         style={{ x, width: HANDLE, touchAction: "none" }}
-        className="relative grid h-14 cursor-grab place-items-center rounded-[50px] bg-white text-sm font-semibold text-black shadow-[0_4px_18px_rgba(255,255,255,.18)]"
+        className="relative grid h-14 cursor-grab place-items-center rounded-[50px] bg-[#078a04] text-sm font-semibold text-white shadow-[0_4px_18px_rgba(9,174,4,.35)]"
       >
         {loading ? (
           <motion.span
-            className="h-5 w-5 rounded-full border-2 border-black/20 border-t-black"
+            className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white"
             animate={{ rotate: 360 }}
             transition={{ duration: 0.7, repeat: Infinity, ease: "linear" }}
           />

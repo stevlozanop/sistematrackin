@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { getScope, guard } from "@/lib/guard";
+import { EVERYONE, getScope, guard } from "@/lib/guard";
 import { isSuper, pendingSql } from "@/lib/workflow";
 
 /** Usuario actual: etapas, área, empresa, pendientes por etapa y lo que registró hoy. */
 export async function GET() {
-  const { s, err } = await guard();
+  const { s, err } = await guard(EVERYONE);
   if (err) return err;
   const scope = await getScope(s.id);
   const carrierSql = scope.carrier ? " AND carrier = ?" : "";
@@ -18,7 +18,7 @@ export async function GET() {
       return { ...st, pending: Number(r?.n ?? 0) };
     }),
   );
-  const today = isSuper(s.role) ? [] : await query(
+  const today = isSuper(s.role) || s.role === "viewer" || s.role === "dealer" ? [] : await query(
     `SELECT e.id, DATE_FORMAT(e.at,'%H:%i') at, e.field, e.new_value, u.site, u.chassis
      FROM unit_events e JOIN units u ON u.id = e.unit_id
      WHERE e.user_id = ? AND e.at >= CURDATE() ORDER BY e.id DESC LIMIT 30`,

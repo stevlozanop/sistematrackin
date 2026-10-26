@@ -8,7 +8,7 @@ import { SITES, SITE_INFO, type DateField, type Site } from "@/lib/hsp";
  * lo que registraron hoy y la actividad reciente. La pantalla lo consulta cada pocos segundos.
  */
 export async function GET(req: Request) {
-  const { err } = await guard(SUPER);
+  const { err } = await guard([...SUPER, "viewer"]);
   if (err) return err;
   const after = Number(new URL(req.url).searchParams.get("after")) || 0;
 

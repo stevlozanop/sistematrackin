@@ -3,15 +3,15 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button, Modal } from "@heroui/react";
 import {
-  Activity, AlertTriangle, ArrowLeft, ArrowRight, BookOpen, CalendarCheck, CheckCircle2, CircleUser, ClipboardCheck,
-  FileSpreadsheet, Gauge, LayoutDashboard, Lock, Map as MapIcon, Route, ShieldCheck, Ship, SlidersHorizontal, Store, Users,
+  Activity, AlertTriangle, ArrowLeft, ArrowRight, BookOpen, Building2, CalendarCheck, CheckCircle2, CircleUser, ClipboardCheck,
+  FileSpreadsheet, Gauge, LayoutDashboard, Lock, Map as MapIcon, PackageSearch, Route, ShieldCheck, Ship, SlidersHorizontal, Store, Users,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { SITE_INFO, type Site } from "@/lib/hsp";
 import { AREAS, areaOf } from "@/lib/workflow";
 
-type Role = "dev" | "admin" | "operator";
+import type { Role } from "@/lib/workflow";
 type Me = { name: string; role: Role; area: string | null; carrier: string | null; canImport: boolean; stages: { site: Site; field: string }[] };
 type Step = { icon: LucideIcon; title: string; body: React.ReactNode };
 
@@ -55,7 +55,7 @@ function Route_({ site, mine = [] }: { site: Site; mine?: string[] }) {
 const Chip = ({ children, on, dashed }: { children: React.ReactNode; on?: boolean; dashed?: boolean }) => (
   <span className={cn(
     "rounded-full px-2.5 py-1 text-[11px] font-medium",
-    on ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container-high text-sb-on-surface-variant",
+    on ? "bg-sb-primary text-sb-on-primary" : "bg-sb-surface-container-high text-sb-on-surface-variant",
     dashed && !on && "border border-dashed border-sb-on-surface-variant/40 bg-transparent",
   )}>{children}</span>
 );
@@ -143,12 +143,14 @@ function superSteps(role: Role): Step[] {
     STATUS_STEP,
     {
       icon: ShieldCheck,
-      title: "Los tres tipos de cuenta",
+      title: "Los tipos de cuenta",
       body: (
         <div className="flex flex-col">
-          <Term k="Super admin (dev)">Ve y corrige todo. Es el único que crea <b>supervisores</b>. También crea encargados, cambia plazos y carga el Excel general.</Term>
-          <Term k="Supervisor">Ve todo (dashboard, alertas, en vivo), corrige fechas, carga el Excel y crea <b>encargados</b>. No puede crear otros supervisores.</Term>
+          <Term k="Super admin (dev)">Ve y corrige todo. Es el único que registra <b>empresas</b> y crea <b>supervisores</b>. También crea encargados, cambia plazos y carga el Excel general.</Term>
+          <Term k="Supervisor">El administrador de la empresa (por ejemplo, Consorcio Leyva). Ve todo, corrige fechas, carga el Excel y crea <b>encargados</b> y cuentas de <b>dealers</b> y de solo lectura.</Term>
           <Term k="Encargado">Una persona del recorrido (puerto, almacén, transporte). Solo registra las fechas de <b>su área</b>, en orden. Entra directo a su pantalla <b>Mi trabajo</b>.</Term>
+          <Term k="Solo lectura">Para Honda u otro cliente: ve el dashboard, las alertas y las unidades en vivo, pero <b>no puede cambiar nada</b>.</Term>
+          <Term k="Dealer">Cada tienda ve <b>solo sus unidades</b>: en qué etapa van, cuándo llegan y si llegan a tiempo. Tampoco puede cambiar nada.</Term>
         </div>
       ),
     },
@@ -259,9 +261,10 @@ function superSteps(role: Role): Step[] {
       title: "Usuarios: crear cuentas",
       body: (
         <>
-          <P>En <b>Usuarios</b> presiona <b>Nuevo encargado</b>{dev ? " o Nuevo supervisor" : ""}:</P>
+          <P>En <b>Usuarios</b> presiona <b>Nuevo usuario</b> y elige el tipo: Encargado, Dealer, Solo lectura{dev ? " o Supervisor" : ""}.</P>
           <List items={[
             <>Escribe el nombre: el <b>correo y la contraseña se autocompletan</b> (puedes editarlos).</>,
+            <>Si es <b>Dealer</b>, elige su tienda: solo verá esas unidades.</>,
             <>Elige el <b>módulo</b> (PCL o YUR) y el <b>área</b>. Si es transporte, opcionalmente la empresa.</>,
             <>Activa <b>carga de Excel</b> si quieres que suba fechas en bloque.</>,
             <>Copia los accesos y entrégaselos. Al entrar por primera vez, verá su propia guía paso a paso.</>,
@@ -270,6 +273,20 @@ function superSteps(role: Role): Step[] {
         </>
       ),
     },
+    ...(dev ? [{
+      icon: Building2,
+      title: "Empresas y compartir el sistema",
+      body: (
+        <>
+          <P>En <b>Empresas</b> registras a quién pertenece el sistema y con quién se comparte:</P>
+          <List items={[
+            <><b>Transportista</b> (Consorcio Leyva): sus cuentas son supervisores. Eliges sus transportistas del grupo (Transportes Leyva, Joseph…) y ves cuántas unidades llevó y su % a tiempo.</>,
+            <><b>Cliente</b> (Honda): sus cuentas son de solo lectura, para que vean cómo van los estados.</>,
+          ]} />
+          <P>A cada <b>dealer</b> se le crea su cuenta en Usuarios: entra a <b>Mis unidades</b> y ve solo lo suyo.</P>
+        </>
+      ),
+    } satisfies Step] : []),
     {
       icon: CalendarCheck,
       title: "Un día normal",
@@ -380,6 +397,83 @@ function operatorSteps(me: Me): Step[] {
   ];
 }
 
+/* ---------- Guía de solo lectura (Honda) ---------- */
+
+function viewerSteps(me: Me): Step[] {
+  return [
+    {
+      icon: BookOpen,
+      title: `Hola, ${me.name.split(" ")[0]}`,
+      body: (
+        <>
+          <P><b>System Trackin</b> sigue cada moto desde que se factura en Iquitos hasta que llega al dealer. Lo opera la transportista; tú tienes una cuenta de <b>solo lectura</b>: ves todo en vivo, sin poder cambiar nada.</P>
+          <Note>Usa <b>Siguiente</b> para avanzar.</Note>
+        </>
+      ),
+    },
+    ROUTE_STEP,
+    STATUS_STEP,
+    {
+      icon: LayoutDashboard,
+      title: "Qué puedes ver",
+      body: (
+        <div className="flex flex-col">
+          <Term k="Dashboard">% a tiempo de PCL, YUR y HSP por mes, frente a la meta del 85 %, como la hoja TABLA.</Term>
+          <Term k="Alertas">Unidades vencidas o por vencer y en qué etapa están detenidas.</Term>
+          <Term k="PCL y YUR">Todas las unidades con sus fechas, estado y nivel de servicio. Busca por chasis, motor, guía…</Term>
+          <Term k="En vivo">Quién está registrando y cada fecha que se guarda, al instante.</Term>
+        </div>
+      ),
+    },
+    PROFILE_STEP,
+  ];
+}
+
+/* ---------- Guía del dealer ---------- */
+
+function dealerSteps(me: Me): Step[] {
+  return [
+    {
+      icon: BookOpen,
+      title: `Hola, ${me.name.split(" ")[0]}`,
+      body: (
+        <>
+          <P>Aquí sigues <b>las unidades de tu tienda</b> desde que se facturan en Iquitos hasta que llegan a ti: en qué etapa van, cuándo deberían llegar y si llegan a tiempo.</P>
+          <P>Tu cuenta es de <b>solo consulta</b>: las fechas las registra la transportista en cada paso.</P>
+          <Note>Usa <b>Siguiente</b> para avanzar.</Note>
+        </>
+      ),
+    },
+    ROUTE_STEP,
+    {
+      icon: PackageSearch,
+      title: "Tu pantalla: Mis unidades",
+      body: (
+        <>
+          <List items={[
+            <>Arriba ves cuántas tienes <b>en camino</b>, cuántas están <b>retrasadas</b>, cuántas se entregaron y qué % llegó a tiempo.</>,
+            <>Cada unidad muestra una <b>barra de avance</b> por etapa y la fecha aproximada de llegada.</>,
+            <>Toca una unidad para ver su <b>recorrido completo</b> con la fecha de cada paso.</>,
+            <>Busca por chasis, motor, modelo o guía. La pantalla se actualiza sola.</>,
+          ]} />
+        </>
+      ),
+    },
+    {
+      icon: Gauge,
+      title: "¿Llega a tiempo?",
+      body: (
+        <div className="flex flex-col">
+          <Term k="Fecha estimada">Fecha de facturación + el plazo de tu zona.</Term>
+          <Term k="A tiempo"><b className="text-sky-600">A TIEMPO</b> si llega hasta la fecha estimada.</Term>
+          <Term k="Retrasada">Ya pasó la fecha estimada y todavía no llega: se marca en <b className="text-red-500">rojo</b>.</Term>
+        </div>
+      ),
+    },
+    PROFILE_STEP,
+  ];
+}
+
 /* ---------- Modal ---------- */
 
 export function GuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -392,7 +486,7 @@ export function GuideModal({ open, onClose }: { open: boolean; onClose: () => vo
   }, [open, me]);
   const close = () => { onClose(); setI(0); }; // la próxima vez empieza desde el paso 1
 
-  const steps = me ? (me.role === "operator" ? operatorSteps(me) : superSteps(me.role)) : [];
+  const steps = !me ? [] : me.role === "operator" ? operatorSteps(me) : me.role === "viewer" ? viewerSteps(me) : me.role === "dealer" ? dealerSteps(me) : superSteps(me.role);
   const step = steps[i];
   const last = i === steps.length - 1;
   const go = (n: number) => { setDir(n > i ? 1 : -1); setI(Math.max(0, Math.min(steps.length - 1, n))); };
@@ -416,7 +510,7 @@ export function GuideModal({ open, onClose }: { open: boolean; onClose: () => vo
                     ))}
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sb-on-surface text-sb-surface"><step.icon className="h-5 w-5" /></span>
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sb-primary text-sb-on-primary"><step.icon className="h-5 w-5" /></span>
                     <div>
                       <p className="text-[11px] uppercase tracking-wider text-sb-on-surface-variant/60">Paso {i + 1} de {steps.length}</p>
                       <Modal.Heading className="text-lg font-semibold tracking-tight">{step.title}</Modal.Heading>

@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { queryList, tx } from "@/lib/db";
-import { guard, SUPER } from "@/lib/guard";
+import { guard, READ, SUPER } from "@/lib/guard";
 import { isSite } from "@/lib/hsp";
 
 type LeadTime = { site: string; zone: string; days_cre: number; days_vac: number };
 
 /** Plazos por zona, meta y meses de creciente, + zonas que tienen unidades pero aún no tienen plazo. */
 export async function GET() {
-  const { err } = await guard();
+  const { err } = await guard(READ);
   if (err) return err;
   const [[settings], leadTimes, missing] = await Promise.all([
     queryList<{ target: number; creciente_months: string; alert_days: number }>("SELECT target, creciente_months, alert_days FROM settings WHERE id=1"),

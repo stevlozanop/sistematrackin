@@ -325,7 +325,7 @@ export default function DashboardPage() {
                       <span className="text-sb-on-surface-variant">{r.n.toLocaleString()} · {pct(r.n, sum)}%</span>
                     </div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-sb-surface-container-highest">
-                      <div className="h-full rounded-full bg-sb-on-surface" style={{ width: `${(r.n / max) * 100}%` }} />
+                      <div className="h-full rounded-full bg-sb-primary" style={{ width: `${(r.n / max) * 100}%` }} />
                     </div>
                   </Link>
                 ))}

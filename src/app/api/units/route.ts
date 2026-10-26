@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { queryList, run, tx } from "@/lib/db";
-import { getScope, guard, SUPER } from "@/lib/guard";
+import { getScope, guard, READ, SUPER } from "@/lib/guard";
 import { DATE_FIELDS, isSite, type DateField, type Site } from "@/lib/hsp";
-import { checkDateEdit, isSuper, needsDelayReason, pendingSql } from "@/lib/workflow";
+import { checkDateEdit, isSuper, needsDelayReason, pendingSql, seesAll } from "@/lib/workflow";
 
 const SORTABLE = new Set([
   "days_left", "chassis", "material", "dealer", "zone", "billing_date", "est_date", "status", "service", "delay_reason", "real_days",
@@ -20,13 +20,13 @@ const UPPER = new Set(["delay_reason", "route", "department", "carrier"]);
  * GET /api/units?site=PCL&meta=1  -> opciones para los filtros
  */
 export async function GET(req: Request) {
-  const { s, err } = await guard();
+  const { s, err } = await guard(READ); // el dealer usa /api/portal (solo sus unidades)
   if (err) return err;
   const p = new URL(req.url).searchParams;
   const site = p.get("site");
   if (!isSite(site)) return NextResponse.json({ error: "Módulo inválido" }, { status: 400 });
   // Encargado: solo el módulo donde tiene etapas (y, si es de una empresa de transporte, solo sus unidades)
-  const scope = isSuper(s.role) ? null : await getScope(s.id);
+  const scope = seesAll(s.role) ? null : await getScope(s.id);
   if (scope && !scope.stages.some((st) => st.site === site)) {
     return NextResponse.json({ error: "No tienes acceso a este módulo" }, { status: 403 });
   }

@@ -57,7 +57,7 @@ function Station({ s, i, last, state, mine, date, showDate }: {
       {!last && (
         <span className="absolute left-[19px] top-10 h-[calc(100%-2.5rem)] w-0.5 overflow-hidden bg-sb-outline-variant @3xl:left-[calc(50%+20px)] @3xl:top-[19px] @3xl:h-0.5 @3xl:w-[calc(100%-40px)]">
           {state === "done" && (
-            <motion.span className="absolute inset-0 origin-top bg-sb-on-surface @3xl:origin-left"
+            <motion.span className="absolute inset-0 origin-top bg-sb-primary @3xl:origin-left"
               initial={{ scaleY: 0, scaleX: 0 }} animate={{ scaleY: 1, scaleX: 1 }} transition={{ delay: 0.2 + i * 0.06, duration: 0.4 }} />
           )}
         </span>
@@ -65,7 +65,7 @@ function Station({ s, i, last, state, mine, date, showDate }: {
       <span className="relative shrink-0">
         <span className={cn(
           "relative z-10 grid h-10 w-10 place-items-center rounded-full border-2 transition-colors",
-          state === "done" && "border-sb-on-surface bg-sb-on-surface text-sb-surface",
+          state === "done" && "border-sb-primary bg-sb-primary text-sb-on-primary",
           state === "current" && "border-sb-on-surface bg-sb-surface text-sb-on-surface",
           state === "todo" && "border-sb-outline-variant bg-sb-surface text-sb-on-surface-variant",
           s.lima && state === "todo" && "border-dashed",
@@ -73,7 +73,7 @@ function Station({ s, i, last, state, mine, date, showDate }: {
         )}>
           <Icon className="h-4 w-4" />
         </span>
-        {state === "current" && <span className="absolute inset-0 animate-ping rounded-full bg-sb-on-surface/20" />}
+        {state === "current" && <span className="absolute inset-0 animate-ping rounded-full bg-sb-primary/20" />}
         <span className="absolute -right-1.5 -top-1.5 z-20 rounded-full bg-sb-surface-container-highest px-1 text-[9px] font-bold leading-4 text-sb-on-surface">{s.n}</span>
       </span>
       <div className="min-w-0 pt-0.5 @3xl:pt-0">
@@ -133,7 +133,7 @@ export function BeforeSystem() {
             <motion.li key={b.label} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="flex items-center gap-1">
               {i > 0 && <span className="mx-0.5 h-px w-3 border-t border-dashed border-sb-outline" />}
               <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px]",
-                lastOne ? "bg-sb-on-surface font-semibold text-sb-surface" : "bg-sb-surface text-sb-on-surface-variant")}>
+                lastOne ? "bg-sb-primary font-semibold text-sb-on-primary" : "bg-sb-surface text-sb-on-surface-variant")}>
                 <Icon className="h-3 w-3" /> {b.label}
               </span>
             </motion.li>

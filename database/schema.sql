@@ -5,12 +5,34 @@ CREATE DATABASE IF NOT EXISTS system_trackin
 USE system_trackin;
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;  -- los textos de la vista v_units usan esta colación
 
+-- Empresas: la transportista dueña del sistema (Consorcio Leyva) y clientes con acceso de solo lectura (Honda)
+CREATE TABLE IF NOT EXISTS companies (
+  id         INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  name       VARCHAR(160) NOT NULL UNIQUE,
+  kind       ENUM('transport','client') NOT NULL DEFAULT 'transport',
+  parent_id  INT UNSIGNED NULL,   -- consorcio cliente: la transportista que lo creó (Honda -> Consorcio Leyva)
+  ruc        VARCHAR(11) NULL,
+  members    VARCHAR(500) NULL,   -- transportistas del grupo tal como aparecen en units.carrier, separados por coma
+  address    VARCHAR(200) NULL,
+  phone      VARCHAR(40) NULL,
+  email      VARCHAR(160) NULL,
+  website    VARCHAR(160) NULL,
+  notes      VARCHAR(500) NULL,
+  logo         MEDIUMBLOB NULL,    -- foto de perfil / logo (imagen pequeña, 256 px)
+  logo_type    VARCHAR(20) NULL,   -- image/webp, image/png o image/jpeg
+  logo_updated DATETIME NULL,      -- para refrescar la imagen en los navegadores al cambiarla
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS users (
   id            INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   name          VARCHAR(120) NOT NULL,
   email         VARCHAR(160) NOT NULL UNIQUE,
   password_hash VARCHAR(100) NOT NULL,
-  role          ENUM('dev','admin','operator') NOT NULL,   -- dev/admin = super admin · operator = encargado de etapa
+  -- dev/admin = super admin · operator = encargado de etapa · viewer = solo lectura de todo (Honda) · dealer = solo sus unidades
+  role          ENUM('dev','admin','operator','viewer','dealer') NOT NULL,
+  company_id    INT UNSIGNED NULL,   -- empresa a la que pertenece (companies)
+  dealer_id     INT UNSIGNED NULL,   -- cuenta de dealer: la tienda cuyas unidades ve (dealers)
   last_seen     DATETIME NULL,
   area          VARCHAR(40) NULL,    -- área del encargado (src/lib/workflow.ts → AREAS)
   carrier       VARCHAR(120) NULL,   -- empresa de transporte: si tiene valor, solo ve esas unidades

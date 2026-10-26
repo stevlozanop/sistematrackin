@@ -48,7 +48,7 @@ export function MobileNav({
 
   const visible = items.slice(0, maxVisible);
   const extra = items.slice(maxVisible);
-  const isActive = (i: MobileItem) => activeHref === i.href || activeHref.startsWith(i.href + "/");
+  const isActive = (i: MobileItem) => activeHref === i.href || (i.href !== "/dev" && activeHref.startsWith(i.href + "/"));
 
   useLayoutEffect(() => {
     if (open && menu.current) setHeight(Math.min(Math.max(menu.current.scrollHeight, 56), 420));

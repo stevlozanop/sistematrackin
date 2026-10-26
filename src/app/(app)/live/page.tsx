@@ -54,8 +54,8 @@ export default function LivePage() {
       <PageTitle title="En vivo" sub="Se actualiza solo cada 5 segundos: quién está conectado, qué le falta a cada encargado y cada fecha que se registra.">
         <span className="flex items-center gap-2 text-[11px] text-sb-on-surface-variant">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sb-on-surface opacity-40" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-sb-on-surface" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sb-primary opacity-40" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-sb-primary" />
           </span>
           Actualizado {time(data.now)}:{data.now.slice(17, 19)}
         </span>
@@ -80,8 +80,8 @@ export default function LivePage() {
                   <div className="truncate text-sm font-semibold">{u.name}</div>
                   <div className="truncate text-[11px] text-muted">{u.email}</div>
                 </div>
-                <span className={cn("flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium", u.online ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container-high text-sb-on-surface-variant")}>
-                  <span className={cn("h-1.5 w-1.5 rounded-full", u.online ? "bg-sb-surface" : "bg-sb-on-surface-variant/50")} />
+                <span className={cn("flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium", u.online ? "bg-sb-primary text-sb-on-primary" : "bg-sb-surface-container-high text-sb-on-surface-variant")}>
+                  <span className={cn("h-1.5 w-1.5 rounded-full", u.online ? "bg-sb-on-primary" : "bg-sb-on-surface-variant/50")} />
                   {u.online ? "En línea" : u.last_seen ? `Visto ${u.last_seen.slice(0, 10) === data.now.slice(0, 10) ? time(u.last_seen) : fmtDate(u.last_seen.slice(0, 10))}` : "Nunca entró"}
                 </span>
               </div>
@@ -123,7 +123,7 @@ export default function LivePage() {
                         <td className="px-4 py-2 text-right">
                           {who.length
                             ? <span className="text-sb-on-surface-variant">{who.map((u) => u.name).join(", ")}</span>
-                            : <span className={cn("rounded-full px-2 py-0.5 text-[10px]", n ? "bg-sb-on-surface text-sb-surface" : "text-muted")}>Sin encargado</span>}
+                            : <span className={cn("rounded-full px-2 py-0.5 text-[10px]", n ? "bg-sb-primary text-sb-on-primary" : "text-muted")}>Sin encargado</span>}
                         </td>
                       </tr>
                     );

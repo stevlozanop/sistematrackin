@@ -129,7 +129,7 @@ export default function MyWorkPage() {
                 <button
                   key={`${st.site}${st.field}`}
                   onClick={() => { setStage(st); setSel(new Set()); setPage(1); setQ(""); setLoading(true); }}
-                  className={cn("rounded-2xl border p-4 text-left transition-colors", on ? "border-sb-on-surface bg-sb-on-surface text-sb-surface" : "border-sb-outline-variant/40 bg-sb-surface hover:bg-sb-surface-container-low")}
+                  className={cn("rounded-2xl border p-4 text-left transition-colors", on ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant/40 bg-sb-surface hover:bg-sb-surface-container-low")}
                 >
                   <div className="text-[11px] uppercase tracking-wider opacity-60">{SITE_INFO[st.site].title}</div>
                   <div className="mt-0.5 text-sm font-semibold">{stageLabel(st.site, st.field)}</div>

@@ -3,15 +3,22 @@ import { getSession, type Session } from "./auth";
 import { query, run } from "./db";
 import type { Stage } from "./workflow";
 
-const ALL: Session["role"][] = ["dev", "admin", "operator"];
-export const SUPER: Session["role"][] = ["dev", "admin"];
+type R = Session["role"][];
+/** Personal que trabaja en el sistema (puede registrar fechas). Es el valor por defecto de guard(). */
+export const STAFF: R = ["dev", "admin", "operator"];
+/** Super admin y supervisores: corrigen todo, cargan Excel, administran. */
+export const SUPER: R = ["dev", "admin"];
+/** Lectura de todo el sistema: personal + la cuenta de solo lectura (Honda). */
+export const READ: R = [...STAFF, "viewer"];
+/** Cualquier cuenta, incluido el dealer (perfil, guía, alertas propias). */
+export const EVERYONE: R = [...READ, "dealer"];
 
 /**
- * Verifica la sesión y el rol. Por defecto deja pasar a todos los roles;
- * usa guard(SUPER) para lo que solo hace el super admin.
+ * Verifica la sesión y el rol. Por defecto solo deja pasar al personal (STAFF): las cuentas de solo lectura
+ * (viewer, dealer) tienen que estar permitidas a propósito con READ o EVERYONE.
  * También marca al usuario como "en línea" (last_seen) para el seguimiento en vivo.
  */
-export async function guard(roles: Session["role"][] = ALL) {
+export async function guard(roles: R = STAFF) {
   const s = await getSession();
   if (!s || !roles.includes(s.role)) {
     return { s: null as never, err: NextResponse.json({ error: s ? "No tienes permiso para esta acción" : "No autorizado" }, { status: s ? 403 : 401 }) };

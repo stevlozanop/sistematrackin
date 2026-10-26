@@ -37,7 +37,14 @@ export default function Login() {
       <section className="flex items-center justify-center px-6 py-10">
         <form key={shake} ref={formRef} onSubmit={submit} className={`flex w-full max-w-sm flex-col ${shake ? "sb-anim-shake" : ""}`}>
           <div className="flex items-center justify-between">
-            <span className="grid h-11 w-11 place-items-center rounded-full bg-white/10 text-sm font-semibold">ST</span>
+            <span className="flex items-center gap-2.5">
+              <span className="relative grid h-11 w-11 place-items-center overflow-hidden rounded-full bg-leyva-green text-sm font-bold">
+                ST<span className="absolute inset-x-0 bottom-0 h-1 bg-leyva-lime" />
+              </span>
+              <span className="flex flex-col text-[11px] leading-tight text-white/50">
+                <span className="font-semibold text-leyva-lime">Consorcio Leyva</span>System Trackin
+              </span>
+            </span>
             <h1 className="text-4xl font-extralight tracking-tight">Ingresar</h1>
           </div>
           <p className="mt-6 text-center text-sm leading-relaxed text-white/40">

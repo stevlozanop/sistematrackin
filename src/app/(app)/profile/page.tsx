@@ -6,20 +6,24 @@ import { Activity, CalendarDays, Clock, KeyRound, Save, Upload } from "lucide-re
 import { Card, PageTitle, Pill } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
 import { SITE_INFO, type Site } from "@/lib/hsp";
-import { areaOf } from "@/lib/workflow";
+import { ROLE_LABEL, areaOf, type Role } from "@/lib/workflow";
+import { LogoBadge, LogoPicker } from "@/components/CompanyLogo";
 
 type Profile = {
-  id: number; name: string; email: string; role: "dev" | "admin" | "operator"; created_at: string; last_seen: string | null;
+  id: number; name: string; email: string; role: Role; created_at: string; last_seen: string | null;
   area: string | null; carrier: string | null; canImport: boolean; stages: { site: Site; field: string }[];
   activity: { total: number; today: number; week: number; last: string | null };
+  company: { id: number; name: string; kind: string; v: string | null; canEdit: boolean } | null;
 };
 
-const ROLE = { dev: "Super admin", admin: "Supervisor", operator: "Encargado" } as const;
-const ROLE_DESC = {
-  dev: "Ves y corriges todo el sistema, y creas supervisores y encargados.",
-  admin: "Supervisas el avance, corriges fechas y creas encargados.",
+const ROLE = ROLE_LABEL;
+const ROLE_DESC: Record<Role, string> = {
+  dev: "Ves y corriges todo el sistema, y creas empresas, supervisores y encargados.",
+  admin: "Supervisas el avance, corriges fechas y creas encargados y cuentas de dealers.",
   operator: "Registras las fechas de tus etapas, en orden.",
-} as const;
+  viewer: "Ves todo el sistema en vivo, en solo lectura.",
+  dealer: "Ves en qué etapa van las unidades de tu tienda y si llegan a tiempo.",
+};
 const input = "h-9 w-full rounded-xl border border-sb-outline-variant bg-sb-surface-container-low px-3 text-sm text-sb-on-surface outline-none transition-colors focus:border-sb-primary";
 const stageLabel = (site: Site, field: string) => {
   const d = SITE_INFO[site].dates.find((x) => x.key === field);
@@ -76,8 +80,24 @@ export default function ProfilePage() {
     <div className="flex flex-col gap-4">
       <PageTitle title="Mi perfil" sub="Tus datos, lo que te toca hacer en el sistema y tu contraseña." />
 
+      {p.company && (
+        <Card className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold">{p.company.name}</h3>
+            <p className="text-[12px] text-sb-on-surface-variant">
+              {p.company.canEdit ? "Foto de perfil de tu empresa: se ve en el menú de todas sus cuentas." : "Tu empresa."}
+            </p>
+          </div>
+          {p.company.canEdit ? (
+            <LogoPicker id={p.company.id} name={p.company.name} v={p.company.v} onChange={() => { load(); router.refresh(); }} />
+          ) : (
+            <LogoBadge id={p.company.id} name={p.company.name} v={p.company.v} className="h-14 w-14 rounded-2xl text-base" />
+          )}
+        </Card>
+      )}
+
       <Card className="flex flex-col items-start gap-4 p-5 sm:flex-row sm:items-center">
-        <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-sb-on-surface text-xl font-semibold text-sb-surface">{initials}</div>
+        <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-sb-primary text-xl font-semibold text-sb-on-primary">{initials}</div>
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-lg font-semibold tracking-tight">{p.name}</h3>
           <p className="truncate text-sm text-sb-on-surface-variant">{p.email}</p>
@@ -89,7 +109,7 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      <StatGrid
+      {p.role !== "viewer" && p.role !== "dealer" && <StatGrid
         className="grid-cols-2 lg:grid-cols-4"
         items={[
           { label: "Registros hoy", value: p.activity.today, icon: Activity },
@@ -97,7 +117,7 @@ export default function ProfilePage() {
           { label: "Total de registros", value: p.activity.total.toLocaleString(), icon: Upload },
           { label: "Último registro", value: p.activity.last ? p.activity.last.slice(5).replace("-", "/") : "—", icon: Clock },
         ]}
-      />
+      />}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-5">
@@ -116,7 +136,7 @@ export default function ProfilePage() {
               </div>
             </div>
           )}
-          {!isOperator && <p className="pt-3 text-[12px] text-sb-on-surface-variant/70">Tienes acceso a todas las etapas de PCL y YUR.</p>}
+          {(p.role === "dev" || p.role === "admin") && <p className="pt-3 text-[12px] text-sb-on-surface-variant/70">Tienes acceso a todas las etapas de PCL y YUR.</p>}
         </Card>
 
         <div className="flex flex-col gap-4">

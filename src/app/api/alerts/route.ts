@@ -1,19 +1,20 @@
 import { NextResponse } from "next/server";
 import { query, queryList } from "@/lib/db";
-import { getScope, guard } from "@/lib/guard";
-import { isSuper } from "@/lib/workflow";
+import { EVERYONE, getScope, guard } from "@/lib/guard";
+import { seesAll } from "@/lib/workflow";
 
 /**
  * Alertas de unidades sin entregar: VENCIDA (pasó la fecha estimada) y POR VENCER (faltan pocos días),
  * y unidades fuera de tiempo sin motivo de demora.
- * Super admin / supervisor: todo. Encargado: solo las que esperan sus etapas (y su empresa, si tiene).
+ * Super admin / supervisor / solo lectura: todo. Dealer: sus unidades. Encargado: solo las que esperan sus etapas (y su empresa, si tiene).
  * ?list=1 devuelve además las unidades más urgentes.
  */
 export async function GET(req: Request) {
-  const { s, err } = await guard();
+  const { s, err } = await guard(EVERYONE);
   if (err) return err;
-  const sup = isSuper(s.role);
-  const scope = sup ? null : await getScope(s.id);
+  const sup = seesAll(s.role);
+  const dealer = s.role === "dealer";
+  const scope = sup || dealer ? null : await getScope(s.id);
   if (scope && !scope.stages.length) return NextResponse.json({ total: 0, bySite: [], byStage: [], noReason: 0, alertDays: 2, units: [] });
 
   const where: string[] = ["alert IS NOT NULL"];
@@ -23,6 +24,8 @@ export async function GET(req: Request) {
     args.push(...scope.stages.flatMap((st) => [st.site, st.field]));
     if (scope.carrier) { where.push("carrier = ?"); args.push(scope.carrier); }
   }
+  // Dealer: solo las alertas de sus propias unidades
+  if (dealer) { where.push("dealer_id = (SELECT dealer_id FROM users WHERE id = ?)"); args.push(s.id); }
   const w = where.join(" AND ");
 
   const [bySite, byStage, [noReason], [settings]] = await Promise.all([

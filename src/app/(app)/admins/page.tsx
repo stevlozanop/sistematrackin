@@ -2,14 +2,36 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Avatar, Button, Chip, Description, Input, Label, Modal, Switch, Table, TextField, toast, useOverlayState } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@heroui/react";
-import { Copy, KeyRound, ListChecks, Plus, Radio, Search, ShieldCheck, Trash2, Users, X } from "lucide-react";
+import { Copy, Eye, KeyRound, Store, ListChecks, Plus, Radio, Search, ShieldCheck, Trash2, Users, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
 import { Check } from "@/components/Check";
 import { AreaPicker, type Assignment } from "@/components/AreaPicker";
+import { DealerAccounts } from "@/components/DealerAccounts";
 import { ROLE_LABEL, USER_DOMAIN, areaOf, stageLabel, suggestEmail, type Role, type Stage } from "@/lib/workflow";
 
-type Admin = { id: number; name: string; email: string; role: Exclude<Role, "dev">; created_at: string; last_seen: string | null; online: number; stages: Stage[]; area: string | null; carrier: string | null; can_import: number };
+type Admin = {
+  id: number; name: string; email: string; role: Exclude<Role, "dev">; created_at: string; last_seen: string | null; online: number;
+  stages: Stage[]; area: string | null; carrier: string | null; can_import: number; company: string | null; dealer: string | null;
+};
+type NewRole = "operator" | "admin" | "viewer" | "dealer";
+
+/** Qué puede hacer cada tipo de cuenta (se muestra al crearla). */
+const ROLE_HELP: Record<NewRole, string> = {
+  operator: "Registra solo las fechas de su área, en orden. Entra directo a «Mi trabajo».",
+  admin: "Ve todo (dashboard, en vivo), carga el Excel, corrige fechas y crea encargados y cuentas de dealers.",
+  viewer: "Ve el dashboard, las alertas y las unidades en vivo, sin poder cambiar nada. Para Honda u otro cliente.",
+  dealer: "Ve solo las unidades de su tienda: en qué etapa van, cuándo llegan y si llegan a tiempo. No puede cambiar nada.",
+};
+const ROLE_TITLE: Record<NewRole, string> = { operator: "Nuevo encargado", admin: "Nuevo supervisor", viewer: "Nueva cuenta de solo lectura", dealer: "Nueva cuenta de dealer" };
+
+/** Lo que tiene a cargo o ve cada cuenta, en una línea. */
+function Scope({ a }: { a: Admin }) {
+  if (a.role === "admin") return <span className="text-xs text-muted">Ve todo, corrige y supervisa{a.company ? ` · ${a.company}` : ""}</span>;
+  if (a.role === "viewer") return <span className="text-xs text-muted">Ve todo en solo lectura{a.company ? ` · ${a.company}` : ""}</span>;
+  if (a.role === "dealer") return <span className="text-xs"><b className="font-medium">{a.dealer ?? "Sin dealer"}</b> <span className="text-muted">· solo sus unidades</span></span>;
+  return null;
+}
 
 const initials = (n: string) => n.split(" ").filter(Boolean).map((x) => x[0]).join("").toUpperCase().slice(0, 2);
 
@@ -27,6 +49,7 @@ export default function AdminsPage() {
   const [selected, setSelected] = useState<Selection>(new Set());
   const [sort, setSort] = useState<SortDescriptor>({ column: "created_at", direction: "descending" });
   const create = useOverlayState();
+  const [bulkDealers, setBulkDealers] = useState(false);
   const [toDelete, setToDelete] = useState<Admin | null>(null);
 
   const [name, setName] = useState("");
@@ -35,7 +58,9 @@ export default function AdminsPage() {
   const [auto, setAuto] = useState(true);
   const [password, setPassword] = useState(() => genPassword());
   const [saving, setSaving] = useState(false);
-  const [role, setRole] = useState<"operator" | "admin">("operator");
+  const [role, setRole] = useState<NewRole>("operator");
+  const [dealers, setDealers] = useState<{ id: number; name: string; department: string | null }[]>([]);
+  const [dealerId, setDealerId] = useState("");
   const emptyAsg: Assignment = { area: "", stages: [], carrier: "", canImport: true };
   const [asg, setAsg] = useState<Assignment>(emptyAsg);
   const [carriers, setCarriers] = useState<string[]>([]);
@@ -45,6 +70,7 @@ export default function AdminsPage() {
   useEffect(() => {
     fetch("/api/me").then((r) => r.ok && r.json()).then((m) => m && setMyRole(m.role));
     fetch("/api/admins?carriers=1").then((r) => r.ok && r.json()).then((c) => c && setCarriers(c));
+    fetch("/api/dealers").then((r) => r.ok && r.json()).then((d) => d && setDealers(d));
   }, []);
 
   const load = useCallback(() => fetch("/api/admins").then((r) => r.json()).then(setRows), []);
@@ -67,13 +93,14 @@ export default function AdminsPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (role === "operator" && !asg.area) return toast.danger("Elige el área del encargado");
+    if (role === "dealer" && !dealerId) return toast.danger("Elige el dealer");
     setSaving(true);
-    const r = await fetch("/api/admins", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email: shownEmail, password, role, ...(role === "operator" ? asg : {}) }) });
+    const r = await fetch("/api/admins", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email: shownEmail, password, role, dealerId: role === "dealer" ? Number(dealerId) : undefined, ...(role === "operator" ? asg : {}) }) });
     setSaving(false);
     if (!r.ok) return toast.danger((await r.json()).error);
     await navigator.clipboard?.writeText(`${shownEmail} / ${password}`).catch(() => {});
-    toast.success(role === "operator" ? "Encargado creado" : "Supervisor creado", { description: `${shownEmail} · contraseña: ${password} (copiado)`, timeout: 15000 });
-    setName(""); setEmail(""); setEmailEdited(false); setAuto(true); setPassword(genPassword()); setAsg(emptyAsg);
+    toast.success(`${ROLE_LABEL[role]}: cuenta creada`, { description: `${shownEmail} · contraseña: ${password} (copiado)`, timeout: 15000 });
+    setName(""); setEmail(""); setEmailEdited(false); setAuto(true); setPassword(genPassword()); setAsg(emptyAsg); setDealerId("");
     create.close();
     load();
   }
@@ -106,18 +133,23 @@ export default function AdminsPage() {
   const stats = [
     { label: "Encargados", value: rows.filter((a) => a.role === "operator").length, icon: Users },
     { label: "Supervisores", value: rows.filter((a) => a.role === "admin").length, icon: ShieldCheck },
+    { label: "Dealers y solo lectura", value: rows.filter((a) => a.role === "dealer" || a.role === "viewer").length, icon: Eye },
     { label: "En línea ahora", value: online, icon: Radio },
   ];
 
   return (
     <div className="flex flex-col gap-4">
-      <PageTitle title="Usuarios" sub="Encargados: registran solo las fechas de su área, en orden, y quedan bloqueadas. Supervisores: ven todo, corrigen fechas y siguen el trabajo en vivo.">
+      <PageTitle title="Usuarios" sub="Encargados registran las fechas de su área. Supervisores ven y corrigen todo. Dealers y cuentas de solo lectura (Honda) solo consultan.">
+        <Button size="sm" variant="secondary" className="rounded-full" onPress={() => setBulkDealers(true)}>
+          <Store className="h-3.5 w-3.5" /> Cuentas de dealers
+        </Button>
         <Button size="sm" variant="primary" className="rounded-full" onPress={() => { setRole("operator"); setAsg(emptyAsg); create.open(); }}>
           <Plus className="h-3.5 w-3.5" /> Nuevo usuario
         </Button>
       </PageTitle>
+      <DealerAccounts open={bulkDealers} onClose={() => setBulkDealers(false)} onCreated={load} />
 
-      <StatGrid className="grid-cols-3" items={stats} />
+      <StatGrid className="grid-cols-2 lg:grid-cols-4" items={stats} />
 
       <label className="sbf-search md:w-96">
         <Search className="h-4 w-4 opacity-40" />
@@ -135,14 +167,14 @@ export default function AdminsPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   {a.name}
-                  {!!Number(a.online) && <span className="h-2 w-2 rounded-full bg-sb-on-surface" title="En línea" />}
+                  {!!Number(a.online) && <span className="h-2 w-2 rounded-full bg-sb-primary" title="En línea" />}
                 </div>
                 <div className="truncate text-[11px] text-muted">{a.email}</div>
               </div>
               <Chip size="sm" variant={a.role === "admin" ? "secondary" : "soft"}>{ROLE_LABEL[a.role]}</Chip>
             </div>
             <div className="text-xs">
-              {a.role === "admin" ? <span className="text-muted">Ve todo, corrige y supervisa</span> : (
+              {a.role !== "operator" ? <Scope a={a} /> : (
                 <>
                   <b>{a.area && a.area !== "CUSTOM" ? areaOf(a.area)?.label : "Personalizado"}</b>{a.carrier ? ` · ${a.carrier}` : ""}
                   <div className="text-[11px] text-muted">{a.stages.map((st) => `${st.site} · ${stageLabel(st.site, st.field)}`).join(", ") || "Sin etapas"}</div>
@@ -194,7 +226,7 @@ export default function AdminsPage() {
                     </Table.Cell>
                     <Table.Cell><Chip size="sm" variant={a.role === "admin" ? "secondary" : "soft"}>{ROLE_LABEL[a.role]}</Chip></Table.Cell>
                     <Table.Cell>
-                      {a.role === "admin" ? <span className="text-xs text-muted">Ve todo, corrige y supervisa</span> : (
+                      {a.role !== "operator" ? <Scope a={a} /> : (
                         <div className="flex max-w-[24rem] flex-wrap items-center gap-1">
                           {a.area && a.area !== "CUSTOM" && <span className="mr-1 text-xs font-medium">{areaOf(a.area)?.label}{a.carrier ? ` · ${a.carrier}` : ""}</span>}
                           {!a.stages.length && <span className="text-xs text-muted">Sin etapas</span>}
@@ -231,13 +263,26 @@ export default function AdminsPage() {
             <Modal.Dialog>
               <form onSubmit={submit} className="contents">
                 <Modal.CloseTrigger aria-label="Cerrar" /><Modal.Header>
-                  <Modal.Heading>{role === "operator" ? "Nuevo encargado" : "Nuevo supervisor"}</Modal.Heading>
+                  <Modal.Heading>{ROLE_TITLE[role]}</Modal.Heading>
                 </Modal.Header>
                 <Modal.Body className="flex flex-col gap-4 p-1">
-                  <div className="flex gap-1.5">
+                  <div className="flex flex-wrap gap-1.5">
                     <button type="button" className={`sbf-chip ${role === "operator" ? "active" : ""}`} onClick={() => setRole("operator")}>Encargado de etapa</button>
+                    <button type="button" className={`sbf-chip ${role === "dealer" ? "active" : ""}`} onClick={() => setRole("dealer")}>Dealer</button>
+                    <button type="button" className={`sbf-chip ${role === "viewer" ? "active" : ""}`} onClick={() => setRole("viewer")}>Solo lectura (Honda)</button>
                     {myRole === "dev" && <button type="button" className={`sbf-chip ${role === "admin" ? "active" : ""}`} onClick={() => setRole("admin")}>Supervisor</button>}
                   </div>
+                  <p className="-mt-2 text-xs text-muted">{ROLE_HELP[role]}</p>
+                  {role === "dealer" && (
+                    <label className="flex flex-col gap-1.5 text-sm">
+                      <Label>Dealer</Label>
+                      <select required value={dealerId} onChange={(e) => setDealerId(e.target.value)} aria-label="Dealer"
+                        className="h-9 rounded-xl border border-sb-outline-variant bg-sb-surface-container-low px-2 text-sm outline-none focus:border-sb-primary">
+                        <option value="">Elige la tienda…</option>
+                        {dealers.map((d) => <option key={d.id} value={d.id}>{d.name}{d.department ? ` · ${d.department}` : ""}</option>)}
+                      </select>
+                    </label>
+                  )}
                   <p className="text-xs text-muted">El correo y la contraseña se autocompletan; puedes editarlos.</p>
                   <TextField value={name} onChange={setName} isRequired>
                     <Label>Nombre completo</Label>
@@ -265,18 +310,16 @@ export default function AdminsPage() {
                     </TextField>
                     {auto && <Button variant="secondary" className="rounded-full" onPress={() => setPassword(genPassword())}>Otra</Button>}
                   </div>
-                  {role === "operator" ? (
+                  {role === "operator" && (
                     <div className="flex flex-col gap-1.5">
                       <Label>Área de trabajo</Label>
                       <AreaPicker value={asg} onChange={setAsg} carriers={carriers} />
                     </div>
-                  ) : (
-                    <p className="text-xs text-muted">El supervisor ve todo (dashboard, en vivo), carga el Excel, corrige fechas y crea encargados.</p>
                   )}
                 </Modal.Body>
                 <Modal.Footer>
                   <Button variant="secondary" className="rounded-full" onPress={create.close}>Cancelar</Button>
-                  <Button type="submit" variant="primary" className="rounded-full" isDisabled={saving}>{saving ? "Creando…" : role === "operator" ? "Crear encargado" : "Crear supervisor"}</Button>
+                  <Button type="submit" variant="primary" className="rounded-full" isDisabled={saving}>{saving ? "Creando…" : "Crear cuenta"}</Button>
                 </Modal.Footer>
               </form>
             </Modal.Dialog>

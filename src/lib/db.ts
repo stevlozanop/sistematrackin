@@ -14,13 +14,46 @@ const pool: Pool = (g.__poolV2 ??= mysql.createPool({
   connectionLimit: 10,
 }));
 
+const MIGRATIONS = [
+  // guía paso a paso: se abre sola hasta que el usuario la termina
+  "ALTER TABLE users ADD COLUMN guide_seen TINYINT(1) NOT NULL DEFAULT 0",
+  // empresas (Consorcio Leyva, Honda…) y cuentas de solo lectura: dealer (sus unidades) y viewer (todo)
+  `CREATE TABLE IF NOT EXISTS companies (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(160) NOT NULL UNIQUE,
+    kind ENUM('transport','client') NOT NULL DEFAULT 'transport',
+    ruc VARCHAR(11) NULL,
+    members VARCHAR(500) NULL,
+    address VARCHAR(200) NULL,
+    phone VARCHAR(40) NULL,
+    email VARCHAR(160) NULL,
+    website VARCHAR(160) NULL,
+    notes VARCHAR(500) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  "ALTER TABLE users MODIFY role ENUM('dev','admin','operator','viewer','dealer') NOT NULL",
+  "ALTER TABLE users ADD COLUMN company_id INT UNSIGNED NULL",
+  "ALTER TABLE users ADD COLUMN dealer_id INT UNSIGNED NULL",
+  "ALTER TABLE users ADD CONSTRAINT fk_users_company FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL",
+  "ALTER TABLE users ADD CONSTRAINT fk_users_dealer FOREIGN KEY (dealer_id) REFERENCES dealers(id) ON DELETE CASCADE",
+  // consorcios cliente (Honda…) creados por la transportista: parent_id = la empresa que los creó
+  "ALTER TABLE companies ADD COLUMN parent_id INT UNSIGNED NULL AFTER kind",
+  "ALTER TABLE companies ADD CONSTRAINT fk_companies_parent FOREIGN KEY (parent_id) REFERENCES companies(id) ON DELETE SET NULL",
+  // logo de cada empresa (se guarda en la base para que no se pierda al reiniciar o desplegar)
+  "ALTER TABLE companies ADD COLUMN logo MEDIUMBLOB NULL",
+  "ALTER TABLE companies ADD COLUMN logo_type VARCHAR(20) NULL",
+  "ALTER TABLE companies ADD COLUMN logo_updated DATETIME NULL",
+];
+
 /** Crea el usuario dev inicial si todavía no existe (el esquema vive en database/schema.sql). */
 function ready() {
   return (g.__ready ??= (async () => {
-    // guide_seen: la guía paso a paso se abre sola hasta que el usuario la termina (bases creadas antes de esta columna)
-    await pool.query("ALTER TABLE users ADD COLUMN guide_seen TINYINT(1) NOT NULL DEFAULT 0").catch((e) => {
-      if (e?.code !== "ER_DUP_FIELDNAME") throw e;
-    });
+    // Cambios de esquema para bases creadas antes (database/schema.sql ya los trae). Cada uno se puede repetir.
+    for (const sql of MIGRATIONS) {
+      await pool.query(sql).catch((e) => {
+        if (!["ER_DUP_FIELDNAME", "ER_DUP_KEYNAME", "ER_FK_DUP_NAME", "ER_CANT_CREATE_TABLE"].includes(e?.code)) throw e;
+      });
+    }
     const [rows] = await pool.query("SELECT 1 FROM users WHERE role='dev' LIMIT 1");
     if ((rows as unknown[]).length) return;
     await pool.execute("INSERT IGNORE INTO users(name,email,password_hash,role) VALUES (?,?,?, 'dev')", [
@@ -52,6 +85,35 @@ export async function run(sql: string, params: unknown[] = []): Promise<ResultSe
   const [res] = await pool.execute(sql, params as never[]);
   return res as ResultSetHeader;
 }
+
+/**
+ * Consola SQL de SWM Labs: ejecuta UNA consulta dentro de una transacción de solo lectura, con límite de tiempo.
+ * Aunque la consulta intente escribir, la base la rechaza.
+ */
+export async function readOnlyQuery(sql: string) {
+  await ready();
+  const c = await pool.getConnection();
+  try {
+    await c.query("SET SESSION max_statement_time = 10").catch(() => c.query("SET SESSION max_execution_time = 10000").catch(() => {}));
+    await c.query("START TRANSACTION READ ONLY");
+    const [rows, fields] = await c.query({ sql, rowsAsArray: false });
+    return { rows, fields: (fields as { name: string }[] | undefined)?.map((f) => f.name) ?? [] };
+  } finally {
+    await c.query("ROLLBACK").catch(() => {});
+    // la conexión vuelve al pool: quitarle el límite para no cortar cargas grandes de Excel
+    await c.query("SET SESSION max_statement_time = 0").catch(() => c.query("SET SESSION max_execution_time = 0").catch(() => {}));
+    c.release();
+  }
+}
+
+/** Datos de la conexión (sin la contraseña), para la consola de SWM Labs. */
+export const connectionInfo = () => ({
+  host: process.env.DB_HOST ?? "127.0.0.1",
+  port: Number(process.env.DB_PORT ?? 3306),
+  user: process.env.DB_USER ?? "root",
+  database: process.env.DB_NAME ?? "system_trackin",
+  poolLimit: 10,
+});
 
 export async function tx<T>(fn: (c: PoolConnection) => Promise<T>): Promise<T> {
   await ready();
