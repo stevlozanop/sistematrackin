@@ -12,7 +12,8 @@ import { LogoBadge } from "@/components/CompanyLogo";
 
 type Co = { id: number; name: string; v: string | null; color?: string | null } | null;
 
-import { roleLabel, type Role } from "@/lib/workflow";
+import { companyCode, roleLabel, type Role } from "@/lib/workflow";
+import { CodeTag } from "@/components/ui";
 
 type Item = { title: string; href: string; icon: LucideIcon; roles?: Role[] };
 const SUPER: Role[] = ["dev", "admin"];
@@ -237,7 +238,11 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = fals
                 </div>
               )}
               <span className="hidden text-[10px] text-sb-on-surface-variant sm:block">{name}</span>
-              <span className="text-[10px] font-medium uppercase text-sb-on-surface-variant">{roleLabel(role, isOwner)}</span>
+              {isOwner && own ? (
+                <CodeTag code={companyCode(own.id)} size="xs" />
+              ) : (
+                <span className="text-[10px] font-medium uppercase text-sb-on-surface-variant">{roleLabel(role)}</span>
+              )}
             </Link>
           </div>
         </header>

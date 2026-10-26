@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, toast } from "@heroui/react";
 import { Activity, CalendarDays, Clock, KeyRound, Save, Upload } from "lucide-react";
-import { Card, PageTitle, Pill } from "@/components/ui";
+import { Card, CodeTag, PageTitle, Pill } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
 import { SITE_INFO, type Site } from "@/lib/hsp";
 import { areaOf, companyCode, roleLabel, type Role } from "@/lib/workflow";
@@ -83,9 +83,9 @@ export default function ProfilePage() {
       {p.company && (
         <Card className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-sm font-semibold">
-              {p.company.isOwner && <span className="mr-1.5 rounded-full bg-sb-primary px-2 py-0.5 text-[10px] font-semibold text-sb-on-primary">Empresa {companyCode(p.company.id)}</span>}
+            <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold">
               {p.company.name}
+              {p.company.isOwner && <CodeTag code={companyCode(p.company.id)} />}
             </h3>
             <p className="text-[12px] text-sb-on-surface-variant">
               {p.company.canEdit ? "Foto de perfil de tu empresa: se ve en el menú de todas sus cuentas." : "Tu empresa."}
@@ -105,7 +105,7 @@ export default function ProfilePage() {
           <h3 className="truncate text-lg font-semibold tracking-tight">{p.name}</h3>
           <p className="truncate text-sm text-sb-on-surface-variant">{p.email}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            <Pill active>{roleLabel(p.role, owner)}</Pill>
+            {owner ? <CodeTag code={companyCode(p.company!.id)} /> : <Pill active>{roleLabel(p.role)}</Pill>}
             {area && area.id !== "CUSTOM" && <Pill>{area.label}</Pill>}
             {p.carrier && <Pill>{p.carrier}</Pill>}
           </div>
@@ -126,9 +126,16 @@ export default function ProfilePage() {
         <Card className="p-5">
           <h3 className="mb-1 text-sm font-semibold">Mi cuenta</h3>
           <p className="mb-2 text-[12px] text-sb-on-surface-variant/70">
-            {owner ? `Cuenta principal de la empresa ${companyCode(p.company!.id)}: administras todo tu sistema, tus supervisores, consorcios y dealers.` : ROLE_DESC[p.role]}
+            {owner ? `Cuenta de ${p.company!.name}: administras todo tu sistema, tus supervisores, consorcios y dealers.` : ROLE_DESC[p.role]}
           </p>
-          <Row label="Rol">{owner ? `Empresa ${companyCode(p.company!.id)}` : roleLabel(p.role)}</Row>
+          {owner ? (
+            <>
+              <Row label="Empresa">{p.company!.name}</Row>
+              <Row label="Código de empresa"><CodeTag code={companyCode(p.company!.id)} /></Row>
+            </>
+          ) : (
+            <Row label="Rol">{roleLabel(p.role)}</Row>
+          )}
           {isOperator && <Row label="Área">{area?.label ?? "—"}</Row>}
           {isOperator && <Row label="Empresa de transporte">{p.carrier ?? "Todas"}</Row>}
           {isOperator && <Row label="Carga de Excel">{p.canImport ? "Permitida" : "No permitida"}</Row>}

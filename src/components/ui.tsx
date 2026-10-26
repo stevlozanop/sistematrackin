@@ -51,3 +51,17 @@ export const Checkbox = ({ checked, onChange, label }: { checked: boolean; onCha
     className="h-3.5 w-3.5 cursor-pointer rounded-[4px] accent-[var(--sb-primary)]"
   />
 );
+
+/** Código de empresa con estilo de código: EMP-01 en letra monoespaciada, con marco del color de la empresa. */
+export const CodeTag = ({ code, size = "sm", className }: { code: string; size?: "xs" | "sm"; className?: string }) => (
+  <span
+    title="Código de empresa"
+    className={cn(
+      "inline-flex items-center rounded-md border border-sb-primary/35 bg-sb-primary-soft font-mono font-semibold tracking-wider text-sb-primary",
+      size === "xs" ? "px-1.5 py-px text-[9px]" : "px-2 py-0.5 text-[11px]",
+      className,
+    )}
+  >
+    {code}
+  </span>
+);

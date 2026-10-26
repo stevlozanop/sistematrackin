@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Modal, toast } from "@heroui/react";
 import { Building2, Copy, Eye, Globe, MapPin, Pencil, Phone, Plus, ShieldCheck, Trash2, Truck, UserPlus } from "lucide-react";
-import { Card, PageTitle, Pill } from "@/components/ui";
+import { Card, CodeTag, PageTitle, Pill } from "@/components/ui";
 import { ROLE_LABEL, companyCode, suggestEmail, type Role } from "@/lib/workflow";
 import { LogoBadge, LogoPicker } from "@/components/CompanyLogo";
 import { DEFAULT_COLOR, PRESETS, onColor } from "@/lib/theme";
@@ -158,7 +158,10 @@ export default function CompaniesPage() {
                 </span>
               )}
               <div className="min-w-0 flex-1">
-                <h3 className="truncate text-base font-semibold tracking-tight">{c.name}</h3>
+                <h3 className="flex min-w-0 items-center gap-2 text-base font-semibold tracking-tight">
+                  <span className="truncate">{c.name}</span>
+                  <CodeTag code={companyCode(c.id)} />
+                </h3>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   <Pill active>{c.id === mine ? "Tu empresa" : KIND[c.kind].label}</Pill>
                   {c.color && <span className="h-5 w-5 rounded-full border border-white shadow" style={{ background: c.color }} title={`Color de su sistema: ${c.color}`} />}
@@ -226,7 +229,7 @@ export default function CompaniesPage() {
                       <span className={`h-2 w-2 shrink-0 rounded-full ${Number(u.online) ? "bg-emerald-500" : "bg-sb-surface-container-highest"}`} title={Number(u.online) ? "En línea" : "Desconectado"} />
                       <span className="min-w-0 flex-1 truncate"><b className="font-medium">{u.name}</b> <span className="text-sb-on-surface-variant">· {u.email}</span></span>
                       {u.id === c.owner_id ? (
-                        <Pill active>Empresa {companyCode(c.id)}</Pill>
+                        <CodeTag code={companyCode(c.id)} />
                       ) : (
                         <>
                           {dev && c.kind === "transport" && u.role === "admin" && (

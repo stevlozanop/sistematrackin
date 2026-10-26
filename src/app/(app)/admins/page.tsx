@@ -3,16 +3,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Avatar, Button, Chip, Description, Input, Label, Modal, Switch, Table, TextField, toast, useOverlayState } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@heroui/react";
 import { Copy, Eye, KeyRound, Store, ListChecks, Plus, Radio, Search, ShieldCheck, Trash2, Users, X } from "lucide-react";
-import { Card, PageTitle } from "@/components/ui";
+import { Card, CodeTag, PageTitle } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
 import { Check } from "@/components/Check";
 import { AreaPicker, type Assignment } from "@/components/AreaPicker";
 import { DealerAccounts } from "@/components/DealerAccounts";
-import { ROLE_LABEL, USER_DOMAIN, roleLabel, areaOf, stageLabel, suggestEmail, type Role, type Stage } from "@/lib/workflow";
+import { ROLE_LABEL, USER_DOMAIN, companyCode, roleLabel, areaOf, stageLabel, suggestEmail, type Role, type Stage } from "@/lib/workflow";
 
 type Admin = {
   id: number; name: string; email: string; role: Exclude<Role, "dev">; created_at: string; last_seen: string | null; online: number;
-  stages: Stage[]; area: string | null; carrier: string | null; can_import: number; company: string | null; dealer: string | null; is_owner?: number;
+  stages: Stage[]; area: string | null; carrier: string | null; can_import: number; company: string | null; dealer: string | null; is_owner?: number; company_id?: number | null;
 };
 type NewRole = "operator" | "admin" | "viewer" | "dealer";
 
@@ -170,7 +170,7 @@ export default function AdminsPage() {
                 </div>
                 <div className="truncate text-[11px] text-muted">{a.email}</div>
               </div>
-              <Chip size="sm" variant={a.role === "admin" ? "secondary" : "soft"}>{roleLabel(a.role, a.is_owner)}</Chip>
+              {Number(a.is_owner) && a.company_id ? <CodeTag code={companyCode(a.company_id)} /> : <Chip size="sm" variant={a.role === "admin" ? "secondary" : "soft"}>{roleLabel(a.role)}</Chip>}
             </div>
             <div className="text-xs">
               {a.role !== "operator" ? <Scope a={a} /> : (
@@ -223,7 +223,7 @@ export default function AdminsPage() {
                         </div>
                       </div>
                     </Table.Cell>
-                    <Table.Cell><Chip size="sm" variant={a.role === "admin" ? "secondary" : "soft"}>{roleLabel(a.role, a.is_owner)}</Chip></Table.Cell>
+                    <Table.Cell>{Number(a.is_owner) && a.company_id ? <CodeTag code={companyCode(a.company_id)} /> : <Chip size="sm" variant={a.role === "admin" ? "secondary" : "soft"}>{roleLabel(a.role)}</Chip>}</Table.Cell>
                     <Table.Cell>
                       {a.role !== "operator" ? <Scope a={a} /> : (
                         <div className="flex max-w-[24rem] flex-wrap items-center gap-1">
