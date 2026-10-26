@@ -160,10 +160,13 @@ export default function SitePage({ params, searchParams }: {
   const [editId, setEditId] = useState<number | null>(null);
   const editing = rows.find((u) => u.id === editId) ?? null;
 
-  // Usuario actual: el super admin edita todo; el encargado solo la siguiente etapa que le toca
+  // Usuario actual: la empresa (Leyva) y sus supervisores corrigen todo; el encargado solo la siguiente etapa que le toca.
+  // SWM Labs (dev) y Honda solo miran: la operación es de Leyva.
   const [me, setMe] = useState<{ role: Role; stages: Stage[] } | null>(null);
-  const sup = isSuper(me?.role);
-  const viewer = me?.role === "viewer"; // cuenta de solo lectura (Honda): ve todo, no cambia nada
+  const sup = me?.role === "admin";
+  const dev = me?.role === "dev";
+  const viewer = me?.role === "viewer" || dev; // solo lectura: ve todo, no cambia nada
+  const seesAllUnits = sup || viewer;
   const myFields = useMemo(() => new Set(me?.stages.filter((st) => st.site === site).map((st) => st.field) ?? []), [me, site]);
   const modeOf = (u: Unit, k: DateField): CellMode => {
     if (!me) return u[k] ? "locked" : "wait";
@@ -354,7 +357,7 @@ export default function SitePage({ params, searchParams }: {
         <Filter label="Alerta: todas" className="lg:w-56" value={f.alert} onChange={(v) => setFilter("alert", v)} options={[
           { id: "VENCIDA", label: "Vencidas (sin entregar)" }, { id: "POR VENCER", label: "Por vencer" }, { id: "SIN_MOTIVO", label: "Fuera de tiempo sin motivo" },
         ]} />
-        {sup && (
+        {seesAllUnits && (
           <Filter label="Esperando etapa: todas" className="lg:w-60" value={f.pending} onChange={(v) => setFilter("pending", v)} options={info.dates.map((d) => ({ id: d.key, label: `Esperando ${d.label}` }))} />
         )}
         {Object.entries(f).some(([k, v]) => v && k !== "q" && k !== "status" && k !== "mine") && (
@@ -363,7 +366,9 @@ export default function SitePage({ params, searchParams }: {
       </div>
       {!sup && me && (
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-sb-on-surface-variant">
-          {viewer ? (
+          {dev ? (
+            <span>SWM Labs: solo visualización. Las fechas las registran los encargados y las corrige la empresa (Leyva).</span>
+          ) : viewer ? (
             <span>Cuenta de solo lectura: ves todas las unidades en vivo, pero no puedes cambiar fechas ni datos.</span>
           ) : myFields.size ? (
             <>

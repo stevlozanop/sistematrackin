@@ -7,9 +7,15 @@ export async function GET() {
   if (err) return err;
   return NextResponse.json(
     await query(
+      // Por módulo: unidades, sin entregar y región (PCL: departamento más frecuente · YUR: ruta más frecuente)
       `SELECT d.id, d.name, d.department, d.district, d.coast, d.client,
          SUM(u.site='PCL') AS pcl, SUM(u.site='YUR') AS yur,
-         SUM(u.d_entrega IS NULL AND u.id IS NOT NULL) AS pending
+         SUM(u.d_entrega IS NULL AND u.id IS NOT NULL) AS pending,
+         SUM(u.site='PCL' AND u.d_entrega IS NULL) AS pending_pcl, SUM(u.site='YUR' AND u.d_entrega IS NULL) AS pending_yur,
+         (SELECT x.department FROM units x WHERE x.dealer_id = d.id AND x.site = 'PCL' AND x.department IS NOT NULL
+            GROUP BY x.department ORDER BY COUNT(*) DESC LIMIT 1) AS pcl_region,
+         (SELECT x.route FROM units x WHERE x.dealer_id = d.id AND x.site = 'YUR' AND x.route IS NOT NULL
+            GROUP BY x.route ORDER BY COUNT(*) DESC LIMIT 1) AS yur_route
        FROM dealers d LEFT JOIN units u ON u.dealer_id = d.id
        GROUP BY d.id ORDER BY d.department, d.name`,
     ),

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { queryList, tx } from "@/lib/db";
-import { guard, SUPER } from "@/lib/guard";
+import { guard } from "@/lib/guard";
 import { dedupe, existing, parseWorkbook, saveRows, stash, takeStash } from "@/lib/importer";
 import { fillDealerClients } from "@/lib/clients";
 
@@ -11,7 +11,7 @@ export const maxDuration = 300;
  * Paso 2 (JSON { token }): guarda en la base de datos lo leído en el paso 1.
  */
 export async function POST(req: Request) {
-  const { err } = await guard(SUPER);
+  const { err } = await guard(["admin"]); // cargar el Excel: solo la empresa (SWM Labs no opera)
   if (err) return err;
 
   try {
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
       return NextResponse.json(res);
     }
 
-    const file = (await req.formData()).get("file");
+    const file = (await req.formData().catch(() => null))?.get("file"); // sin formulario = sin archivo
     if (!(file instanceof File)) return NextResponse.json({ error: "Falta el archivo" }, { status: 400 });
 
     let parsed;

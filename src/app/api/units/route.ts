@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { queryList, run, tx } from "@/lib/db";
-import { getScope, guard, READ, SUPER } from "@/lib/guard";
+import { getScope, guard, READ } from "@/lib/guard";
 import { DATE_FIELDS, isSite, type DateField, type Site } from "@/lib/hsp";
 import { checkDateEdit, isSuper, needsDelayReason, pendingSql, seesAll } from "@/lib/workflow";
 
@@ -114,7 +114,8 @@ export async function GET(req: Request) {
  * Super admin: puede corregir cualquier campo. Cada cambio queda en unit_events (seguimiento en vivo).
  */
 export async function PATCH(req: Request) {
-  const { s, err } = await guard();
+  // Registran fechas los encargados; corrige la empresa. SWM Labs y Honda solo miran.
+  const { s, err } = await guard(["admin", "operator"]);
   if (err) return err;
   const { ids, changes } = await req.json().catch(() => ({}));
   const unitIds = Array.isArray(ids) ? [...new Set(ids.map(Number).filter(Number.isInteger))] : [];
@@ -199,7 +200,7 @@ export async function PATCH(req: Request) {
 
 /** DELETE /api/units?site=PCL -> elimina todas las unidades de ese módulo. */
 export async function DELETE(req: Request) {
-  const { err } = await guard(SUPER);
+  const { err } = await guard(["admin"]); // borrar unidades: solo la empresa
   if (err) return err;
   const site = new URL(req.url).searchParams.get("site");
   if (!isSite(site)) return NextResponse.json({ error: "Módulo inválido" }, { status: 400 });
