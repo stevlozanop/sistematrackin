@@ -152,7 +152,7 @@ export default function AdminsPage() {
     <div className="flex flex-col gap-4">
       <PageTitle title="Usuarios" sub="Encargados registran las fechas de su área. Supervisores ven y corrigen todo. Dealers y cuentas de solo lectura (Honda) solo consultan.">
         <Button size="sm" variant="secondary" className="rounded-full" onPress={() => setBulkDealers(true)}>
-          <Store className="h-3.5 w-3.5" /> Cuentas de clientes
+          <Store className="h-3.5 w-3.5" /> Crear clientes
         </Button>
         <Button size="sm" variant="primary" className="rounded-full" onPress={() => { setRole("operator"); setAsg(emptyAsg); create.open(); }}>
           <Plus className="h-3.5 w-3.5" /> Nuevo usuario

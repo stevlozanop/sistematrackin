@@ -53,7 +53,7 @@ export function DealerAccounts({ open, onClose, onCreated }: { open: boolean; on
     if (!r.ok) return toast.danger(j.error);
     setCreated(j.created);
     if (j.created.length) download(j.created);
-    toast.success(`${j.created.length} cuentas de clientes creadas`, { description: "Se descargó el Excel con los accesos." });
+    toast.success(`${j.created.length} ${j.created.length === 1 ? "cliente creado" : "clientes creados"}`, { description: "Se descargó el Excel con los accesos." });
     onCreated();
   }
 
@@ -66,11 +66,11 @@ export function DealerAccounts({ open, onClose, onCreated }: { open: boolean; on
           <Modal.Dialog className="sm:max-w-3xl">
             <Modal.CloseTrigger aria-label="Cerrar" />
             <Modal.Header className="flex flex-col gap-1">
-              <Modal.Heading>{created ? "Cuentas creadas" : "Cuentas para los clientes de Honda"}</Modal.Heading>
+              <Modal.Heading>{created ? "Clientes creados" : "Crear clientes"}</Modal.Heading>
               <p className="text-xs text-sb-on-surface-variant">
                 {created
                   ? "Guarda el Excel: las contraseñas no se vuelven a mostrar. Si alguien la pierde, restablécela en Usuarios."
-                  : "Una cuenta por cliente (SORSA, CREDIVARGAS…): entra a «Mis unidades» y ve las de todas sus tiendas, nada de otros clientes."}
+                  : "Crea la cuenta de cada cliente (SORSA, CREDIVARGAS…): entra a «Mi resumen» y ve los pedidos de todas sus tiendas, nada de otros clientes."}
               </p>
             </Modal.Header>
 
@@ -138,7 +138,7 @@ export function DealerAccounts({ open, onClose, onCreated }: { open: boolean; on
                 <>
                   <Button variant="secondary" className="rounded-full" onPress={close}>Cancelar</Button>
                   <Button variant="primary" className="rounded-full" isDisabled={saving || !picked.size} onPress={create}>
-                    {saving ? "Creando…" : `Crear ${picked.size} ${picked.size === 1 ? "cuenta" : "cuentas"}`}
+                    {saving ? "Creando…" : `Crear ${picked.size} ${picked.size === 1 ? "cliente" : "clientes"}`}
                   </Button>
                 </>
               )}

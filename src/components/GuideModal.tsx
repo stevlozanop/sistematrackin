@@ -424,7 +424,7 @@ function viewerSteps(me: Me): Step[] {
           <Term k="Alertas">Unidades vencidas o por vencer y en qué etapa están detenidas.</Term>
           <Term k="PCL y YUR">Todas las unidades con sus fechas, estado y nivel de servicio. Busca por chasis, motor, guía…</Term>
           <Term k="En vivo">Quién está registrando y cada fecha que se guarda, al instante.</Term>
-          <Term k="Clientes">Das acceso a tus clientes (SORSA, SERVIHONDA…) para que vean sus pedidos; puedes ponerles contraseña nueva o quitarles el acceso.</Term>
+          <Term k="Equipo y clientes">Creas a tus clientes (SORSA, CREDIVARGAS…) para que vean sus pedidos, y a tus empleados. Puedes ponerles contraseña nueva o quitarles el acceso.</Term>
           <Term k="Reportes">Eliges período, módulo y cliente, y lo descargas en Excel o lo imprimes / guardas en PDF para tu supervisor.</Term>
         </div>
       ),

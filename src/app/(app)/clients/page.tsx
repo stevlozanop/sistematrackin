@@ -69,7 +69,7 @@ export default function ClientsPage() {
       <PageTitle title={isHonda ? "Tu equipo y tus clientes" : "Tus clientes"} sub="Tus clientes (SORSA, SERVIHONDA…) ven solo el estado de sus pedidos. Tus empleados ven todo lo tuyo en solo lectura. Nadie puede cambiar fechas.">
         {tab === "clients" && (
           <Button size="sm" variant="primary" className="rounded-full" onPress={() => setBulk(true)}>
-            <UserPlus className="h-3.5 w-3.5" /> Dar acceso a clientes
+            <UserPlus className="h-3.5 w-3.5" /> Crear clientes
           </Button>
         )}
       </PageTitle>
@@ -131,7 +131,7 @@ export default function ClientsPage() {
                   </td>
                 </tr>
               ))}
-              {!list.length && <tr><td colSpan={5} className="px-4 py-10 text-center text-sb-on-surface-variant">{q ? "Sin resultados." : "Todavía no diste acceso a ningún cliente."}</td></tr>}
+              {!list.length && <tr><td colSpan={5} className="px-4 py-10 text-center text-sb-on-surface-variant">{q ? "Sin resultados." : "Todavía no creaste clientes."}</td></tr>}
             </tbody>
           </table>
         </div>
