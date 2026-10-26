@@ -35,7 +35,12 @@ export default function DealersPage() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [site, setSite] = useState<Site>("pcl");
-  useEffect(() => { fetch("/api/dealers").then((r) => r.json()).then((d) => { setRows(d); setLoading(false); }); }, []);
+  // Solo la empresa (Leyva) cambia el cliente y la Ruta Lima; SWM Labs y Honda solo miran
+  const [canEdit, setCanEdit] = useState(false);
+  useEffect(() => {
+    fetch("/api/dealers").then((r) => r.json()).then((d) => { setRows(d); setLoading(false); });
+    fetch("/api/me").then((r) => (r.ok ? r.json() : null)).then((m) => setCanEdit(m?.role === "admin")).catch(() => {});
+  }, []);
 
   async function setLima(d: Dealer, on: boolean) {
     setRows((p) => p.map((x) => (x.id === d.id ? { ...x, coast: on ? 1 : 0 } : x)));
@@ -54,12 +59,14 @@ export default function DealersPage() {
     setRows((p) => p.map((x) => (x.id === d.id ? { ...x, client: v } : x)));
     toast.success(`${d.name} ahora es de ${v}`, { description: "Las cuentas de ese cliente ya ven esta tienda." });
   }
-  const clientInput = (d: Dealer) => (
+  const clientInput = (d: Dealer) => !canEdit ? <span className="text-xs">{d.client ?? "—"}</span> : (
     <input key={`${d.id}-${d.client}`} list="clientes" defaultValue={d.client ?? ""} onBlur={(e) => setClient(d, e.target.value)}
       onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} aria-label={`Cliente de ${d.name}`}
       className="h-8 w-full min-w-[11rem] rounded-xl border border-sb-outline-variant bg-sb-surface-container-low px-2 text-xs outline-none focus:border-sb-primary" />
   );
-  const limaSwitch = (d: Dealer, label?: boolean) => (
+  const limaSwitch = (d: Dealer, label?: boolean) => !canEdit ? (
+    <span className="text-xs">{label ? "Ruta Lima (5.1 → 5.2): " : ""}{Number(d.coast) ? "Sí" : "No"}</span>
+  ) : (
     <Switch size="sm" isSelected={!!Number(d.coast)} onChange={(v) => setLima(d, v)}>
       <Switch.Content aria-label={`Ruta Lima para ${d.name}`} className="cursor-pointer gap-2 text-xs">
         <Switch.Control><Switch.Thumb /></Switch.Control>
@@ -106,7 +113,10 @@ export default function DealersPage() {
 
       <div className="flex flex-col gap-1 text-xs text-sb-on-surface-variant">
         <p>{info.desc} Una tienda que recibe de los dos módulos aparece en ambos, con sus unidades de cada uno.</p>
-        <p><b>Cliente</b>: el cliente de Honda dueño de la tienda (SORSA, CREDIVARGAS…). Sus cuentas ven todas sus tiendas y nada de otros clientes. Si una tienda quedó en el cliente equivocado, cámbialo aquí.</p>
+        <p>
+          <b>Cliente</b>: el cliente de Honda dueño de la tienda (SORSA, CREDIVARGAS…). Sus cuentas ven todas sus tiendas y nada de otros clientes.
+          {canEdit ? " Si una tienda quedó en el cliente equivocado, cámbialo aquí." : " El cliente y la Ruta Lima los cambia la empresa (Leyva)."}
+        </p>
         {site === "pcl" && (
           <p><b>Ruta Lima</b> ({limaCount} dealers): después del despacho (5) pasan por el almacén de Lima: 5.1 entrega (in) y 5.2 salida (out), y luego 6 entrega al dealer.</p>
         )}

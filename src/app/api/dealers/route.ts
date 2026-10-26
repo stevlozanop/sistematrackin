@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { query, run } from "@/lib/db";
-import { guard, READ, SUPER } from "@/lib/guard";
+import { guard, READ } from "@/lib/guard";
 
 export async function GET() {
   const { err } = await guard(READ);
@@ -27,7 +27,7 @@ export async function GET() {
  * PATCH { id, client } — cambia el cliente de Honda al que pertenece la tienda (sus cuentas ven todas sus tiendas).
  */
 export async function PATCH(req: Request) {
-  const { err } = await guard(SUPER);
+  const { err } = await guard(["admin"]); // cliente y Ruta Lima: los cambia la empresa (SWM Labs solo mira)
   if (err) return err;
   const { id, coast, client } = await req.json().catch(() => ({}));
   if (client !== undefined) {

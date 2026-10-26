@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { queryList, tx } from "@/lib/db";
-import { guard, READ, SUPER } from "@/lib/guard";
+import { guard, READ } from "@/lib/guard";
 import { isSite } from "@/lib/hsp";
 
 type LeadTime = { site: string; zone: string; days_cre: number; days_vac: number };
@@ -35,7 +35,7 @@ export async function GET() {
 
 /** PUT { target, creciente: number[], leadTimes: LeadTime[] } — reemplaza la configuración completa. */
 export async function PUT(req: Request) {
-  const { err } = await guard(SUPER);
+  const { err } = await guard(["admin"]); // plazos y meta: los cambia la empresa (SWM Labs solo mira)
   if (err) return err;
   const body = await req.json().catch(() => null);
   const target = Number(body?.target);

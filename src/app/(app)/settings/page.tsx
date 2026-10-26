@@ -15,8 +15,13 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(true);
 
+  // Solo la empresa (Leyva) cambia plazos y meta; SWM Labs y Honda solo miran
+  const [canEdit, setCanEdit] = useState(false);
   const load = () => fetch("/api/settings").then((r) => r.json()).then((d) => { setCfg(d); setSaved(true); });
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    fetch("/api/me").then((r) => (r.ok ? r.json() : null)).then((m) => setCanEdit(m?.role === "admin")).catch(() => {});
+  }, []);
 
   if (!cfg) return <div className="p-6 text-sm text-sb-on-surface-variant">Cargando…</div>;
 
@@ -41,6 +46,10 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-4">
       <PageTitle title="Plazos y meta" sub="Fecha estimada = fecha de facturación + plazo. A tiempo = entregado (o todavía en camino) hasta la fecha estimada." />
+      {!canEdit && <p className="-mt-2 text-xs text-sb-on-surface-variant">Solo lectura: los plazos y la meta los cambia la empresa (Leyva).</p>}
+
+      {/* Sin permiso, todo el formulario queda desactivado (se ve, no se cambia) */}
+      <fieldset disabled={!canEdit} className="contents">
 
       <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
         <Card className="flex flex-col gap-3 p-5">
@@ -126,7 +135,9 @@ export default function SettingsPage() {
         })}
       </div>
 
-      <div className="flex justify-end">
+      </fieldset>
+
+      {canEdit && <div className="flex justify-end">
         <Button
           variant="primary"
           className={`rounded-full transition-opacity duration-300 ${saved ? "pointer-events-none opacity-30" : ""}`}
@@ -135,7 +146,7 @@ export default function SettingsPage() {
         >
           <Save className="h-4 w-4" /> {saved ? "Guardado ✓" : saving ? "Guardando…" : "Guardar cambios"}
         </Button>
-      </div>
+      </div>}
     </div>
   );
 }
