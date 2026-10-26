@@ -18,16 +18,18 @@ export async function canManage(s: Session, id: number, own = false) {
 }
 
 /**
- * Empresa cuya marca (logo y nombre) se muestra en el menú: la transportista dueña del sistema.
- * - Cuenta de la transportista o dealer: su empresa.
- * - Consorcio cliente (Honda): la transportista que lo creó.
- * - SWM Labs: la primera transportista registrada.
+ * Marca (nombre, logo y color) que ve cada cuenta en el menú:
+ * - SWM Labs (dev): null → se muestra SWM Labs en blanco y negro.
+ * - Cuenta de una empresa (Leyva, Honda…): su propia empresa.
+ * - Dealer: la empresa a la que pertenece (la transportista).
+ * - Cuenta sin empresa: la primera transportista registrada.
  */
-export async function brandCompany(userId: number) {
-  const [b] = await query<{ id: number; name: string; v: string | null }>(
-    `SELECT c.id, c.name, UNIX_TIMESTAMP(c.logo_updated) v FROM companies c
+export async function brandCompany(userId: number, role: string) {
+  if (role === "dev") return null;
+  const [b] = await query<{ id: number; name: string; v: string | null; color: string | null }>(
+    `SELECT c.id, c.name, UNIX_TIMESTAMP(c.logo_updated) v, c.color FROM companies c
      WHERE c.id = COALESCE(
-       (SELECT IF(o.kind = 'client', o.parent_id, o.id) FROM users u JOIN companies o ON o.id = u.company_id WHERE u.id = ?),
+       (SELECT company_id FROM users WHERE id = ?),
        (SELECT id FROM companies WHERE kind = 'transport' ORDER BY id LIMIT 1))`,
     [userId],
   );

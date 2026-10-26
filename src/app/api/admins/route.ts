@@ -11,7 +11,9 @@ import { areaOf, areaStages } from "@/lib/workflow";
  */
 type Role = "admin" | "operator" | "viewer" | "dealer";
 const ROLES: Role[] = ["admin", "operator", "viewer", "dealer"];
-const manageable = (me: string): Role[] => (me === "dev" ? ROLES : ["operator", "viewer", "dealer"]);
+/** Un supervisor (la transportista que compró el sistema) también crea supervisores, pero solo de su propia empresa. */
+const manageable = (me: string): Role[] => (me === "dev" ? ROLES : ["admin", "operator", "viewer", "dealer"]);
+const companyOf = async (id: number) => (await query<{ company_id: number | null }>("SELECT company_id FROM users WHERE id=?", [id]))[0]?.company_id ?? null;
 
 /** Valida la lista de etapas [{ site, field }] contra las etapas de cada módulo. */
 function parseStages(v: unknown): { site: string; field: string }[] | null {
@@ -49,8 +51,8 @@ export async function GET(req: Request) {
        (u.last_seen > NOW() - INTERVAL 60 SECOND) AS online,
        u.company_id, c.name AS company, u.dealer_id, d.name AS dealer
      FROM users u LEFT JOIN companies c ON c.id = u.company_id LEFT JOIN dealers d ON d.id = u.dealer_id
-     WHERE u.role IN (?) ORDER BY u.id DESC`,
-    [roles],
+     WHERE u.role IN (?) AND (? = 'dev' OR u.role <> 'admin' OR u.company_id <=> ?) ORDER BY u.id DESC`,
+    [roles, s.role, s.role === "dev" ? null : await companyOf(s.id)],
   );
   const stages = await query<{ user_id: number; site: string; field: string }>("SELECT user_id, site, field FROM user_stages");
   return NextResponse.json(users.map((u) => ({ ...u, stages: stages.filter((st) => st.user_id === u.id).map(({ site, field }) => ({ site, field })) })));
@@ -86,6 +88,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Las cuentas de un consorcio cliente son de solo lectura" }, { status: 400 });
   }
   if (!manageable(s.role).includes(role)) return NextResponse.json({ error: "No puedes crear ese tipo de usuario" }, { status: 403 });
+  if (role === "admin" && s.role !== "dev" && !creator?.company_id) {
+    return NextResponse.json({ error: "Solo un supervisor de una empresa puede crear otros supervisores" }, { status: 403 });
+  }
   if (!name || !/^\S+@\S+\.\S+$/.test(email) || password.length < 8) {
     return NextResponse.json({ error: "Nombre, correo válido y contraseña (mín. 8) son obligatorios" }, { status: 400 });
   }
@@ -113,6 +118,9 @@ export async function PATCH(req: Request) {
   const id = Number(b.id);
   const [u] = await query<{ role: Role }>("SELECT role FROM users WHERE id=?", [id]);
   if (!u || !manageable(s.role).includes(u.role)) return NextResponse.json({ error: "No existe" }, { status: 404 });
+  if (u.role === "admin" && s.role !== "dev" && (await companyOf(id)) !== (await companyOf(s.id))) {
+    return NextResponse.json({ error: "No existe" }, { status: 404 });
+  }
 
   if (b.area !== undefined || b.stages !== undefined) {
     const asg = parseAssignment(b);
@@ -133,7 +141,13 @@ export async function DELETE(req: Request) {
   const { s, err } = await guard(SUPER);
   if (err) return err;
   const id = Number(new URL(req.url).searchParams.get("id"));
+  if (!id) return NextResponse.json({ error: "Falta el usuario" }, { status: 400 });
   if (id === s.id) return NextResponse.json({ error: "No puedes eliminar tu propia cuenta" }, { status: 400 });
+  // Un supervisor solo elimina supervisores de su propia empresa
+  const [t] = await query<{ role: string; company_id: number | null }>("SELECT role, company_id FROM users WHERE id=?", [id]);
+  if (t?.role === "admin" && s.role !== "dev" && t.company_id !== (await companyOf(s.id))) {
+    return NextResponse.json({ error: "No puedes eliminar a ese supervisor" }, { status: 403 });
+  }
   await queryList("DELETE FROM users WHERE id=? AND role IN (?)", [id, manageable(s.role)]);
   return NextResponse.json({ ok: true });
 }

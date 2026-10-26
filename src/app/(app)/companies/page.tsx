@@ -5,18 +5,19 @@ import { Building2, Copy, Eye, Globe, MapPin, Pencil, Phone, Plus, ShieldCheck, 
 import { Card, PageTitle, Pill } from "@/components/ui";
 import { ROLE_LABEL, suggestEmail, type Role } from "@/lib/workflow";
 import { LogoBadge, LogoPicker } from "@/components/CompanyLogo";
+import { DEFAULT_COLOR, PRESETS, onColor } from "@/lib/theme";
 import { useRouter } from "next/navigation";
 
 
 type Stats = { units: number; delivered: number; onTime: number; open: number } | null;
 type User = { id: number; name: string; email: string; role: Role; online: number };
 type Company = {
-  id: number; name: string; kind: "transport" | "client"; parent_id: number | null; parent: string | null; logo_v: string | null; ruc: string | null; members: string | null; address: string | null;
+  id: number; name: string; kind: "transport" | "client"; parent_id: number | null; parent: string | null; logo_v: string | null; color: string | null; ruc: string | null; members: string | null; address: string | null;
   phone: string | null; email: string | null; website: string | null; notes: string | null; created_at: string; stats: Stats; users: User[];
 };
-type Form = Record<"name" | "kind" | "parent_id" | "ruc" | "members" | "address" | "phone" | "email" | "website" | "notes", string>;
+type Form = Record<"name" | "kind" | "parent_id" | "color" | "ruc" | "members" | "address" | "phone" | "email" | "website" | "notes", string>;
 
-const EMPTY: Form = { name: "", kind: "transport", parent_id: "", ruc: "", members: "", address: "", phone: "", email: "", website: "", notes: "" };
+const EMPTY: Form = { name: "", kind: "transport", parent_id: "", color: "", ruc: "", members: "", address: "", phone: "", email: "", website: "", notes: "" };
 const KIND = {
   transport: { label: "Transportista · dueña del sistema", desc: "Sus cuentas son supervisores: ven todo, corrigen fechas y crean encargados y cuentas de dealers.", role: "admin" as const },
   client: { label: "Cliente · solo lectura", desc: "Sus cuentas ven el dashboard, las alertas y las unidades en vivo, sin poder cambiar nada.", role: "viewer" as const },
@@ -152,6 +153,7 @@ export default function CompaniesPage() {
                 <h3 className="truncate text-base font-semibold tracking-tight">{c.name}</h3>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   <Pill active>{c.id === mine ? "Tu empresa" : KIND[c.kind].label}</Pill>
+                  {c.color && <span className="h-5 w-5 rounded-full border border-white shadow" style={{ background: c.color }} title={`Color de su sistema: ${c.color}`} />}
                   {c.parent && <Pill>Creado por {c.parent}</Pill>}
                   {c.ruc && <Pill>RUC {c.ruc}</Pill>}
                 </div>
@@ -267,6 +269,20 @@ export default function CompaniesPage() {
                     <p className="text-[12px] text-sb-on-surface-variant">{edit.id === mine ? "Datos de contacto de tu empresa." : KIND.client.desc}</p>
                   )}
                   <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Color de su sistema" wide hint="Sus cuentas ven el sistema con este color (botones, menú y opciones activas). Ej.: Leyva verde, Honda rojo.">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {PRESETS.map((p) => (
+                          <button key={p.color} type="button" title={p.name} aria-label={p.name} onClick={() => setF("color", p.color)}
+                            className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-110 ${edit.form.color === p.color ? "border-sb-on-surface ring-2 ring-sb-on-surface/20" : "border-white shadow"}`}
+                            style={{ background: p.color }} />
+                        ))}
+                        <label className="flex items-center gap-1.5 text-[11px] text-sb-on-surface-variant">
+                          <input type="color" value={edit.form.color || DEFAULT_COLOR} onChange={(e) => setF("color", e.target.value)} aria-label="Otro color" className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent" />
+                          Otro
+                        </label>
+                        <span className="ml-auto rounded-full px-3 py-1 text-[11px] font-semibold" style={{ background: edit.form.color || DEFAULT_COLOR, color: onColor(edit.form.color || DEFAULT_COLOR) }}>Así se ven sus botones</span>
+                      </div>
+                    </Field>
                     <Field label="Nombre" wide><input className={input} value={edit.form.name} onChange={(e) => setF("name", e.target.value)} placeholder="Consorcio Leyva" autoFocus /></Field>
                     <Field label="RUC" hint="11 dígitos (opcional)"><input className={input} inputMode="numeric" maxLength={11} value={edit.form.ruc} onChange={(e) => setF("ruc", e.target.value.replace(/\D/g, ""))} /></Field>
                     <Field label="Teléfono"><input className={input} value={edit.form.phone} onChange={(e) => setF("phone", e.target.value)} /></Field>

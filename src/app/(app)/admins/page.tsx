@@ -64,11 +64,9 @@ export default function AdminsPage() {
   const emptyAsg: Assignment = { area: "", stages: [], carrier: "", canImport: true };
   const [asg, setAsg] = useState<Assignment>(emptyAsg);
   const [carriers, setCarriers] = useState<string[]>([]);
-  const [myRole, setMyRole] = useState<Role | null>(null);
   const [editStages, setEditStages] = useState<Admin | null>(null);
   const [draftAsg, setDraftAsg] = useState<Assignment>(emptyAsg);
   useEffect(() => {
-    fetch("/api/me").then((r) => r.ok && r.json()).then((m) => m && setMyRole(m.role));
     fetch("/api/admins?carriers=1").then((r) => r.ok && r.json()).then((c) => c && setCarriers(c));
     fetch("/api/dealers").then((r) => r.ok && r.json()).then((d) => d && setDealers(d));
   }, []);
@@ -270,7 +268,7 @@ export default function AdminsPage() {
                     <button type="button" className={`sbf-chip ${role === "operator" ? "active" : ""}`} onClick={() => setRole("operator")}>Encargado de etapa</button>
                     <button type="button" className={`sbf-chip ${role === "dealer" ? "active" : ""}`} onClick={() => setRole("dealer")}>Dealer</button>
                     <button type="button" className={`sbf-chip ${role === "viewer" ? "active" : ""}`} onClick={() => setRole("viewer")}>Solo lectura (Honda)</button>
-                    {myRole === "dev" && <button type="button" className={`sbf-chip ${role === "admin" ? "active" : ""}`} onClick={() => setRole("admin")}>Supervisor</button>}
+                    <button type="button" className={`sbf-chip ${role === "admin" ? "active" : ""}`} onClick={() => setRole("admin")}>Supervisor</button>
                   </div>
                   <p className="-mt-2 text-xs text-muted">{ROLE_HELP[role]}</p>
                   {role === "dealer" && (

@@ -43,6 +43,8 @@ const MIGRATIONS = [
   "ALTER TABLE companies ADD COLUMN logo MEDIUMBLOB NULL",
   "ALTER TABLE companies ADD COLUMN logo_type VARCHAR(20) NULL",
   "ALTER TABLE companies ADD COLUMN logo_updated DATETIME NULL",
+  // color principal de cada empresa (tema de sus cuentas: Leyva verde, Honda rojo…)
+  "ALTER TABLE companies ADD COLUMN color VARCHAR(7) NULL AFTER parent_id",
 ];
 
 /** Crea el usuario dev inicial si todavía no existe (el esquema vive en database/schema.sql). */

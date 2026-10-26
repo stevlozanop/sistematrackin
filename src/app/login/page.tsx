@@ -38,9 +38,8 @@ export default function Login() {
         <form key={shake} ref={formRef} onSubmit={submit} className={`flex w-full max-w-sm flex-col ${shake ? "sb-anim-shake" : ""}`}>
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2.5">
-              <span className="relative grid h-11 w-11 place-items-center overflow-hidden rounded-full bg-leyva-green text-sm font-bold">
-                ST<span className="absolute inset-x-0 bottom-0 h-1 bg-leyva-lime" />
-              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element -- logo fijo de public/ */}
+              <img src="/ConsorcioLeyva.png" alt="Consorcio Leyva" className="h-11 w-11 rounded-full bg-white object-cover" />
               <span className="flex flex-col text-[11px] leading-tight text-white/50">
                 <span className="font-semibold text-leyva-lime">Consorcio Leyva</span>System Trackin
               </span>

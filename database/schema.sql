@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS companies (
   name       VARCHAR(160) NOT NULL UNIQUE,
   kind       ENUM('transport','client') NOT NULL DEFAULT 'transport',
   parent_id  INT UNSIGNED NULL,   -- consorcio cliente: la transportista que lo creó (Honda -> Consorcio Leyva)
+  color      VARCHAR(7) NULL,     -- color principal de su tema (#078a04 Leyva, #cc0000 Honda); vacío = verde por defecto
   ruc        VARCHAR(11) NULL,
   members    VARCHAR(500) NULL,   -- transportistas del grupo tal como aparecen en units.carrier, separados por coma
   address    VARCHAR(200) NULL,
