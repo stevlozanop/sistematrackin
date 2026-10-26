@@ -54,6 +54,12 @@ const MIGRATIONS = [
   "ALTER TABLE users ADD COLUMN client VARCHAR(120) NULL AFTER dealer_id",
   // quién creó cada cuenta (Leyva, Honda o The Iceberg Labs)
   "ALTER TABLE users ADD COLUMN created_by INT UNSIGNED NULL",
+  // código propio por tipo: empresas EMP-01, EMP-02… · consorcios CON-01, CON-02…
+  "ALTER TABLE companies ADD COLUMN code VARCHAR(10) NULL AFTER kind",
+  "ALTER TABLE companies ADD UNIQUE KEY uq_companies_code (code)",
+  `UPDATE companies c JOIN (
+     SELECT id, CONCAT(IF(kind = 'client', 'CON', 'EMP'), '-', LPAD(ROW_NUMBER() OVER (PARTITION BY kind ORDER BY id), 2, '0')) code FROM companies
+   ) x ON x.id = c.id SET c.code = x.code WHERE c.code IS NULL AND NOT EXISTS (SELECT 1 FROM (SELECT code FROM companies) y WHERE y.code IS NOT NULL)`,
 ];
 
 /** Crea el usuario dev inicial si todavía no existe (el esquema vive en database/schema.sql). */

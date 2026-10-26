@@ -23,8 +23,8 @@ export async function GET() {
   ]);
   if (!u) return NextResponse.json({ error: "No existe" }, { status: 404 });
   // Empresa de la cuenta y si puede cambiar su foto (supervisor o cuenta de solo lectura de esa empresa)
-  const [company] = await query<{ id: number; name: string; kind: string; v: string | null; is_owner: number }>(
-    "SELECT c.id, c.name, c.kind, UNIX_TIMESTAMP(c.logo_updated) v, (c.owner_id <=> us.id) is_owner FROM users us JOIN companies c ON c.id = us.company_id WHERE us.id = ?",
+  const [company] = await query<{ id: number; name: string; kind: string; code: string | null; v: string | null; is_owner: number }>(
+    "SELECT c.id, c.name, c.kind, c.code, UNIX_TIMESTAMP(c.logo_updated) v, (c.owner_id <=> us.id) is_owner FROM users us JOIN companies c ON c.id = us.company_id WHERE us.id = ?",
     [s.id],
   );
   return NextResponse.json({

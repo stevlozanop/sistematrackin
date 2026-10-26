@@ -12,7 +12,7 @@ import { ROLE_LABEL, USER_DOMAIN, companyCode, roleLabel, areaOf, stageLabel, su
 
 type Admin = {
   id: number; name: string; email: string; role: Exclude<Role, "dev">; created_at: string; last_seen: string | null; online: number;
-  stages: Stage[]; area: string | null; carrier: string | null; can_import: number; company: string | null; dealer: string | null; is_owner?: number; company_id?: number | null; company_kind?: string | null;
+  stages: Stage[]; area: string | null; carrier: string | null; can_import: number; company: string | null; dealer: string | null; is_owner?: number; company_id?: number | null; company_kind?: string | null; company_code?: string | null;
   client?: string | null; client_stores?: number;
 };
 type NewRole = "operator" | "admin" | "viewer" | "dealer";
@@ -182,7 +182,7 @@ export default function AdminsPage() {
                 </div>
                 <div className="truncate text-[11px] text-muted">{a.email}</div>
               </div>
-              {Number(a.is_owner) && a.company_id ? <CodeTag code={companyCode(a.company_id, a.company_kind)} /> : <Chip size="sm" variant={a.role === "admin" ? "secondary" : "soft"}>{roleLabel(a.role)}</Chip>}
+              {Number(a.is_owner) && a.company_id ? <CodeTag code={companyCode(a.company_id, a.company_kind, a.company_code)} /> : <Chip size="sm" variant={a.role === "admin" ? "secondary" : "soft"}>{roleLabel(a.role)}</Chip>}
             </div>
             <div className="text-xs">
               {a.role !== "operator" ? <Scope a={a} /> : (
@@ -235,7 +235,7 @@ export default function AdminsPage() {
                         </div>
                       </div>
                     </Table.Cell>
-                    <Table.Cell>{Number(a.is_owner) && a.company_id ? <CodeTag code={companyCode(a.company_id, a.company_kind)} /> : <Chip size="sm" variant={a.role === "admin" ? "secondary" : "soft"}>{roleLabel(a.role)}</Chip>}</Table.Cell>
+                    <Table.Cell>{Number(a.is_owner) && a.company_id ? <CodeTag code={companyCode(a.company_id, a.company_kind, a.company_code)} /> : <Chip size="sm" variant={a.role === "admin" ? "secondary" : "soft"}>{roleLabel(a.role)}</Chip>}</Table.Cell>
                     <Table.Cell>
                       {a.role !== "operator" ? <Scope a={a} /> : (
                         <div className="flex max-w-[24rem] flex-wrap items-center gap-1">

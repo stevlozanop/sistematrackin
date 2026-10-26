@@ -38,8 +38,8 @@ export async function brandCompany(userId: number, role: string) {
 
 /** Empresa propia de la cuenta (para el avatar de la barra superior). */
 export async function ownCompany(userId: number) {
-  const [c] = await query<{ id: number; name: string; v: string | null; kind: string }>(
-    "SELECT c.id, c.name, UNIX_TIMESTAMP(c.logo_updated) v, c.kind FROM users u JOIN companies c ON c.id = u.company_id WHERE u.id = ?",
+  const [c] = await query<{ id: number; name: string; v: string | null; kind: string; code: string | null }>(
+    "SELECT c.id, c.name, UNIX_TIMESTAMP(c.logo_updated) v, c.kind, c.code FROM users u JOIN companies c ON c.id = u.company_id WHERE u.id = ?",
     [userId],
   );
   return c ?? null;
@@ -72,4 +72,13 @@ export async function clientConsortiumOf(s: Session) {
     "SELECT c.id FROM users u JOIN companies c ON c.id = u.company_id WHERE u.id = ? AND c.kind = 'client'", [s.id],
   );
   return c?.id ?? null;
+}
+
+/** Siguiente código libre para un tipo: «EMP-02», «CON-03»… */
+export async function nextCompanyCode(kind: string) {
+  const prefix = kind === "client" ? "CON" : "EMP";
+  const [r] = await query<{ n: number | null }>(
+    "SELECT MAX(CAST(SUBSTRING(code, 5) AS UNSIGNED)) n FROM companies WHERE code LIKE ?", [`${prefix}-%`],
+  );
+  return `${prefix}-${String(Number(r?.n ?? 0) + 1).padStart(2, "0")}`;
 }

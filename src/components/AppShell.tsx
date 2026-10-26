@@ -10,7 +10,7 @@ import { AlertBell } from "@/components/AlertBell";
 import { GuideModal } from "@/components/GuideModal";
 import { LogoBadge } from "@/components/CompanyLogo";
 
-type Co = { id: number; name: string; v: string | null; color?: string | null; kind?: string } | null;
+type Co = { id: number; name: string; v: string | null; color?: string | null; kind?: string; code?: string | null } | null;
 
 import { companyCode, roleLabel, type Role } from "@/lib/workflow";
 import { CodeTag } from "@/components/ui";
@@ -246,7 +246,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = fals
               )}
               <span className="hidden text-[10px] text-sb-on-surface-variant sm:block">{name}</span>
               {isOwner && own ? (
-                <CodeTag code={companyCode(own.id, own.kind)} size="xs" />
+                <CodeTag code={companyCode(own.id, own.kind, own.code)} size="xs" />
               ) : (
                 <span className="text-[10px] font-medium uppercase text-sb-on-surface-variant">{roleLabel(role)}</span>
               )}

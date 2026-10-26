@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { query, queryList, run } from "@/lib/db";
 import { guard, SUPER } from "@/lib/guard";
-import { canManage, myCompany } from "@/lib/companies";
+import { canManage, myCompany, nextCompanyCode } from "@/lib/companies";
 import { isColor } from "@/lib/theme";
 
 /**
@@ -45,7 +45,7 @@ export async function GET() {
   const mine = await myCompany(s);
   if (s.role !== "dev" && !mine) return NextResponse.json({ companies: [], carriers: [], mine: null });
   const companies = await query<Company>(
-    `SELECT c.id, c.name, c.kind, c.parent_id, c.owner_id, c.color, p.name parent, c.ruc, c.members, c.address, c.phone, c.email, c.website, c.notes,
+    `SELECT c.id, c.name, c.kind, c.code, c.parent_id, c.owner_id, c.color, p.name parent, c.ruc, c.members, c.address, c.phone, c.email, c.website, c.notes,
        DATE_FORMAT(c.created_at,'%Y-%m-%d') created_at, UNIX_TIMESTAMP(c.logo_updated) logo_v
      FROM companies c LEFT JOIN companies p ON p.id = c.parent_id
      ${s.role === "dev" ? "" : "WHERE c.parent_id = ?"}
@@ -90,6 +90,8 @@ export async function POST(req: Request) {
     if (!mine) return NextResponse.json({ error: "Tu cuenta no pertenece a ninguna empresa" }, { status: 403 });
     Object.assign(r.data, { kind: "client", parent_id: String(mine), members: null });
   }
+  // Código propio según su tipo: EMP-xx (transportista) o CON-xx (consorcio cliente)
+  (r.data as Record<string, string | null>).code = await nextCompanyCode(r.data.kind ?? "transport");
   try {
     const res = await run(
       `INSERT INTO companies (${Object.keys(r.data).join(",")}) VALUES (${Object.keys(r.data).map(() => "?").join(",")})`,

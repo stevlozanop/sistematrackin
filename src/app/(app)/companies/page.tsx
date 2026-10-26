@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 type Stats = { units: number; delivered: number; onTime: number; open: number } | null;
 type User = { id: number; name: string; email: string; role: Role; online: number };
 type Company = {
-  id: number; name: string; kind: "transport" | "client"; parent_id: number | null; parent: string | null; logo_v: string | null; color: string | null; owner_id: number | null; ruc: string | null; members: string | null; address: string | null;
+  id: number; name: string; kind: "transport" | "client"; code: string | null; parent_id: number | null; parent: string | null; logo_v: string | null; color: string | null; owner_id: number | null; ruc: string | null; members: string | null; address: string | null;
   phone: string | null; email: string | null; website: string | null; notes: string | null; created_at: string; stats: Stats; users: User[];
 };
 type Form = Record<"name" | "kind" | "parent_id" | "color" | "ruc" | "members" | "address" | "phone" | "email" | "website" | "notes", string>;
@@ -141,7 +141,7 @@ export default function CompaniesPage() {
           <div className="min-w-0 flex-1">
             <h3 className="flex min-w-0 items-center gap-2 text-base font-semibold tracking-tight">
               <span className="truncate">{c.name}</span>
-              {c.kind === "transport" && <CodeTag code={companyCode(c.id)} />}
+              <CodeTag code={companyCode(c.id, c.kind, c.code)} />
             </h3>
             <div className="mt-1 flex flex-wrap gap-1.5">
               <Pill active>{c.id === mine ? "Tu empresa" : KIND[c.kind].label}</Pill>
@@ -210,7 +210,7 @@ export default function CompaniesPage() {
                   <span className={`h-2 w-2 shrink-0 rounded-full ${Number(u.online) ? "bg-emerald-500" : "bg-sb-surface-container-highest"}`} title={Number(u.online) ? "En línea" : "Desconectado"} />
                   <span className="min-w-0 flex-1 truncate"><b className="font-medium">{u.name}</b> <span className="text-sb-on-surface-variant">· {u.email}</span></span>
                   {u.id === c.owner_id ? (
-                    <CodeTag code={companyCode(c.id, c.kind)} />
+                    <CodeTag code={companyCode(c.id, c.kind, c.code)} />
                   ) : (
                     <>
                       {dev && c.kind === "transport" && u.role === "admin" && (
