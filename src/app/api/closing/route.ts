@@ -1,3 +1,4 @@
+import { today } from "@/lib/workflow";
 import { NextResponse } from "next/server";
 import { queryList } from "@/lib/db";
 import { guard, READ } from "@/lib/guard";
@@ -29,8 +30,8 @@ export async function GET() {
        ORDER BY billing_date, id LIMIT 8`,
     ),
   ]);
-  const d = new Date(); // mes actual en la hora del servidor (Perú)
-  const current = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const current = today().slice(0, 7); // mes actual en hora de Perú
+
   return NextResponse.json({
     current,
     months: months.map((m) => {

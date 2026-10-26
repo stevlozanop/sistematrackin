@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
-import { queryList, tx } from "@/lib/db";
+import { queryList, run, tx } from "@/lib/db";
 import { getScope, guard } from "@/lib/guard";
 import { DATE_FIELDS, SITE_INFO, type DateField, type Site } from "@/lib/hsp";
 import { parseStageWorkbook } from "@/lib/stage-import";
@@ -9,9 +9,6 @@ import { checkDateEdit, needsDelayReason } from "@/lib/workflow";
 export const maxDuration = 120;
 
 type Update = { id: number; site: Site; chassis: string; changes: Partial<Record<DateField, string>>; reason: string | null; carrier: string | null };
-type Pending = { userId: number; updates: Update[]; at: number };
-const g = globalThis as unknown as { __stageImports?: Map<string, Pending> };
-const cache = (g.__stageImports ??= new Map());
 
 const LABELS = Object.fromEntries(
   (Object.keys(SITE_INFO) as Site[]).flatMap((site) => SITE_INFO[site].dates.map((d) => [`${site}|${d.key}`, d.label])),
@@ -32,9 +29,12 @@ export async function POST(req: Request) {
   // ---------- Paso 2: guardar ----------
   if (req.headers.get("content-type")?.includes("application/json")) {
     const { token } = await req.json().catch(() => ({}));
-    const p = cache.get(String(token ?? ""));
-    cache.delete(String(token ?? ""));
-    if (!p || p.userId !== s.id) return NextResponse.json({ error: "La vista previa expiró. Vuelve a subir el Excel." }, { status: 400 });
+    const [row] = await queryList<{ payload: string }>(
+      "SELECT payload FROM import_stash WHERE token = ? AND user_id = ? AND created_at > NOW() - INTERVAL 30 MINUTE", [String(token ?? ""), s.id],
+    );
+    await run("DELETE FROM import_stash WHERE token = ?", [String(token ?? "")]);
+    const p = row && { updates: JSON.parse(row.payload) as Update[] };
+    if (!p) return NextResponse.json({ error: "La vista previa expiró. Vuelve a subir el Excel." }, { status: 400 });
     let units = 0, dates = 0;
     await tx(async (c) => {
       for (const u of p.updates) {
@@ -124,9 +124,10 @@ export async function POST(req: Request) {
     }
   }
 
-  for (const [k, v] of cache) if (Date.now() - v.at > 30 * 60_000) cache.delete(k);
+  // la vista previa se guarda en la base: en Vercel el paso 2 puede llegar a otro servidor
+  await run("DELETE FROM import_stash WHERE created_at < NOW() - INTERVAL 30 MINUTE");
   const token = crypto.randomUUID();
-  cache.set(token, { userId: s.id, updates, at: Date.now() });
+  await run("INSERT INTO import_stash(token, user_id, payload) VALUES (?, ?, ?)", [token, s.id, JSON.stringify(updates)]);
 
   const summary: Record<string, number> = {};
   for (const sk of skipped) summary[sk.reason] = (summary[sk.reason] ?? 0) + 1;

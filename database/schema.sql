@@ -151,6 +151,14 @@ CREATE TABLE IF NOT EXISTS unit_events (
   CONSTRAINT fk_events_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+-- Vista previa de la carga por etapa (entre el paso 1 y el 2; se borra a los 30 minutos)
+CREATE TABLE IF NOT EXISTS import_stash (
+  token CHAR(36) NOT NULL PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  payload LONGTEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Vista con los campos calculados del Excel: plazo, fecha estimada, estado y nivel de servicio.
 CREATE OR REPLACE VIEW v_units AS
 SELECT x.*,

@@ -6,7 +6,7 @@ import type { Key, Selection, SortDescriptor } from "@heroui/react";
 import { Check as CheckIcon, ChevronLeft, ChevronRight, History, Lock, MoreHorizontal, Search, SlidersHorizontal, Trash2, Upload, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { Check } from "@/components/Check";
-import { ImportPanel, readExcel, type Preview } from "@/components/ImportPanel";
+import { ImportPanel, readExcel, saveExcel, type Preview } from "@/components/ImportPanel";
 import { ProcessRoute } from "@/components/ProcessRoute";
 import { ServiceBadge } from "@/components/Service";
 import {
@@ -179,6 +179,7 @@ export default function SitePage({ params, searchParams }: {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [saving, setSaving] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const reasons = useMemo(() => [...new Set([...DELAY_REASONS, ...meta.reasons])], [meta.reasons]);
 
@@ -272,12 +273,16 @@ export default function SitePage({ params, searchParams }: {
   async function savePreview() {
     if (!preview || preview.saved) return;
     setSaving(true);
-    const r = await fetch("/api/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: preview.token }) });
-    const j = await r.json().catch(() => ({ error: "Error del servidor" }));
+    setProgress(0);
+    try {
+      const j = await saveExcel(preview.rows, setProgress);
+      setPreview((p) => p && { ...p, saved: true });
+      toast.success("Carga masiva guardada", { description: `${j.created.toLocaleString()} nuevas, ${j.updated.toLocaleString()} actualizadas` });
+    } catch (e) {
+      // lo guardado hasta el error se queda; volver a subir el mismo Excel completa el resto sin duplicar
+      toast.danger((e as Error).message, { description: "Lo que alcanzó a guardarse se queda. Vuelve a subir el Excel para completar el resto." });
+    }
     setSaving(false);
-    if (!r.ok) return toast.danger(j.error);
-    setPreview((p) => p && { ...p, saved: true });
-    toast.success("Carga masiva guardada", { description: `${j.created.toLocaleString()} nuevas, ${j.updated.toLocaleString()} actualizadas` });
     setReload((n) => n + 1);
     loadMeta();
   }
@@ -324,7 +329,7 @@ export default function SitePage({ params, searchParams }: {
       {uploading && (
         <Card className="px-4 py-3 text-xs text-sb-on-surface-variant">Leyendo el Excel… un archivo grande (como el HSP-OFICIAL) puede tardar unos 20 segundos.</Card>
       )}
-      {preview && <ImportPanel preview={preview} saving={saving} onSave={savePreview} onClose={() => setPreview(null)} />}
+      {preview && <ImportPanel preview={preview} saving={saving} progress={progress} onSave={savePreview} onClose={() => setPreview(null)} />}
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <label className="sbf-search w-full lg:w-80">

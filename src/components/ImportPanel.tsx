@@ -3,10 +3,12 @@ import { Button, Chip, toast } from "@heroui/react";
 import { Save, X } from "lucide-react";
 import { Card, Table, Td, Th, Thead, Tr } from "@/components/ui";
 import { fmtDate, type Site } from "@/lib/hsp";
+import type { UnitRow } from "@/lib/excel-parse";
+import { GZIP_JSON, gzipJson } from "@/lib/gzip-json";
 
 export type Preview = {
   name: string;
-  token: string;
+  rows: UnitRow[]; // filas leídas en el navegador; se envían al guardar
   format: "HSP" | "FACT";
   duplicates: number;
   sites: Record<Site, { total: number; created: number; updated: number }>;
@@ -17,19 +19,76 @@ export type Preview = {
   saved: boolean;
 };
 
-/** Lee el Excel en el servidor y devuelve la vista previa (no guarda nada). */
-export async function readExcel(file: File): Promise<Preview | null> {
-  const fd = new FormData();
-  fd.append("file", file);
-  const r = await fetch("/api/import", { method: "POST", body: fd });
+const KEYS_CHUNK = 20000; // chasis por consulta en la vista previa
+const SAVE_CHUNK = 5000; // filas por envío al guardar (lo mismo que acepta /api/import)
+
+async function post(body: unknown) {
+  const r = await fetch("/api/import", { method: "POST", headers: { "Content-Type": GZIP_JSON }, body: await gzipJson(body) });
   const j = await r.json().catch(() => ({ error: "Error del servidor" }));
-  if (!r.ok) { toast.danger(j.error); return null; }
-  return { ...j, name: file.name, saved: false };
+  if (!r.ok) throw new Error(j.error ?? "Error del servidor");
+  return j;
+}
+
+/** Lee el Excel en un worker del navegador (no congela la pantalla). */
+async function parseInBrowser(file: File) {
+  const buf = await file.arrayBuffer();
+  return new Promise<{ format: "HSP" | "FACT"; duplicates: number; rows: UnitRow[] }>((resolve, reject) => {
+    const w = new Worker(new URL("../lib/excel-worker.ts", import.meta.url), { type: "module" });
+    w.onmessage = (e) => {
+      w.terminate();
+      if (e.data.ok) resolve(e.data);
+      else reject(new Error(e.data.error));
+    };
+    w.onerror = (e) => { w.terminate(); reject(new Error(e.message || "No se pudo leer el Excel")); };
+    w.postMessage(buf, [buf]);
+  });
+}
+
+/** Lee el Excel en el navegador y arma la vista previa (no guarda nada). */
+export async function readExcel(file: File): Promise<Preview | null> {
+  try {
+    const { format, duplicates, rows } = await parseInBrowser(file);
+    const exists = new Set<string>();
+    for (let i = 0; i < rows.length; i += KEYS_CHUNK) {
+      const keys = rows.slice(i, i + KEYS_CHUNK).map((r) => ({ site: r.site, chassis: r.chassis }));
+      for (const k of (await post({ step: "check", keys })).exists as string[]) exists.add(k);
+    }
+    const has = (r: UnitRow) => exists.has(`${r.site}|${r.chassis}`);
+    const bySite = (site: Site) => {
+      const list = rows.filter((r) => r.site === site);
+      const upd = list.filter(has).length;
+      return { total: list.length, created: list.length - upd, updated: upd };
+    };
+    return {
+      name: file.name, rows, format, duplicates, saved: false,
+      sites: { PCL: bySite("PCL"), YUR: bySite("YUR") },
+      sample: rows.slice(0, 200).map((r) => ({
+        site: r.site, chassis: r.chassis, motor: r.fields.motor, material: r.fields.material, category: r.fields.category,
+        dealer: r.dealer, zone: r.site === "PCL" ? r.fields.department : r.fields.route,
+        billing: r.billing_date, delivered: r.dates.d_entrega ?? null, exists: has(r),
+      })),
+    };
+  } catch (e) {
+    toast.danger((e as Error).message);
+    return null;
+  }
+}
+
+/** Guarda las filas en bloques. onProgress recibe de 0 a 1. */
+export async function saveExcel(rows: UnitRow[], onProgress: (p: number) => void) {
+  let created = 0, updated = 0;
+  for (let i = 0; i < rows.length; i += SAVE_CHUNK) {
+    const j = await post({ step: "save", rows: rows.slice(i, i + SAVE_CHUNK) });
+    created += j.created; updated += j.updated;
+    onProgress(Math.min(1, (i + SAVE_CHUNK) / rows.length));
+  }
+  await post({ step: "finish" });
+  return { created, updated };
 }
 
 export function ImportPanel({
-  preview, saving, onSave, onClose,
-}: { preview: Preview; saving: boolean; onSave: () => void; onClose: () => void }) {
+  preview, saving, progress = 0, onSave, onClose,
+}: { preview: Preview; saving: boolean; progress?: number; onSave: () => void; onClose: () => void }) {
   const total = preview.sites.PCL.total + preview.sites.YUR.total;
   return (
     <Card className="sb-anim-table-in flex flex-col overflow-hidden">
@@ -89,7 +148,7 @@ export function ImportPanel({
             isDisabled={saving || preview.saved || !total}
             onPress={onSave}
           >
-            <Save className="h-3.5 w-3.5" /> {preview.saved ? "Guardado ✓" : saving ? "Guardando…" : "Guardar"}
+            <Save className="h-3.5 w-3.5" /> {preview.saved ? "Guardado ✓" : saving ? `Guardando… ${Math.round(progress * 100)}%` : "Guardar"}
           </Button>
         </div>
       </div>

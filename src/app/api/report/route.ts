@@ -4,6 +4,7 @@ import { queryList } from "@/lib/db";
 import { guard } from "@/lib/guard";
 import { reportScope } from "@/lib/report";
 import { SITE_INFO, STATUS_LABEL, type Status } from "@/lib/hsp";
+import { today } from "@/lib/workflow";
 
 /**
  * Reporte de estados en Excel (lo que Leyva le pasa a Honda, o lo que Honda descarga con su usuario).
@@ -66,7 +67,7 @@ export async function GET(req: Request) {
   ];
 
   const wb = XLSX.utils.book_new();
-  const ws1 = XLSX.utils.aoa_to_sheet([[`Reporte de estados · ${who} · ${new Date().toLocaleString("es-PE")}`], [], ...summary]);
+  const ws1 = XLSX.utils.aoa_to_sheet([[`Reporte de estados · ${who} · ${new Date().toLocaleString("es-PE", { timeZone: "America/Lima" })}`], [], ...summary]);
   ws1["!cols"] = [{ wch: 18 }, { wch: 12 }, ...STATUSES.map(() => ({ wch: 14 })), { wch: 8 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 10 }];
   XLSX.utils.book_append_sheet(wb, ws1, "Resumen");
 
@@ -85,7 +86,7 @@ export async function GET(req: Request) {
   XLSX.utils.book_append_sheet(wb, ws3, "Por cliente");
 
   const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
-  const name = `reporte-estados-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const name = `reporte-estados-${today()}.xlsx`;
   return new NextResponse(new Uint8Array(buf), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

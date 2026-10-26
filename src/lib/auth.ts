@@ -10,6 +10,8 @@ export type Session = { id: number; name: string; email: string; role: Role };
 
 function secret() {
   if (process.env.AUTH_SECRET) return new TextEncoder().encode(process.env.AUTH_SECRET);
+  // En Vercel no se puede escribir en disco: la clave tiene que venir en las variables del proyecto
+  if (process.env.VERCEL) throw new Error("Falta la variable AUTH_SECRET en Vercel");
   const f = path.join(process.cwd(), "data", ".secret");
   fs.mkdirSync(path.dirname(f), { recursive: true });
   if (!fs.existsSync(f)) fs.writeFileSync(f, crypto.randomBytes(32).toString("hex"), { mode: 0o600 });

@@ -82,10 +82,8 @@ export function pendingSql(_site: Site, field: DateField): string {
   return `next_step = '${field}'`;
 }
 
-export const today = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
+/** Fecha de hoy en Perú (aaaa-mm-dd), aunque el servidor esté en UTC como en Vercel. */
+export const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" }).format(new Date());
 
 /**
  * ¿Puede este usuario poner esta fecha en esta unidad? Devuelve null si sí, o el motivo si no.

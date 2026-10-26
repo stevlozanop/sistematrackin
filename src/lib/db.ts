@@ -3,16 +3,36 @@ import bcrypt from "bcryptjs";
 
 const g = globalThis as unknown as { __poolV2?: Pool; __ready?: Promise<void> };
 
-const pool: Pool = (g.__poolV2 ??= mysql.createPool({
-  host: process.env.DB_HOST ?? "127.0.0.1",
-  port: Number(process.env.DB_PORT ?? 3306),
-  user: process.env.DB_USER ?? "root",
-  password: process.env.DB_PASSWORD ?? "",
-  database: process.env.DB_NAME ?? "system_trackin",
-  dateStrings: true, // DATE llega como 'YYYY-MM-DD'
-  charset: "utf8mb4_unicode_ci", // misma colación que la base (evita "Illegal mix of collations")
-  connectionLimit: 10,
-}));
+/**
+ * Conexión: DATABASE_URL (mysql://usuario:clave@host:puerto/base, como la dan Aiven, TiDB, Railway…)
+ * o DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME. DB_SSL=true para bases en la nube (Vercel no tiene MySQL propio).
+ */
+function poolConfig(): mysql.PoolOptions {
+  const url = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL) : null;
+  const ssl = process.env.DB_SSL === "true" || url?.searchParams.get("ssl") === "true" || url?.searchParams.has("ssl-mode");
+  return {
+    host: url?.hostname ?? process.env.DB_HOST ?? "127.0.0.1",
+    port: Number(url?.port || process.env.DB_PORT || 3306),
+    user: url ? decodeURIComponent(url.username) : process.env.DB_USER ?? "root",
+    password: url ? decodeURIComponent(url.password) : process.env.DB_PASSWORD ?? "",
+    database: url?.pathname.slice(1) || process.env.DB_NAME || "system_trackin",
+    ssl: ssl ? { rejectUnauthorized: process.env.DB_SSL_INSECURE !== "true", minVersion: "TLSv1.2" } : undefined,
+    dateStrings: true, // DATE llega como 'YYYY-MM-DD'
+    charset: "utf8mb4_unicode_ci", // misma colación que la base (evita "Illegal mix of collations")
+    // En Vercel cada función abre su propio pool: pocas conexiones para no agotar el límite de la base
+    connectionLimit: Number(process.env.DB_POOL_LIMIT) || (process.env.VERCEL ? 3 : 10),
+    maxIdle: process.env.VERCEL ? 1 : undefined,
+    idleTimeout: 60_000,
+    enableKeepAlive: true,
+  };
+}
+
+const pool: Pool = (g.__poolV2 ??= (() => {
+  const p = mysql.createPool(poolConfig());
+  // Hora de Perú (UTC-5, sin horario de verano) para NOW() y CURDATE(): las bases en la nube suelen estar en UTC
+  p.pool.on("connection", (c) => c.query("SET time_zone = '-05:00'"));
+  return p;
+})());
 
 const MIGRATIONS = [
   // guía paso a paso: se abre sola hasta que el usuario la termina
@@ -63,6 +83,13 @@ const MIGRATIONS = [
   `UPDATE companies c JOIN (
      SELECT id, CONCAT(IF(kind = 'client', 'CON', 'EMP'), '-', LPAD(ROW_NUMBER() OVER (PARTITION BY kind ORDER BY id), 2, '0')) code FROM companies
    ) x ON x.id = c.id SET c.code = x.code WHERE c.code IS NULL AND NOT EXISTS (SELECT 1 FROM (SELECT code FROM companies) y WHERE y.code IS NOT NULL)`,
+  // vista previa de la carga por etapa entre el paso 1 y el 2 (en Vercel cada llamada puede caer en otro servidor)
+  `CREATE TABLE IF NOT EXISTS import_stash (
+    token CHAR(36) NOT NULL PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    payload LONGTEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 ];
 
 /** Crea el usuario dev inicial si todavía no existe (el esquema vive en database/schema.sql). */
@@ -127,13 +154,10 @@ export async function readOnlyQuery(sql: string) {
 }
 
 /** Datos de la conexión (sin la contraseña), para la consola de The Iceberg Labs. */
-export const connectionInfo = () => ({
-  host: process.env.DB_HOST ?? "127.0.0.1",
-  port: Number(process.env.DB_PORT ?? 3306),
-  user: process.env.DB_USER ?? "root",
-  database: process.env.DB_NAME ?? "system_trackin",
-  poolLimit: 10,
-});
+export const connectionInfo = () => {
+  const c = poolConfig();
+  return { host: c.host, port: c.port, user: c.user, database: c.database, poolLimit: c.connectionLimit, ssl: !!c.ssl };
+};
 
 export async function tx<T>(fn: (c: PoolConnection) => Promise<T>): Promise<T> {
   await ready();
