@@ -25,6 +25,7 @@ const SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
     title: "Principal",
     items: [
       { title: "Mi trabajo", href: "/my", icon: ClipboardCheck, roles: ["operator"] },
+      { title: "Mi resumen", href: "/portal/resumen", icon: LayoutDashboard, roles: ["dealer"] },
       { title: "Mis unidades", href: "/portal", icon: PackageSearch, roles: ["dealer"] },
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: READ },
       { title: "Alertas", href: "/alerts", icon: Bell, roles: READ },
@@ -159,6 +160,9 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = fals
         (!i.href.startsWith("/units/") || sites.includes(i.href.slice(7).toUpperCase()))),
     }));
   // Título: la opción con la ruta más larga que coincide (/dev/database antes que /dev)
+  // Opción activa: la de ruta más larga que coincide (/portal/resumen antes que /portal, /dev/database antes que /dev)
+  const activeHref = [...sections.flatMap((s) => s.items), PROFILE].filter((i) => path === i.href || path.startsWith(i.href + "/"))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? "";
   const pageName = [...sections.flatMap((s) => s.items), PROFILE].filter((i) => path === i.href || path.startsWith(i.href + "/"))
     .sort((a, b) => b.href.length - a.href.length)[0]?.title ?? "";
   const initials = name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -188,7 +192,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = fals
           {sections.map((s) => (
             <div key={s.title} className="flex flex-col gap-px">
               {open && <Heading>{s.title}</Heading>}
-              {s.items.map((i) => <NavLink key={i.title} item={i} active={i.href === "/dev" ? path === "/dev" : path.startsWith(i.href)} open={open} />)}
+              {s.items.map((i) => <NavLink key={i.title} item={i} active={i.href === activeHref} open={open} />)}
             </div>
           ))}
         </nav>
@@ -255,7 +259,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = fals
           </AnimatePresence>
         </main>
 
-        <MobileNav items={[...sections.flatMap((x) => x.items), PROFILE]} activeHref={path} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} onGuide={() => setGuide(true)} />
+        <MobileNav items={[...sections.flatMap((x) => x.items), PROFILE]} activeHref={activeHref} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} onGuide={() => setGuide(true)} />
         <GuideModal open={guide} onClose={closeGuide} />
       </div>
     </div>

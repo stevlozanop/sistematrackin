@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Button, Modal } from "@heroui/react";
-import { AlertTriangle, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Download, PackageCheck, Search, Truck, X } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Button, Modal, toast } from "@heroui/react";
+import { AlertTriangle, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Copy, Download, MessageCircle, PackageCheck, Search, Truck, X } from "lucide-react";
 import { Card, PageTitle, Pill } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
 import { ServiceBadge } from "@/components/Service";
@@ -37,6 +38,19 @@ function eta(u: Unit) {
   return { text: `Llega aprox. el ${fmtDate(u.est_date)} (en ${u.days_left} ${u.days_left === 1 ? "día" : "días"})`, tone: "" };
 }
 
+/** Mensaje para el comprador final: qué moto es, en qué etapa va y cuándo llega (sin datos internos). */
+function statusText(u: Unit) {
+  const e = eta(u).text;
+  return [
+    `Estado de tu moto Honda`,
+    `Modelo: ${u.material ?? "—"}`,
+    `Chasis: ${u.chassis}${u.motor ? ` · Motor: ${u.motor}` : ""}`,
+    `Etapa: ${STATUS_LABEL[u.status]}`,
+    e,
+    u.dealer ? `Tienda: ${u.dealer}` : "",
+  ].filter(Boolean).join("\n");
+}
+
 /** Barra de avance: un segmento por etapa, relleno hasta la etapa actual. */
 function Progress({ u }: { u: Unit }) {
   const steps = ["1", "2", "3", "4", "5", ...(u.site === "PCL" && (Number(u.via_lima) || u.d_alm_lima) ? ["5.1", "5.2"] : []), "6"];
@@ -53,9 +67,12 @@ function Progress({ u }: { u: Unit }) {
 export default function PortalPage() {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("open");
-  const [qInput, setQInput] = useState("");
-  const [q, setQ] = useState("");
+  // Desde «Mi resumen» se puede llegar con ?tab= y ?q= (ej. buscar la moto que pregunta un comprador)
+  const sp = useSearchParams();
+  const startTab = TABS.find((x) => x.id === sp.get("tab"))?.id ?? "open";
+  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>(startTab);
+  const [qInput, setQInput] = useState(sp.get("q") ?? "");
+  const [q, setQ] = useState(sp.get("q") ?? "");
   const [page, setPage] = useState(1);
   const [store, setStore] = useState(0); // 0 = todas sus tiendas
   const [open, setOpen] = useState<Unit | null>(null);
@@ -208,7 +225,19 @@ export default function PortalPage() {
                       viaLima={open.site === "PCL" ? !!Number(open.via_lima) || !!open.d_alm_lima || !!open.d_sal_lima : undefined}
                     />
                   </Modal.Body>
-                  <Modal.Footer><Button variant="primary" className="rounded-full" onPress={() => setOpen(null)}>Listo</Button></Modal.Footer>
+                  <Modal.Footer className="flex flex-wrap justify-between gap-2">
+                    {/* Para responderle al comprador: mensaje listo para pegar o mandar por WhatsApp */}
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="secondary" className="rounded-full" onPress={() => {
+                        navigator.clipboard?.writeText(statusText(open)).then(() => toast.success("Estado copiado", { description: "Pégalo en el chat con tu comprador." })).catch(() => toast.danger("No se pudo copiar"));
+                      }}><Copy className="h-4 w-4" /> Copiar estado</Button>
+                      <a className="inline-flex h-10 items-center gap-1.5 rounded-full bg-sb-surface-container-high px-4 text-sm font-medium hover:bg-sb-surface-container-highest"
+                        href={`https://wa.me/?text=${encodeURIComponent(statusText(open))}`} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle className="h-4 w-4" /> Enviar por WhatsApp
+                      </a>
+                    </div>
+                    <Button variant="primary" className="rounded-full" onPress={() => setOpen(null)}>Listo</Button>
+                  </Modal.Footer>
                 </>
               )}
             </Modal.Dialog>

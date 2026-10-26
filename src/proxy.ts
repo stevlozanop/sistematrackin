@@ -17,7 +17,7 @@ export async function proxy(req: NextRequest) {
   if (!s) return NextResponse.next(); // sin sesión: cada página lo manda al login
   const path = req.nextUrl.pathname;
   const go = (to: string) => NextResponse.redirect(new URL(to, req.url));
-  if (s.role === "dealer") return starts(path, DEALER_PAGES) ? NextResponse.next() : go("/portal");
+  if (s.role === "dealer") return starts(path, DEALER_PAGES) ? NextResponse.next() : go("/portal/resumen");
   if (s.role === "viewer") return starts(path, VIEWER_BLOCKED) ? go("/dashboard") : NextResponse.next();
   if (starts(path, STAFF_BLOCKED)) return go("/");
   if (s.role === "operator" && starts(path, ["/companies"])) return go("/"); // Empresas / consorcios: The Iceberg Labs y supervisores

@@ -449,10 +449,12 @@ function dealerSteps(me: Me): Step[] {
     ROUTE_STEP,
     {
       icon: PackageSearch,
-      title: "Tu pantalla: Mis unidades",
+      title: "Tus pantallas: Mi resumen y Mis unidades",
       body: (
         <>
+          <P><b>Mi resumen</b> es tu dashboard: dónde están tus pedidos en camino, tus pedidos por mes, por tienda y por modelo, y el reporte en Excel.</P>
           <List items={[
+            <>¿Un comprador pregunta por su moto? Búscala por chasis, motor o guía, ábrela y usa <b>Copiar estado</b> o <b>Enviar por WhatsApp</b>.</>,
             <>Arriba ves cuántas tienes <b>en camino</b>, cuántas están <b>retrasadas</b>, cuántas se entregaron y qué % llegó a tiempo.</>,
             <>Cada unidad muestra una <b>barra de avance</b> por etapa y la fecha aproximada de llegada.</>,
             <>Toca una unidad para ver su <b>recorrido completo</b> con la fecha de cada paso.</>,
