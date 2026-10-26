@@ -110,9 +110,13 @@ export async function POST(req: Request) {
         name, email, bcrypt.hashSync(password, 10), role, asg.area, asg.carrier, asg.canImport, companyId, client ? null : dealerId, client, s.id,
       ]);
       const id = (r as { insertId: number }).insertId;
-      // La primera cuenta de supervisor de una transportista es su cuenta principal («Empresa»)
+      // La primera cuenta de supervisor de una transportista es su cuenta principal («Empresa»);
+      // la primera cuenta de solo lectura de un consorcio (Honda) es la principal del consorcio
       if (role === "admin" && companyId) {
         await c.query("UPDATE companies SET owner_id=? WHERE id=? AND kind='transport' AND owner_id IS NULL", [id, companyId]);
+      }
+      if (role === "viewer" && companyId) {
+        await c.query("UPDATE companies SET owner_id=? WHERE id=? AND kind='client' AND owner_id IS NULL", [id, companyId]);
       }
       if (asg.stages.length) await c.query("INSERT INTO user_stages(user_id, site, field) VALUES ?", [asg.stages.map((st) => [id, st.site, st.field])]);
     });
