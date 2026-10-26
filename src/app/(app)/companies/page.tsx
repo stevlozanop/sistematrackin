@@ -127,13 +127,117 @@ export default function CompaniesPage() {
 
   if (!rows) return <div className="p-6 text-sm text-sb-on-surface-variant">Cargando empresas…</div>;
 
+  const orphans = rows.filter((c) => c.kind === "client" && !transports.some((t) => t.id === c.parent_id));
+  /** Tarjeta de una empresa o consorcio. */
+  const card = (c: Company) => (
+      <Card key={c.id} className="flex flex-col gap-4 p-5">
+        <div className="flex items-start gap-3">
+          {c.logo_v ? <LogoBadge id={c.id} name={c.name} v={c.logo_v} className="h-11 w-11 rounded-xl border border-sb-outline-variant/40" /> : (
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-sb-primary text-sb-on-primary">
+              {c.kind === "transport" ? <Truck className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </span>
+          )}
+          <div className="min-w-0 flex-1">
+            <h3 className="flex min-w-0 items-center gap-2 text-base font-semibold tracking-tight">
+              <span className="truncate">{c.name}</span>
+              {c.kind === "transport" && <CodeTag code={companyCode(c.id)} />}
+            </h3>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              <Pill active>{c.id === mine ? "Tu empresa" : KIND[c.kind].label}</Pill>
+              {c.color && <span className="h-5 w-5 rounded-full border border-white shadow" style={{ background: c.color }} title={`Color de su sistema: ${c.color}`} />}
+              {c.parent && <Pill>Creado por {c.parent}</Pill>}
+              {c.ruc && <Pill>RUC {c.ruc}</Pill>}
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-1">
+            <button aria-label={`Editar ${c.name}`} className="rounded-full p-2 opacity-60 hover:bg-sb-surface-container hover:opacity-100"
+              onClick={() => setEdit({ id: c.id, form: Object.fromEntries(Object.keys(EMPTY).map((k) => [k, (c[k as keyof Company] as string | null) ?? ""])) as Form })}>
+              <Pencil className="h-4 w-4" />
+            </button>
+            {canDelete(c) && (
+              <button aria-label={`Eliminar ${c.name}`} className="rounded-full p-2 opacity-40 hover:bg-sb-surface-container hover:opacity-100" onClick={() => setToDelete(c)}>
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1 text-[12px] text-sb-on-surface-variant">
+          {c.address && <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" />{c.address}</span>}
+          {(c.phone || c.email) && <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />{[c.phone, c.email].filter(Boolean).join(" · ")}</span>}
+          {c.website && <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" />{c.website}</span>}
+          {c.notes && <span className="mt-1 text-sb-on-surface/70">{c.notes}</span>}
+        </div>
+
+        {c.kind === "transport" && (
+          <div className="flex flex-col gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/60">Transportistas del grupo</span>
+            <div className="flex flex-wrap gap-1.5">
+              {c.members ? c.members.split(",").map((m) => <Pill key={m}>{m.trim()}</Pill>) : <span className="text-[12px] text-sb-on-surface-variant">Sin transportistas asociados (edita la empresa para elegirlos).</span>}
+            </div>
+            {c.stats && c.stats.units > 0 && (
+              <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-sb-outline-variant/30 sm:grid-cols-4">
+                {[
+                  ["Unidades llevadas", c.stats.units.toLocaleString()],
+                  ["Entregadas", c.stats.delivered.toLocaleString()],
+                  ["En camino", c.stats.open.toLocaleString()],
+                  ["A tiempo", `${pct(c.stats.onTime, c.stats.units)} %`],
+                ].map(([k, v]) => (
+                  <div key={k} className="bg-sb-surface-container-low px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">{k}</p>
+                    <p className="text-base font-bold">{v}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/60">Cuentas ({c.users.length})</span>
+            {canAddAccount(c) && (
+              <Button size="sm" variant="secondary" className="rounded-full" onPress={() => openAccount(c)}>
+                <UserPlus className="h-3.5 w-3.5" /> {c.kind === "transport" ? "Agregar administrador" : "Agregar cuenta"}
+              </Button>
+            )}
+          </div>
+          {c.users.length ? (
+            <div className="flex flex-col">
+              {c.users.map((u) => (
+                <div key={u.id} className="flex items-center gap-2 border-b border-sb-outline-variant/25 py-2 text-xs last:border-0">
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${Number(u.online) ? "bg-emerald-500" : "bg-sb-surface-container-highest"}`} title={Number(u.online) ? "En línea" : "Desconectado"} />
+                  <span className="min-w-0 flex-1 truncate"><b className="font-medium">{u.name}</b> <span className="text-sb-on-surface-variant">· {u.email}</span></span>
+                  {u.id === c.owner_id ? (
+                    <CodeTag code={companyCode(c.id)} />
+                  ) : (
+                    <>
+                      {dev && c.kind === "transport" && u.role === "admin" && (
+                        <button className="rounded-full px-2 py-0.5 text-[10px] text-sb-on-surface-variant hover:bg-sb-surface-container hover:text-sb-on-surface"
+                          title="Que esta sea la cuenta de la empresa (se muestra como «Empresa»)" onClick={() => setOwner(c, u.id)}>
+                          Hacer principal
+                        </button>
+                      )}
+                      <Pill>{ROLE_LABEL[u.role]}</Pill>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[12px] text-sb-on-surface-variant">Sin cuentas todavía.</p>
+          )}
+        </div>
+      </Card>
+  );
+
   return (
     <div className="flex flex-col gap-4">
       <PageTitle
         title={dev ? "Empresas" : "Consorcios"}
         sub={dev
           ? "SWM Labs · todas las empresas del sistema: la transportista (Consorcio Leyva) y los consorcios que ella creó."
-          : "Tu empresa y los consorcios con quienes compartes el sistema (Honda y otros). Sus cuentas solo pueden consultar."}
+          : "Los consorcios que creaste para compartir tu sistema (Honda y otros). Sus cuentas solo pueden consultar."}
       >
         <Button size="sm" variant="primary" className="rounded-full" onPress={() => setEdit({ id: 0, form: { ...EMPTY, kind: dev ? "transport" : "client" } })}>
           <Plus className="h-3.5 w-3.5" /> {dev ? "Nueva empresa" : "Nuevo consorcio"}
@@ -143,114 +247,45 @@ export default function CompaniesPage() {
       {!rows.length && (
         <Card className="flex flex-col items-center gap-2 px-6 py-12 text-center">
           <Building2 className="h-8 w-8 text-sb-on-surface-variant/40" />
-          <p className="text-sm font-medium">Todavía no hay empresas</p>
-          <p className="max-w-md text-[12px] text-sb-on-surface-variant">Registra la transportista (por ejemplo, Consorcio Leyva) y crea la cuenta de su administrador. Luego registra a Honda como cliente de solo lectura.</p>
+          <p className="text-sm font-medium">{dev ? "Todavía no hay empresas" : "Todavía no creaste consorcios"}</p>
+          <p className="max-w-md text-[12px] text-sb-on-surface-variant">
+            {dev
+              ? "Registra la transportista (por ejemplo, Consorcio Leyva) y crea la cuenta de su empresa. Ella luego crea sus consorcios."
+              : "Crea un consorcio (por ejemplo, Honda) para compartirle el sistema en solo lectura, con sus propios colores y cuentas."}
+          </p>
         </Card>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        {rows.map((c) => (
-          <Card key={c.id} className="flex flex-col gap-4 p-5">
-            <div className="flex items-start gap-3">
-              {c.logo_v ? <LogoBadge id={c.id} name={c.name} v={c.logo_v} className="h-11 w-11 rounded-xl border border-sb-outline-variant/40" /> : (
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-sb-primary text-sb-on-primary">
-                  {c.kind === "transport" ? <Truck className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </span>
-              )}
-              <div className="min-w-0 flex-1">
-                <h3 className="flex min-w-0 items-center gap-2 text-base font-semibold tracking-tight">
-                  <span className="truncate">{c.name}</span>
-                  <CodeTag code={companyCode(c.id)} />
-                </h3>
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                  <Pill active>{c.id === mine ? "Tu empresa" : KIND[c.kind].label}</Pill>
-                  {c.color && <span className="h-5 w-5 rounded-full border border-white shadow" style={{ background: c.color }} title={`Color de su sistema: ${c.color}`} />}
-                  {c.parent && <Pill>Creado por {c.parent}</Pill>}
-                  {c.ruc && <Pill>RUC {c.ruc}</Pill>}
+      {dev ? (
+        // SWM Labs: cada empresa y, debajo, los consorcios que ella creó
+        <div className="flex flex-col gap-6">
+          {transports.map((t) => {
+            const kids = rows.filter((c) => c.parent_id === t.id);
+            return (
+              <section key={t.id} className="flex flex-col gap-3">
+                {card(t)}
+                <div className="flex flex-col gap-3 border-l-2 border-sb-primary/25 pl-4 sm:ml-6">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/60">
+                    Consorcios creados por {t.name} ({kids.length})
+                  </p>
+                  {kids.length ? <div className="grid gap-4 xl:grid-cols-2">{kids.map(card)}</div> : (
+                    <p className="text-[12px] text-sb-on-surface-variant">Todavía no creó consorcios.</p>
+                  )}
                 </div>
-              </div>
-              <div className="flex shrink-0 gap-1">
-                <button aria-label={`Editar ${c.name}`} className="rounded-full p-2 opacity-60 hover:bg-sb-surface-container hover:opacity-100"
-                  onClick={() => setEdit({ id: c.id, form: Object.fromEntries(Object.keys(EMPTY).map((k) => [k, (c[k as keyof Company] as string | null) ?? ""])) as Form })}>
-                  <Pencil className="h-4 w-4" />
-                </button>
-                {canDelete(c) && (
-                  <button aria-label={`Eliminar ${c.name}`} className="rounded-full p-2 opacity-40 hover:bg-sb-surface-container hover:opacity-100" onClick={() => setToDelete(c)}>
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1 text-[12px] text-sb-on-surface-variant">
-              {c.address && <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" />{c.address}</span>}
-              {(c.phone || c.email) && <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />{[c.phone, c.email].filter(Boolean).join(" · ")}</span>}
-              {c.website && <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" />{c.website}</span>}
-              {c.notes && <span className="mt-1 text-sb-on-surface/70">{c.notes}</span>}
-            </div>
-
-            {c.kind === "transport" && (
-              <div className="flex flex-col gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/60">Transportistas del grupo</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {c.members ? c.members.split(",").map((m) => <Pill key={m}>{m.trim()}</Pill>) : <span className="text-[12px] text-sb-on-surface-variant">Sin transportistas asociados (edita la empresa para elegirlos).</span>}
-                </div>
-                {c.stats && c.stats.units > 0 && (
-                  <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-sb-outline-variant/30 sm:grid-cols-4">
-                    {[
-                      ["Unidades llevadas", c.stats.units.toLocaleString()],
-                      ["Entregadas", c.stats.delivered.toLocaleString()],
-                      ["En camino", c.stats.open.toLocaleString()],
-                      ["A tiempo", `${pct(c.stats.onTime, c.stats.units)} %`],
-                    ].map(([k, v]) => (
-                      <div key={k} className="bg-sb-surface-container-low px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">{k}</p>
-                        <p className="text-base font-bold">{v}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/60">Cuentas ({c.users.length})</span>
-                {canAddAccount(c) && (
-                  <Button size="sm" variant="secondary" className="rounded-full" onPress={() => openAccount(c)}>
-                    <UserPlus className="h-3.5 w-3.5" /> {c.kind === "transport" ? "Agregar administrador" : "Agregar cuenta"}
-                  </Button>
-                )}
-              </div>
-              {c.users.length ? (
-                <div className="flex flex-col">
-                  {c.users.map((u) => (
-                    <div key={u.id} className="flex items-center gap-2 border-b border-sb-outline-variant/25 py-2 text-xs last:border-0">
-                      <span className={`h-2 w-2 shrink-0 rounded-full ${Number(u.online) ? "bg-emerald-500" : "bg-sb-surface-container-highest"}`} title={Number(u.online) ? "En línea" : "Desconectado"} />
-                      <span className="min-w-0 flex-1 truncate"><b className="font-medium">{u.name}</b> <span className="text-sb-on-surface-variant">· {u.email}</span></span>
-                      {u.id === c.owner_id ? (
-                        <CodeTag code={companyCode(c.id)} />
-                      ) : (
-                        <>
-                          {dev && c.kind === "transport" && u.role === "admin" && (
-                            <button className="rounded-full px-2 py-0.5 text-[10px] text-sb-on-surface-variant hover:bg-sb-surface-container hover:text-sb-on-surface"
-                              title="Que esta sea la cuenta de la empresa (se muestra como «Empresa»)" onClick={() => setOwner(c, u.id)}>
-                              Hacer principal
-                            </button>
-                          )}
-                          <Pill>{ROLE_LABEL[u.role]}</Pill>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-[12px] text-sb-on-surface-variant">Sin cuentas todavía.</p>
-              )}
-            </div>
-          </Card>
-        ))}
-      </div>
+              </section>
+            );
+          })}
+          {orphans.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/60">Consorcios sin empresa ({orphans.length})</p>
+              <div className="grid gap-4 xl:grid-cols-2">{orphans.map(card)}</div>
+            </section>
+          )}
+        </div>
+      ) : (
+        // Empresa: solo los consorcios que ella creó
+        <div className="grid gap-4 xl:grid-cols-2">{rows.map(card)}</div>
+      )}
 
       {/* Crear / editar empresa */}
       <Modal>

@@ -48,9 +48,10 @@ export async function GET() {
     `SELECT c.id, c.name, c.kind, c.parent_id, c.owner_id, c.color, p.name parent, c.ruc, c.members, c.address, c.phone, c.email, c.website, c.notes,
        DATE_FORMAT(c.created_at,'%Y-%m-%d') created_at, UNIX_TIMESTAMP(c.logo_updated) logo_v
      FROM companies c LEFT JOIN companies p ON p.id = c.parent_id
-     ${s.role === "dev" ? "" : "WHERE c.id = ? OR c.parent_id = ?"}
+     ${s.role === "dev" ? "" : "WHERE c.parent_id = ?"}
      ORDER BY c.parent_id IS NOT NULL, c.name`,
-    s.role === "dev" ? [] : [mine, mine],
+    // SWM Labs ve todas (empresas y los consorcios que cada una creó); una empresa, solo los consorcios que ella creó
+    s.role === "dev" ? [] : [mine],
   );
   const users = await query<{ id: number; name: string; email: string; role: string; company_id: number; online: number }>(
     "SELECT id, name, email, role, company_id, (last_seen > NOW() - INTERVAL 60 SECOND) online FROM users WHERE company_id IS NOT NULL ORDER BY role, name",
