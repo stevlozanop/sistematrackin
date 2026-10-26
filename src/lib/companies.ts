@@ -61,3 +61,15 @@ export async function clientsConsortium(companyId: number | null) {
   );
   return c?.id ?? null;
 }
+
+/**
+ * Si la cuenta es de solo lectura de un consorcio cliente (Honda), devuelve su empresa:
+ * esa cuenta puede crear y administrar las cuentas de SUS clientes (SORSA, SERVIHONDA…), nada más.
+ */
+export async function clientConsortiumOf(s: Session) {
+  if (s.role !== "viewer") return null;
+  const [c] = await query<{ id: number }>(
+    "SELECT c.id FROM users u JOIN companies c ON c.id = u.company_id WHERE u.id = ? AND c.kind = 'client'", [s.id],
+  );
+  return c?.id ?? null;
+}

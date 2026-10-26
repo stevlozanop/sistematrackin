@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { queryList } from "@/lib/db";
 import { guard } from "@/lib/guard";
-import { dealerScope } from "@/lib/clients";
+import { reportScope } from "@/lib/report";
 import { SITE_INFO, STATUS_LABEL, type Status } from "@/lib/hsp";
 
 /**
@@ -15,19 +15,14 @@ export const maxDuration = 120;
 
 const STATUSES: Status[] = ["IQT-PORT", "TRANSITO FLUVIAL", "ARRIBO PUERTO", "EN ALMACÉN", "TRANSITO DEALER", "EN ALMACÉN LIMA", "TRANSITO DEALER 2", "ENTREGADO"];
 
-export async function GET() {
+export async function GET(req: Request) {
   const { s, err } = await guard(["dev", "admin", "viewer", "dealer"]);
   if (err) return err;
-  let where = "billing_date IS NOT NULL";
-  let args: unknown[] = [];
-  let who = "Todas las unidades";
-  if (s.role === "dealer") {
-    const sc = await dealerScope(s.id);
-    if (!sc) return NextResponse.json({ error: "Tu cuenta no tiene un cliente asignado" }, { status: 404 });
-    where += ` AND ${sc.sql}`;
-    args = sc.args;
-    who = sc.client ?? "Tu tienda";
-  }
+  // Filtros opcionales: período, módulo y cliente (un cliente de Honda solo ve lo suyo)
+  const scope = await reportScope(s, new URL(req.url).searchParams);
+  if (!scope) return NextResponse.json({ error: "Tu cuenta no tiene un cliente asignado" }, { status: 404 });
+  const { where, args } = scope;
+  const who = [scope.title, ...scope.filters].join(" · ");
 
   const [byMonth, open, byClient] = await Promise.all([
     queryList<{ site: string; ym: string; status: Status; n: number; on_time: number; late: number }>(

@@ -4,11 +4,11 @@ import crypto from "node:crypto";
 import { query, queryList, tx } from "@/lib/db";
 import { guard, SUPER } from "@/lib/guard";
 import { fillDealerClients } from "@/lib/clients";
-import { clientsConsortium } from "@/lib/companies";
+import { clientConsortiumOf, clientsConsortium } from "@/lib/companies";
 import { USER_DOMAIN } from "@/lib/workflow";
 
 /**
- * Cuentas de los clientes de Honda en bloque (The Iceberg Labs y la empresa).
+ * Cuentas de los clientes de Honda en bloque (The Iceberg Labs, la empresa y el propio consorcio Honda).
  * Un cliente (SORSA, CREDIVARGAS…) tiene una o varias tiendas; su cuenta ve todas sus tiendas y nada más.
  * GET  -> los clientes, con sus tiendas, unidades y la cuenta (si ya tiene).
  * POST { clients: string[] } -> crea una cuenta por cada cliente que todavía no tiene y devuelve
@@ -27,8 +27,12 @@ function password() {
 
 const title = (s: string) => s.toLowerCase().replace(/(^|[\s\-(&.])(\p{L})/gu, (_, a, b) => a + b.toUpperCase());
 
+/** The Iceberg Labs, la empresa (Leyva) y Honda (consorcio cliente) pueden dar acceso a los clientes de Honda. */
+const CAN: Parameters<typeof guard>[0] = [...SUPER, "viewer"];
+
 export async function GET() {
-  const { err } = await guard(SUPER);
+  const { s, err } = await guard(CAN);
+  if (s && s.role === "viewer" && !(await clientConsortiumOf(s))) return NextResponse.json({ error: "No tienes permiso para esta acción" }, { status: 403 });
   if (err) return err;
   await fillDealerClients();
   const rows = await query<{ client: string; stores: string; departments: string | null; units: number; open: number; accounts: string | null }>(
@@ -46,8 +50,11 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { s, err } = await guard(SUPER);
+  const { s, err } = await guard(CAN);
   if (err) return err;
+  // Honda solo crea cuentas en su propio consorcio
+  const hondaCompany = await clientConsortiumOf(s);
+  if (s.role === "viewer" && !hondaCompany) return NextResponse.json({ error: "No tienes permiso para esta acción" }, { status: 403 });
   const b = await req.json().catch(() => ({}));
   const wanted: string[] = Array.isArray(b.clients) ? b.clients.map((c: unknown) => String(c).trim().toUpperCase()).filter(Boolean) : [];
   if (!wanted.length) return NextResponse.json({ error: "Elige al menos un cliente" }, { status: 400 });
@@ -63,7 +70,7 @@ export async function POST(req: Request) {
   // Los clientes pertenecen al sistema de la transportista: la empresa de quien los crea o, si es The Iceberg Labs, la transportista
   const [creator] = await query<{ company_id: number | null }>("SELECT company_id FROM users WHERE id=?", [s.id]);
   // Las cuentas quedan en el consorcio Honda (sus colores y su logo); si no existe, en la transportista
-  const companyId = (await clientsConsortium(creator?.company_id ?? null))
+  const companyId = hondaCompany ?? (await clientsConsortium(creator?.company_id ?? null))
     ?? creator?.company_id ?? (await query<{ id: number }>("SELECT id FROM companies WHERE kind='transport' ORDER BY id LIMIT 1"))[0]?.id ?? null;
   const taken = new Set((await query<{ email: string }>("SELECT email FROM users")).map((u) => u.email));
 
@@ -77,8 +84,8 @@ export async function POST(req: Request) {
 
   await tx(async (c) => {
     await c.query(
-      "INSERT INTO users(name, email, password_hash, role, company_id, client) VALUES ?",
-      [created.map((a) => [a.name.slice(0, 120), a.email, bcrypt.hashSync(a.password, 10), "dealer", companyId, a.client])],
+      "INSERT INTO users(name, email, password_hash, role, company_id, client, created_by) VALUES ?",
+      [created.map((a) => [a.name.slice(0, 120), a.email, bcrypt.hashSync(a.password, 10), "dealer", companyId, a.client, s.id])],
     );
   });
   return NextResponse.json({ created }, { status: 201 });

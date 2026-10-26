@@ -52,6 +52,8 @@ const MIGRATIONS = [
   "ALTER TABLE dealers ADD COLUMN client VARCHAR(120) NULL",
   "ALTER TABLE dealers ADD KEY idx_dealers_client (client)",
   "ALTER TABLE users ADD COLUMN client VARCHAR(120) NULL AFTER dealer_id",
+  // quién creó cada cuenta (Leyva, Honda o The Iceberg Labs)
+  "ALTER TABLE users ADD COLUMN created_by INT UNSIGNED NULL",
 ];
 
 /** Crea el usuario dev inicial si todavía no existe (el esquema vive en database/schema.sql). */

@@ -20,7 +20,7 @@ export async function proxy(req: NextRequest) {
   if (s.role === "dealer") return starts(path, DEALER_PAGES) ? NextResponse.next() : go("/portal/resumen");
   if (s.role === "viewer") return starts(path, VIEWER_BLOCKED) ? go("/dashboard") : NextResponse.next();
   if (starts(path, STAFF_BLOCKED)) return go("/");
-  if (s.role === "operator" && starts(path, ["/companies"])) return go("/"); // Empresas / consorcios: The Iceberg Labs y supervisores
+  if (s.role === "operator" && starts(path, ["/companies", "/clients", "/reports"])) return go("/"); // Empresas / consorcios: The Iceberg Labs y supervisores
   if (s.role !== "dev" && starts(path, ["/dev"])) return go("/"); // Consola The Iceberg Labs: solo dev
   return NextResponse.next();
 }

@@ -106,8 +106,8 @@ export async function POST(req: Request) {
   if (role === "operator" && !asg.stages.length) return NextResponse.json({ error: "Elige el área o al menos una etapa" }, { status: 400 });
   try {
     await tx(async (c) => {
-      const [r] = await c.query("INSERT INTO users(name,email,password_hash,role,area,carrier,can_import,company_id,dealer_id,client) VALUES (?,?,?,?,?,?,?,?,?,?)", [
-        name, email, bcrypt.hashSync(password, 10), role, asg.area, asg.carrier, asg.canImport, companyId, client ? null : dealerId, client,
+      const [r] = await c.query("INSERT INTO users(name,email,password_hash,role,area,carrier,can_import,company_id,dealer_id,client,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)", [
+        name, email, bcrypt.hashSync(password, 10), role, asg.area, asg.carrier, asg.canImport, companyId, client ? null : dealerId, client, s.id,
       ]);
       const id = (r as { insertId: number }).insertId;
       // La primera cuenta de supervisor de una transportista es su cuenta principal («Empresa»)

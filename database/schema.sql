@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS users (
   company_id    INT UNSIGNED NULL,   -- empresa a la que pertenece (companies)
   dealer_id     INT UNSIGNED NULL,   -- cuenta de dealer: la tienda cuyas unidades ve (dealers)
   client        VARCHAR(120) NULL,   -- cuenta de cliente: ve todas las tiendas de ese cliente (dealers.client)
+  created_by    INT UNSIGNED NULL,   -- cuenta que la creó (Leyva, Honda o The Iceberg Labs)
   last_seen     DATETIME NULL,
   area          VARCHAR(40) NULL,    -- área del encargado (src/lib/workflow.ts → AREAS)
   carrier       VARCHAR(120) NULL,   -- empresa de transporte: si tiene valor, solo ve esas unidades

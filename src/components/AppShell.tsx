@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, BookOpen, Building2, ChevronLeft, Database, SquareTerminal, Terminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
+import { Activity, Bell, BookOpen, Building2, ChevronLeft, Database, FileSpreadsheet, SquareTerminal, Terminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
@@ -32,6 +32,9 @@ const SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
       { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship, roles: MODULES },
       { title: "YUR · Yurimaguas", href: "/units/yur", icon: Truck, roles: MODULES },
       { title: "Dealers", href: "/dealers", icon: Store, roles: SUPER },
+      // Honda (solo lectura de su consorcio) da acceso a sus clientes y saca reportes
+      { title: "Clientes", href: "/clients", icon: Users, roles: ["viewer"] },
+      { title: "Reportes", href: "/reports", icon: FileSpreadsheet, roles: READ },
       { title: "Plazos y meta", href: "/settings", icon: SlidersHorizontal, roles: SUPER },
     ],
   },

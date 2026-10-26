@@ -240,3 +240,11 @@ html.dark {
 
 /* El contenido de las ventanas se desplaza dentro de la ventana, sin cortarse */
 [data-slot="modal-body"] { min-height: 0; overscroll-behavior: contain; }
+
+/* Impresión (Reportes → Imprimir / PDF): solo el contenido, sin menú ni barras */
+@media print {
+  aside, header, .mobile-navbar, nextjs-portal { display: none !important; }
+  body, html { background: #fff !important; }
+  main { overflow: visible !important; padding: 0 !important; }
+  .h-screen { height: auto !important; overflow: visible !important; }
+}
