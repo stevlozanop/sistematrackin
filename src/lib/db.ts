@@ -57,6 +57,9 @@ const MIGRATIONS = [
   // código propio por tipo: empresas EMP-01, EMP-02… · consorcios CON-01, CON-02…
   "ALTER TABLE companies ADD COLUMN code VARCHAR(10) NULL AFTER kind",
   "ALTER TABLE companies ADD UNIQUE KEY uq_companies_code (code)",
+  // dirección corta de la entrada propia de un consorcio: /honda y /honda/clientes
+  "ALTER TABLE companies ADD COLUMN slug VARCHAR(40) NULL AFTER code",
+  "ALTER TABLE companies ADD UNIQUE KEY uq_companies_slug (slug)",
   `UPDATE companies c JOIN (
      SELECT id, CONCAT(IF(kind = 'client', 'CON', 'EMP'), '-', LPAD(ROW_NUMBER() OVER (PARTITION BY kind ORDER BY id), 2, '0')) code FROM companies
    ) x ON x.id = c.id SET c.code = x.code WHERE c.code IS NULL AND NOT EXISTS (SELECT 1 FROM (SELECT code FROM companies) y WHERE y.code IS NOT NULL)`,

@@ -7,7 +7,10 @@ const PAD = 8;
 const SPRING = { type: "spring", stiffness: 380, damping: 32, mass: 0.8 } as const;
 
 /** Barra «arrastra para ingresar»: el botón interno (border-radius 50px) se desliza con resorte. */
-export function SlideToSubmit({ label, loading = false, onComplete }: { label: string; loading?: boolean; onComplete: () => void }) {
+/** color: el del botón (por defecto el verde de Leyva); trail: la estela al arrastrar. */
+export function SlideToSubmit({ label, loading = false, onComplete, color = "#078a04", trail = "#bedf3c" }: {
+  label: string; loading?: boolean; onComplete: () => void; color?: string; trail?: string;
+}) {
   const track = useRef<HTMLDivElement>(null);
   const [max, setMax] = useState(0);
   const x = useMotionValue(0);
@@ -47,8 +50,8 @@ export function SlideToSubmit({ label, loading = false, onComplete }: { label: s
     <div ref={track} className="relative h-[72px] select-none overflow-hidden rounded-[50px] bg-white/[0.07]" style={{ padding: PAD }}>
       <motion.div
         aria-hidden
-        className="absolute rounded-[50px] bg-leyva-lime"
-        style={{ left: PAD, top: PAD, bottom: PAD, width: fill, opacity: fillOpacity }}
+        className="absolute rounded-[50px]"
+        style={{ background: trail, left: PAD, top: PAD, bottom: PAD, width: fill, opacity: fillOpacity }}
       />
 
       <motion.span aria-hidden style={{ opacity: hint }} className="pointer-events-none absolute inset-0 flex items-center justify-center gap-1 pl-28 text-lg text-white/60">
@@ -70,8 +73,8 @@ export function SlideToSubmit({ label, loading = false, onComplete }: { label: s
         onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), complete())}
         whileHover={{ scale: 1.03 }}
         whileTap={{ scale: 0.96, cursor: "grabbing" }}
-        style={{ x, width: HANDLE, touchAction: "none" }}
-        className="relative grid h-14 cursor-grab place-items-center rounded-[50px] bg-[#078a04] text-sm font-semibold text-white shadow-[0_4px_18px_rgba(9,174,4,.35)]"
+        style={{ x, width: HANDLE, touchAction: "none", background: color, boxShadow: `0 4px 18px color-mix(in oklab, ${color} 40%, transparent)` }}
+        className="relative grid h-14 cursor-grab place-items-center rounded-[50px] text-sm font-semibold text-white"
       >
         {loading ? (
           <motion.span

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button, Modal, toast } from "@heroui/react";
-import { Building2, Copy, Eye, Globe, MapPin, Pencil, Phone, Plus, ShieldCheck, Trash2, Truck, UserPlus } from "lucide-react";
+import { Building2, Copy, Eye, Globe, LogIn, MapPin, Pencil, Phone, Plus, ShieldCheck, Trash2, Truck, UserPlus } from "lucide-react";
 import { Card, CodeTag, PageTitle, Pill } from "@/components/ui";
 import { ROLE_LABEL, companyCode, suggestEmail, type Role } from "@/lib/workflow";
 import { LogoBadge, LogoPicker } from "@/components/CompanyLogo";
@@ -13,12 +13,12 @@ import { useRouter } from "next/navigation";
 type Stats = { units: number; delivered: number; onTime: number; open: number } | null;
 type User = { id: number; name: string; email: string; role: Role; online: number };
 type Company = {
-  id: number; name: string; kind: "transport" | "client"; code: string | null; parent_id: number | null; parent: string | null; logo_v: string | null; color: string | null; owner_id: number | null; ruc: string | null; members: string | null; address: string | null;
+  id: number; name: string; kind: "transport" | "client"; code: string | null; slug: string | null; parent_id: number | null; parent: string | null; logo_v: string | null; color: string | null; owner_id: number | null; ruc: string | null; members: string | null; address: string | null;
   phone: string | null; email: string | null; website: string | null; notes: string | null; created_at: string; stats: Stats; users: User[];
 };
-type Form = Record<"name" | "kind" | "parent_id" | "color" | "ruc" | "members" | "address" | "phone" | "email" | "website" | "notes", string>;
+type Form = Record<"name" | "kind" | "parent_id" | "color" | "slug" | "ruc" | "members" | "address" | "phone" | "email" | "website" | "notes", string>;
 
-const EMPTY: Form = { name: "", kind: "transport", parent_id: "", color: "", ruc: "", members: "", address: "", phone: "", email: "", website: "", notes: "" };
+const EMPTY: Form = { name: "", kind: "transport", parent_id: "", color: "", slug: "", ruc: "", members: "", address: "", phone: "", email: "", website: "", notes: "" };
 const KIND = {
   transport: { label: "Transportista · dueña del sistema", desc: "Sus cuentas son supervisores: ven todo, corrigen fechas y crean encargados y cuentas de dealers.", role: "admin" as const },
   client: { label: "Cliente · solo lectura", desc: "Sus cuentas ven el dashboard, las alertas y las unidades en vivo, sin poder cambiar nada.", role: "viewer" as const },
@@ -168,6 +168,21 @@ export default function CompaniesPage() {
           {(c.phone || c.email) && <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />{[c.phone, c.email].filter(Boolean).join(" · ")}</span>}
           {c.website && <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" />{c.website}</span>}
           {c.notes && <span className="mt-1 text-sb-on-surface/70">{c.notes}</span>}
+          {/* Entradas propias del consorcio: para su equipo y para sus clientes */}
+          {c.kind === "client" && c.slug && (
+            <span className="mt-2 flex flex-col gap-1">
+              {[["Equipo", `/${c.slug}`], ["Clientes", `/${c.slug}/clientes`]].map(([who, path]) => (
+                <span key={path} className="flex items-center gap-1.5">
+                  <LogIn className="h-3.5 w-3.5" /> Entrada {who.toLowerCase()}:
+                  <a href={path} target="_blank" rel="noopener noreferrer" className="font-mono text-sb-primary underline underline-offset-2">{path}</a>
+                  <button type="button" aria-label={`Copiar enlace de ${who}`} className="rounded-full p-1 hover:bg-sb-surface-container"
+                    onClick={() => navigator.clipboard?.writeText(`${location.origin}${path}`).then(() => toast.success("Enlace copiado", { description: `${location.origin}${path}` }))}>
+                    <Copy className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </span>
+          )}
         </div>
 
         {c.kind === "transport" && (
@@ -349,6 +364,15 @@ export default function CompaniesPage() {
                         <span className="ml-auto rounded-full px-3 py-1 text-[11px] font-semibold" style={{ background: edit.form.color || DEFAULT_COLOR, color: onColor(edit.form.color || DEFAULT_COLOR) }}>Así se ven sus botones</span>
                       </div>
                     </Field>
+                    {edit.form.kind === "client" && (
+                      <Field label="Dirección de su entrada" wide hint={`Su equipo entra por /${edit.form.slug || "…"} y sus clientes por /${edit.form.slug || "…"}/clientes. Si la dejas vacía, se arma con el nombre.`}>
+                        <div className="flex items-center gap-1 text-sm text-sb-on-surface-variant">
+                          <span className="shrink-0 font-mono text-xs">{typeof window !== "undefined" ? location.host : ""}/</span>
+                          <input className={`${input} font-mono`} value={edit.form.slug} placeholder="honda"
+                            onChange={(e) => setF("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} />
+                        </div>
+                      </Field>
+                    )}
                     <Field label="Nombre" wide><input className={input} value={edit.form.name} onChange={(e) => setF("name", e.target.value)} placeholder="Consorcio Leyva" autoFocus /></Field>
                     <Field label="RUC" hint="11 dígitos (opcional)"><input className={input} inputMode="numeric" maxLength={11} value={edit.form.ruc} onChange={(e) => setF("ruc", e.target.value.replace(/\D/g, ""))} /></Field>
                     <Field label="Teléfono"><input className={input} value={edit.form.phone} onChange={(e) => setF("phone", e.target.value)} /></Field>

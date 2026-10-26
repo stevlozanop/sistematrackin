@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { query, queryList, run } from "@/lib/db";
 import { guard, SUPER } from "@/lib/guard";
-import { canManage, myCompany, nextCompanyCode } from "@/lib/companies";
+import { canManage, myCompany, nextCompanyCode, slugError, slugify, suggestSlug } from "@/lib/companies";
 import { isColor } from "@/lib/theme";
 
 /**
@@ -16,8 +16,8 @@ type Company = {
   address: string | null; phone: string | null; email: string | null; website: string | null; notes: string | null; created_at: string;
 };
 
-const FIELDS = ["name", "kind", "parent_id", "color", "ruc", "members", "address", "phone", "email", "website", "notes"] as const;
-const LIMITS: Record<(typeof FIELDS)[number], number> = { name: 160, kind: 10, parent_id: 10, color: 7, ruc: 11, members: 500, address: 200, phone: 40, email: 160, website: 160, notes: 500 };
+const FIELDS = ["name", "kind", "parent_id", "color", "slug", "ruc", "members", "address", "phone", "email", "website", "notes"] as const;
+const LIMITS: Record<(typeof FIELDS)[number], number> = { name: 160, kind: 10, parent_id: 10, color: 7, slug: 40, ruc: 11, members: 500, address: 200, phone: 40, email: 160, website: 160, notes: 500 };
 
 /** Valida y limpia lo que envía el formulario. */
 function clean(b: Record<string, unknown>) {
@@ -31,6 +31,7 @@ function clean(b: Record<string, unknown>) {
   if (out.ruc && !/^\d{11}$/.test(out.ruc)) return { error: "El RUC tiene 11 dígitos" };
   if (out.color !== undefined && out.color !== null && !isColor(out.color)) return { error: "Color inválido" };
   if (out.color) out.color = out.color.toLowerCase();
+  if (out.slug) out.slug = slugify(out.slug);
   if (out.parent_id !== undefined) out.parent_id = Number(out.parent_id) > 0 ? String(Number(out.parent_id)) : null;
   // Transportistas del grupo: en mayúsculas y separados por coma, como en la columna «Tramo final» del Excel
   if (out.members) out.members = out.members.split(",").map((m) => m.trim().toUpperCase()).filter(Boolean).join(", ");
@@ -45,7 +46,7 @@ export async function GET() {
   const mine = await myCompany(s);
   if (s.role !== "dev" && !mine) return NextResponse.json({ companies: [], carriers: [], mine: null });
   const companies = await query<Company>(
-    `SELECT c.id, c.name, c.kind, c.code, c.parent_id, c.owner_id, c.color, p.name parent, c.ruc, c.members, c.address, c.phone, c.email, c.website, c.notes,
+    `SELECT c.id, c.name, c.kind, c.code, c.slug, c.parent_id, c.owner_id, c.color, p.name parent, c.ruc, c.members, c.address, c.phone, c.email, c.website, c.notes,
        DATE_FORMAT(c.created_at,'%Y-%m-%d') created_at, UNIX_TIMESTAMP(c.logo_updated) logo_v
      FROM companies c LEFT JOIN companies p ON p.id = c.parent_id
      ${s.role === "dev" ? "" : "WHERE c.parent_id = ?"}
@@ -92,6 +93,11 @@ export async function POST(req: Request) {
   }
   // Código propio según su tipo: EMP-xx (transportista) o CON-xx (consorcio cliente)
   (r.data as Record<string, string | null>).code = await nextCompanyCode(r.data.kind ?? "transport");
+  // Consorcio: su entrada propia (/honda); si no la eligieron, se arma con el nombre
+  if (r.data.kind === "client") {
+    if (r.data.slug) { const e = await slugError(r.data.slug); if (e) return NextResponse.json({ error: e }, { status: 400 }); }
+    else r.data.slug = await suggestSlug(r.data.name);
+  } else delete r.data.slug;
   try {
     const res = await run(
       `INSERT INTO companies (${Object.keys(r.data).join(",")}) VALUES (${Object.keys(r.data).map(() => "?").join(",")})`,
@@ -122,6 +128,10 @@ export async function PATCH(req: Request) {
     await run("UPDATE companies SET owner_id=? WHERE id=?", [owner, Number(b.id)]);
   }
   if (r.data.name === null) return NextResponse.json({ error: "El nombre no puede quedar vacío" }, { status: 400 });
+  if (r.data.slug !== undefined && r.data.slug !== null) {
+    const e = await slugError(r.data.slug, Number(b.id));
+    if (e) return NextResponse.json({ error: e }, { status: 400 });
+  }
   const keys = Object.keys(r.data);
   if (!keys.length) return NextResponse.json({ ok: true }); // (la cuenta principal ya se guardó arriba)
   try {

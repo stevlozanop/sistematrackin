@@ -82,3 +82,38 @@ export async function nextCompanyCode(kind: string) {
   );
   return `${prefix}-${String(Number(r?.n ?? 0) + 1).padStart(2, "0")}`;
 }
+
+/** Direcciones que ya usa el sistema: un consorcio no puede llamarse así. */
+const RESERVED = new Set(["api", "login", "dashboard", "alerts", "units", "dealers", "settings", "live", "admins", "companies",
+  "clients", "reports", "my", "portal", "profile", "dev", "favicon.ico", "_next", "public", "clientes"]);
+
+/** «Honda del Perú» -> «honda»: minúsculas, sin tildes ni espacios. */
+export function slugify(text: string) {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+}
+
+/** ¿Se puede usar esta dirección? (formato válido, no reservada y libre). */
+export async function slugError(slug: string, exceptId?: number) {
+  if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(slug)) return "La dirección usa solo letras, números y guiones (mín. 2)";
+  if (RESERVED.has(slug)) return "Esa dirección la usa el sistema; elige otra";
+  const used = await query("SELECT 1 FROM companies WHERE slug=? AND id<>?", [slug, exceptId ?? 0]);
+  return used.length ? "Esa dirección ya la usa otra empresa" : null;
+}
+
+/** Dirección sugerida para un consorcio nuevo: la primera palabra del nombre («honda»), sin repetir. */
+export async function suggestSlug(name: string) {
+  const base = slugify(name.split(/\s+/)[0] ?? name) || "consorcio";
+  for (let n = 1; n < 100; n++) {
+    const s = n === 1 ? base : `${base}${n}`;
+    if (!(await slugError(s))) return s;
+  }
+  return null;
+}
+
+/** Datos públicos de la entrada de un consorcio (para su página de login). */
+export async function portalBySlug(slug: string) {
+  const [c] = await query<{ id: number; name: string; code: string | null; color: string | null; v: string | null }>(
+    "SELECT id, name, code, color, UNIX_TIMESTAMP(logo_updated) v FROM companies WHERE slug = ? AND kind = 'client'", [slug.toLowerCase()],
+  );
+  return c ?? null;
+}

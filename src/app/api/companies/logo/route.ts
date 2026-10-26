@@ -5,7 +5,7 @@ import { canManage, myCompany } from "@/lib/companies";
 
 /**
  * Logo (foto de perfil) de una empresa, guardado en la base.
- * GET    ?id=  -> la imagen (cualquier cuenta con sesión; se usa en el menú y la barra superior)
+ * GET    ?id=  -> la imagen (pública: menú, barra superior y entrada propia /honda)
  * PUT    ?id=  { dataUrl } -> cambia el logo (The Iceberg Labs: todas · supervisor: su empresa y sus consorcios ·
  *                            cuenta de solo lectura: el de su propia empresa)
  * DELETE ?id=  -> quita el logo
@@ -19,9 +19,8 @@ async function allowed(s: Parameters<typeof canManage>[0], id: number) {
   return s.role === "viewer" && (await myCompany(s)) === id;
 }
 
+// GET es público: el logo también se muestra en la entrada propia de cada consorcio (/honda), antes de iniciar sesión
 export async function GET(req: Request) {
-  const { err } = await guard(EVERYONE);
-  if (err) return err;
   const id = Number(new URL(req.url).searchParams.get("id"));
   const [c] = await query<{ logo: Buffer | null; logo_type: string | null }>("SELECT logo, logo_type FROM companies WHERE id=?", [id]);
   if (!c?.logo) return new NextResponse(null, { status: 404 });

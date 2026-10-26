@@ -12,7 +12,8 @@ const ROUTES = [
 ];
 
 /** Animación de rutas: Callao → Pucallpa → Iquitos / Yurimaguas. */
-export function RouteBackdrop() {
+/** color: ciudades del mapa · dot: las cajas que se mueven por la ruta (por defecto, colores de Leyva). */
+export function RouteBackdrop({ color = "#09ae04", dot = "#bedf3c" }: { color?: string; dot?: string }) {
   return (
     <svg className="absolute inset-0 h-full w-full" viewBox="100 60 1400 780" preserveAspectRatio="xMidYMid meet" aria-hidden>
       {ROUTES.map((r) => (
@@ -21,7 +22,7 @@ export function RouteBackdrop() {
             <animate attributeName="stroke-dashoffset" from="0" to="-56" dur="2.5s" repeatCount="indefinite" />
           </path>
           {[0, 0.5].map((o) => (
-            <circle key={o} r="4" fill="#bedf3c">
+            <circle key={o} r="4" fill={dot}>
               <animateMotion dur={r.dur} begin={`${-o * parseFloat(r.dur)}s`} repeatCount="indefinite">
                 <mpath href={`#${r.id}`} />
               </animateMotion>
@@ -32,8 +33,8 @@ export function RouteBackdrop() {
 
       {NODES.map((n, i) => (
         <g key={n.id}>
-          <circle cx={n.x} cy={n.y} r="6" fill="#09ae04" />
-          <circle cx={n.x} cy={n.y} r="6" fill="none" stroke="#09ae04">
+          <circle cx={n.x} cy={n.y} r="6" fill={color} />
+          <circle cx={n.x} cy={n.y} r="6" fill="none" stroke={color}>
             <animate attributeName="r" values="6;30" dur="3s" begin={`${i * 0.7}s`} repeatCount="indefinite" />
             <animate attributeName="opacity" values="0.7;0" dur="3s" begin={`${i * 0.7}s`} repeatCount="indefinite" />
           </circle>

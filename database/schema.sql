@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS companies (
   id         INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   name       VARCHAR(160) NOT NULL UNIQUE,
   kind       ENUM('transport','client') NOT NULL DEFAULT 'transport',
-  code       VARCHAR(10) NULL UNIQUE,  -- código por tipo según su orden: empresas EMP-01, EMP-02… · consorcios CON-01…
+  code       VARCHAR(10) NULL UNIQUE,
+  slug       VARCHAR(40) NULL UNIQUE,  -- consorcio: su entrada propia /<slug> (empleados) y /<slug>/clientes  -- código por tipo según su orden: empresas EMP-01, EMP-02… · consorcios CON-01…
   parent_id  INT UNSIGNED NULL,   -- consorcio cliente: la transportista que lo creó (Honda -> Consorcio Leyva)
   owner_id   INT UNSIGNED NULL,   -- cuenta principal de la empresa: se muestra como «Empresa 01» (users.id; la FK la agrega la app)
   color      VARCHAR(7) NULL,     -- color principal de su tema (#078a04 Leyva, #cc0000 Honda); vacío = verde por defecto
