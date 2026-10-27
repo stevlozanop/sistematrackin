@@ -33,9 +33,15 @@ const target = new URL(pgUrl);
 const local = ["127.0.0.1", "localhost"].includes(target.hostname);
 for (const k of ["sslmode", "supa", "pgbouncer"]) target.searchParams.delete(k);
 
-const my = await mysql.createConnection({ uri: mysqlUrl, dateStrings: true, charset: "utf8mb4_unicode_ci" });
+const fail = (msg) => { console.error(msg); process.exit(1); };
+const my = await mysql.createConnection({ uri: mysqlUrl, dateStrings: true, charset: "utf8mb4_unicode_ci" })
+  .catch((e) => fail(`No se pudo conectar a MySQL (${e.code ?? e.message}). ¿Está encendido XAMPP? MYSQL_URL=${mysqlUrl}`));
 const pgc = new pg.Client({ connectionString: target.toString(), ssl: local ? false : { rejectUnauthorized: false } });
-await pgc.connect();
+await pgc.connect().catch((e) => fail(
+  e.code === "28P01" ? "Supabase rechazó la contraseña: revisa la clave en DATABASE_URL (una @ se escribe %40)."
+    : e.code === "ENOTFOUND" || e.code === "ENETUNREACH" ? `No se encontró el servidor de Supabase (${target.host}). Usa la cadena del «Session pooler».`
+    : `No se pudo conectar a Supabase: ${e.message}`,
+));
 const log = (...a) => console.log(...a);
 
 try {
