@@ -1,53 +1,63 @@
-# Subir System Trackin a Vercel
+# Subir System Trackin a Vercel con Supabase
 
-Vercel ejecuta la app, pero **no trae MySQL**. La base va en un proveedor de MySQL en la nube y Vercel se conecta a ella.
+El sistema usa **PostgreSQL en Supabase**. Antes usaba MySQL (XAMPP), y las consultas se mantienen casi iguales: las funciones de MySQL que usa (`IF`, `DATE_FORMAT`, `CURDATE`…) existen en la base como funciones equivalentes (ver `database/schema.sql`).
 
-## 1. Crear la base MySQL en la nube
+## 1. Seguridad primero
 
-Cualquiera compatible con MySQL 8 sirve. Opciones con plan gratis:
+Si alguna clave de Supabase se compartió por chat o quedó en un archivo, cámbiala:
 
-- **TiDB Cloud Starter** (tidbcloud.com): compatible con MySQL; el plan gratis alcanza de sobra para los ~40 MB que pesa hoy la base.
-- **Aiven for MySQL** (aiven.io): MySQL 8 real, plan gratis pequeño.
+- **Project Settings → Database → Reset database password**
+- **Project Settings → API**: rota la `service_role` / `secret` key y el JWT secret.
 
-Copia la cadena de conexión (`mysql://usuario:clave@host:puerto/base`).
+El sistema no usa esas claves de la API. Solo necesita la cadena de conexión a la base.
 
-## 2. Pasar los datos de XAMPP a la base nueva
+## 2. Crear las tablas y copiar los datos de XAMPP
 
-En tu PC:
+En tu PC, con XAMPP encendido:
 
-```bash
-/opt/lampp/bin/mysqldump -uroot --single-transaction --skip-lock-tables system_trackin | sed -E 's/DEFINER=`[^`]+`@`[^`]+`//g' > trackin.sql
-```
+1. En Supabase pulsa **Connect** y elige **Session pooler** (puerto **5432**). Copia la cadena y pon tu contraseña nueva.
+2. En el archivo `.env` del proyecto escribe:
+   ```
+   DATABASE_URL=postgres://postgres.xxxx:TU-CLAVE@aws-0-us-east-1.pooler.supabase.com:5432/postgres
+   MYSQL_URL=mysql://root@127.0.0.1:3306/system_trackin
+   ```
+3. Ejecuta:
+   ```bash
+   npm run db:migrar
+   ```
+   El script crea las tablas (`database/schema.sql`), copia todo y compara los conteos. Debe terminar con «Listo: todos los datos están en Postgres».
+   Si lo ejecutas otra vez, se detiene para no pisar datos. Con `npm run db:migrar -- --reemplazar` borra lo que haya en Supabase y copia de nuevo.
 
-Luego cárgalo en la base nueva (host, puerto y usuario de tu proveedor):
-
-```bash
-mysql -h HOST -P PUERTO -u USUARIO -p --ssl-mode=REQUIRED system_trackin < trackin.sql
-```
-
-> Para empezar con una base vacía en vez de copiar los datos, carga `database/schema.sql`.
+Para empezar con una base vacía, en vez del script: Supabase → **SQL Editor** → pega `database/schema.sql` → **Run**.
 
 ## 3. Variables en Vercel
 
-En el proyecto de Vercel, ve a **Settings → Environment Variables**:
+Si conectaste Supabase desde Vercel (**Storage → Supabase**), Vercel ya creó `POSTGRES_URL` y el sistema la usa sola: es la del pooler en modo transacción (puerto 6543), la indicada para Vercel.
+
+Agrega a mano en **Settings → Environment Variables**:
 
 | Variable | Valor |
 |---|---|
-| `DATABASE_URL` | la cadena del paso 1 |
-| `DB_SSL` | `true` |
-| `AUTH_SECRET` | una clave larga nueva (genera una con `openssl rand -hex 32`) |
-| `DEV_EMAIL` / `DEV_PASSWORD` | solo si la base está vacía; cambia la contraseña de dev |
+| `AUTH_SECRET` | una clave larga nueva: `openssl rand -hex 32` |
+| `DATABASE_URL` | solo si **no** usas la integración; la cadena del pooler con puerto **6543** |
 
-Al cambiar `AUTH_SECRET` se cierran todas las sesiones abiertas; todos vuelven a ingresar una vez.
+Al cambiar `AUTH_SECRET` se cierran las sesiones abiertas: todos vuelven a ingresar una vez.
 
 ## 4. Desplegar
 
-Importa el repositorio de GitHub en Vercel. No hay que configurar nada más: el framework es Next.js y el comando es `next build`.
-En **Settings → Functions → Region**, elige la región más cercana a tu base de datos: si están lejos, cada pantalla tarda más.
+Importa el repositorio de GitHub en Vercel; no hay que configurar nada más.
+En **Settings → Functions → Region**, deja **Washington, D.C. (iad1)**: es la misma zona de Supabase (us-east-1).
 
-## Qué cambió en el código para Vercel
+## Trabajar en tu PC
 
-- **El Excel se lee en el navegador.** Vercel no acepta subir archivos de más de 4,5 MB, y el HSP-OFICIAL pesa unos 30 MB. El navegador lo lee y envía las filas comprimidas en bloques de 5000, con una barra de avance.
-- **La vista previa de la carga por etapa se guarda en la base** (tabla `import_stash`). En Vercel, el paso 2 puede llegar a otro servidor.
-- **Hora de Perú.** Vercel corre en UTC: la conexión fija `-05:00` y la fecha de hoy se calcula para `America/Lima`.
+`npm run dev` usa la `DATABASE_URL` del `.env`, o sea la misma base de Supabase. XAMPP ya no hace falta, salvo para volver a copiar datos.
+
+## Qué cambió para Vercel y Supabase
+
+- **Base de datos:** de MySQL a PostgreSQL.
+  - Los textos no distinguen mayúsculas («sorsa» = «SORSA»), igual que en MySQL.
+  - La hora es la de Perú: la base queda en `America/Lima`.
+  - Al ordenar, los vacíos van donde los ponía MySQL.
+- **El Excel se lee en el navegador.** Vercel no acepta subir más de 4,5 MB, y el HSP-OFICIAL pesa unos 30 MB. Las filas se envían comprimidas en bloques de 5000, con una barra de avance.
+- **La vista previa de la carga por etapa se guarda en la base** (tabla `import_stash`), porque en Vercel el paso 2 puede llegar a otro servidor.
 - **Pocas conexiones por función** (3), para no agotar el límite de la base.

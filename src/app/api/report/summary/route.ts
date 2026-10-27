@@ -28,12 +28,12 @@ export async function GET(req: Request) {
        FROM v_units WHERE ${w} GROUP BY ym ORDER BY ym`, a,
     ),
     queryList<{ status: string; n: number; overdue: number }>(
-      `SELECT status, COUNT(*) n, SUM(alert='VENCIDA') overdue FROM v_units WHERE ${w} AND d_entrega IS NULL GROUP BY status`, a,
+      `SELECT status, COUNT(*) n, SUM(alert='VENCIDA') overdue FROM v_units WHERE ${w} AND d_entrega IS NULL GROUP BY status ORDER BY status ASC`, a,
     ),
     queryList<{ client: string | null; total: number; open: number; on_time: number }>(
       `SELECT d.client, COUNT(*) total, SUM(v.d_entrega IS NULL) open, SUM(v.service='A TIEMPO') on_time
        FROM v_units v LEFT JOIN dealers d ON d.id = v.dealer_id WHERE ${vw}
-       GROUP BY d.client ORDER BY total DESC LIMIT 15`, a,
+       GROUP BY d.client ORDER BY total DESC, d.client ASC LIMIT 15`, a,
     ),
     queryList(
       `SELECT site, chassis, dealer, status, billing_date, est_date, DATEDIFF(CURDATE(), billing_date) age, delay_reason

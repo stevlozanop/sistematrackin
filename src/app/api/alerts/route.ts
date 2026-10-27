@@ -35,9 +35,9 @@ export async function GET(req: Request) {
   const w = where.join(" AND ");
 
   const [bySite, byStage, [noReason], [settings]] = await Promise.all([
-    queryList<{ site: string; alert: string; n: number }>(`SELECT site, alert, COUNT(*) n FROM v_units WHERE ${w} GROUP BY site, alert`, args),
+    queryList<{ site: string; alert: string; n: number }>(`SELECT site, alert, COUNT(*) n FROM v_units WHERE ${w} GROUP BY site, alert ORDER BY site ASC, alert ASC`, args),
     queryList<{ site: string; next_step: string; alert: string; n: number }>(
-      `SELECT site, next_step, alert, COUNT(*) n FROM v_units WHERE ${w} GROUP BY site, next_step, alert`, args,
+      `SELECT site, next_step, alert, COUNT(*) n FROM v_units WHERE ${w} GROUP BY site, next_step, alert ORDER BY site ASC, next_step ASC, alert ASC`, args,
     ),
     sup
       ? query<{ n: number }>("SELECT COUNT(*) n FROM v_units WHERE service = 'FUERA DE TIEMPO' AND delay_reason IS NULL")

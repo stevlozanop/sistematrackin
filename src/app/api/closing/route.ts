@@ -16,12 +16,14 @@ export async function GET() {
   if (err) return err;
   const [months, oldest] = await Promise.all([
     queryList<{ ym: string; total: number; delivered: number; open: number; late: number; pcl: number; yur: number }>(
-      `SELECT DATE_FORMAT(billing_date, '%Y-%m') ym, COUNT(*) total, SUM(d_entrega IS NOT NULL) delivered,
-         SUM(d_entrega IS NULL) open, SUM(alert = 'VENCIDA') late,
-         SUM(d_entrega IS NULL AND site = 'PCL') pcl, SUM(d_entrega IS NULL AND site = 'YUR') yur
-       FROM v_units WHERE billing_date IS NOT NULL
-       GROUP BY ym
-       HAVING open > 0 OR ym >= DATE_FORMAT(CURDATE() - INTERVAL 3 MONTH, '%Y-%m')
+      `SELECT * FROM (
+         SELECT DATE_FORMAT(billing_date, '%Y-%m') ym, COUNT(*) total, SUM(d_entrega IS NOT NULL) delivered,
+           SUM(d_entrega IS NULL) open, SUM(alert = 'VENCIDA') late,
+           SUM(d_entrega IS NULL AND site = 'PCL') pcl, SUM(d_entrega IS NULL AND site = 'YUR') yur
+         FROM v_units WHERE billing_date IS NOT NULL
+         GROUP BY ym
+       ) m
+       WHERE open > 0 OR ym >= DATE_FORMAT(CURDATE() - INTERVAL 3 MONTH, '%Y-%m')
        ORDER BY ym`,
     ),
     queryList(

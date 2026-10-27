@@ -29,15 +29,15 @@ export async function GET() {
        WHERE u.last_seen IS NOT NULL ORDER BY u.last_seen DESC LIMIT 12`,
     ),
     query(
-      `SELECT DATE_FORMAT(e.at,'%Y-%m-%d %H:%i') at, e.field, e.new_value, un.site, un.chassis, us.name user
+      `SELECT DATE_FORMAT(e.at,'%Y-%m-%d %H:%i') at, e.field, e.new_value, un.site, un.chassis, us.name AS "user"
        FROM unit_events e JOIN units un ON un.id = e.unit_id LEFT JOIN users us ON us.id = e.user_id
        ORDER BY e.id DESC LIMIT 12`,
     ),
     query<{ tables: number; size_mb: number }>(
-      `SELECT COUNT(*) tables, ROUND(SUM(data_length + index_length) / 1024 / 1024, 1) size_mb
-       FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'`,
+      `SELECT COUNT(*) AS tables, ROUND(SUM(pg_total_relation_size(c.oid)) / 1024.0 / 1024, 1) AS size_mb
+       FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relkind = 'r'`,
     ),
-    query<{ v: string }>("SELECT VERSION() v"),
+    query<{ v: string }>("SELECT current_setting('server_version') v"),
   ]);
   return NextResponse.json({
     counts: Object.fromEntries(Object.entries(counts ?? {}).map(([k, v]) => [k, Number(v)])),

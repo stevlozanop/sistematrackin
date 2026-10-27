@@ -137,7 +137,7 @@ export default function DevConsole() {
               </div>
             ))}
           </div>
-          <p className="mt-3 text-[11px] text-sb-on-surface-variant">MariaDB/MySQL {d.db.version} · {c.events.toLocaleString()} registros de fechas ({c.events_today} hoy)</p>
+          <p className="mt-3 text-[11px] text-sb-on-surface-variant">PostgreSQL {d.db.version} · {c.events.toLocaleString()} registros de fechas ({c.events_today} hoy)</p>
         </Card>
       </div>
 

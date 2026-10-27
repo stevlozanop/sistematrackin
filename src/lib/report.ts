@@ -36,7 +36,7 @@ export async function reportScope(s: Session, p: URLSearchParams): Promise<Repor
   const from = ym(p.get("from"));
   const to = ym(p.get("to"));
   if (from) { where.push("billing_date >= ?"); args.push(`${from}-01`); }
-  if (to) { where.push("billing_date < DATE_ADD(?, INTERVAL 1 MONTH)"); args.push(`${to}-01`); }
+  if (to) { where.push("billing_date < ?::date + INTERVAL '1 month'"); args.push(`${to}-01`); }
   if (from || to) filters.push(`Facturación: ${from ? monthLabel(from) : "inicio"} a ${to ? monthLabel(to) : "hoy"}`);
 
   const site = p.get("site");

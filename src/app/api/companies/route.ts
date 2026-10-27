@@ -55,7 +55,7 @@ export async function GET() {
     s.role === "dev" ? [] : [mine],
   );
   const users = await query<{ id: number; name: string; email: string; role: string; company_id: number; online: number }>(
-    "SELECT id, name, email, role, company_id, (last_seen > NOW() - INTERVAL 60 SECOND) online FROM users WHERE company_id IS NOT NULL ORDER BY role, name",
+    "SELECT id, name, email, role, company_id, (last_seen > NOW() - INTERVAL 60 SECOND) online FROM users WHERE company_id IS NOT NULL ORDER BY array_position(ARRAY['dev','admin','operator','viewer','dealer'], role::text), name",
   );
   // Transportistas: cuántas unidades llevaron y cuántas llegaron a tiempo (según el nombre en «Tramo final»)
   const stats = await Promise.all(companies.map(async (c) => {
@@ -70,7 +70,7 @@ export async function GET() {
   }));
   // Nombres de transportistas en las unidades, para elegir los del grupo
   const carriers = (await query<{ v: string; n: number }>(
-    "SELECT UPPER(carrier) v, COUNT(*) n FROM units WHERE carrier IS NOT NULL AND carrier <> '' GROUP BY UPPER(carrier) ORDER BY n DESC",
+    "SELECT UPPER(carrier) v, COUNT(*) n FROM units WHERE carrier IS NOT NULL AND carrier <> '' GROUP BY UPPER(carrier) ORDER BY n DESC, v ASC",
   ));
   return NextResponse.json({
     companies: companies.map((c, i) => ({ ...c, stats: stats[i], users: users.filter((u) => u.company_id === c.id) })),

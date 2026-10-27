@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
   const [groups, users, stages, todayByUser, events] = await Promise.all([
     query<{ site: Site; next_step: DateField | null; n: number }>(
-      `SELECT site, next_step, COUNT(*) n FROM v_units WHERE next_step IS NOT NULL GROUP BY site, next_step`,
+      `SELECT site, next_step, COUNT(*) n FROM v_units WHERE next_step IS NOT NULL GROUP BY site, next_step ORDER BY site ASC, next_step ASC`,
     ),
     query<{ id: number; name: string; email: string; role: string; area: string | null; carrier: string | null; last_seen: string | null; online: number }>(
       `SELECT id, name, email, role, area, carrier, DATE_FORMAT(last_seen,'%Y-%m-%d %H:%i:%s') last_seen,
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
     query<{ user_id: number; site: Site; field: DateField }>("SELECT user_id, site, field FROM user_stages"),
     query<{ user_id: number; n: number; last_at: string }>(
       `SELECT user_id, COUNT(*) n, DATE_FORMAT(MAX(at),'%Y-%m-%d %H:%i:%s') last_at
-       FROM unit_events WHERE at >= CURDATE() GROUP BY user_id`,
+       FROM unit_events WHERE at >= CURDATE() GROUP BY user_id ORDER BY user_id ASC`,
     ),
     queryList<Record<string, unknown>>(
       `SELECT e.id, DATE_FORMAT(e.at,'%Y-%m-%d %H:%i:%s') at, e.field, e.old_value, e.new_value,

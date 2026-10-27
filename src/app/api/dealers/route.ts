@@ -17,7 +17,7 @@ export async function GET() {
          (SELECT x.route FROM units x WHERE x.dealer_id = d.id AND x.site = 'YUR' AND x.route IS NOT NULL
             GROUP BY x.route ORDER BY COUNT(*) DESC LIMIT 1) AS yur_route
        FROM dealers d LEFT JOIN units u ON u.dealer_id = d.id
-       GROUP BY d.id ORDER BY d.department, d.name`,
+       GROUP BY d.id ORDER BY d.department NULLS FIRST, d.name`,
     ),
   );
 }

@@ -78,7 +78,7 @@ export async function clientConsortiumOf(s: Session) {
 export async function nextCompanyCode(kind: string) {
   const prefix = kind === "client" ? "CON" : "EMP";
   const [r] = await query<{ n: number | null }>(
-    "SELECT MAX(CAST(SUBSTRING(code, 5) AS UNSIGNED)) n FROM companies WHERE code LIKE ?", [`${prefix}-%`],
+    "SELECT MAX(CAST(NULLIF(regexp_replace(SUBSTRING(code, 5), '[^0-9]', '', 'g'), '') AS INTEGER)) n FROM companies WHERE code LIKE ?", [`${prefix}-%`],
   );
   return `${prefix}-${String(Number(r?.n ?? 0) + 1).padStart(2, "0")}`;
 }

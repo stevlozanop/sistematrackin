@@ -28,18 +28,18 @@ export async function GET(req: Request) {
   const [pcl, yur, reasons] = await Promise.all([
     queryList<{ m: number; status: string; service: string | null; n: number }>(
       `SELECT MONTH(billing_date) m, status, service, COUNT(*) n FROM v_units
-       WHERE site='PCL' AND YEAR(billing_date)=? ${pclWhere} GROUP BY m, status, service`,
+       WHERE site='PCL' AND YEAR(billing_date)=? ${pclWhere} GROUP BY m, status, service ORDER BY m ASC, status ASC, service ASC`,
       cl.length ? [year, cl] : [year],
     ),
     queryList<{ m: number; status: string; service: string | null; n: number }>(
       `SELECT MONTH(billing_date) m, status, service, COUNT(*) n FROM v_units
-       WHERE site='YUR' AND YEAR(billing_date)=? GROUP BY m, status, service`,
+       WHERE site='YUR' AND YEAR(billing_date)=? GROUP BY m, status, service ORDER BY m ASC, status ASC, service ASC`,
       [year],
     ),
     queryList<{ site: string; reason: string | null; n: number }>(
       `SELECT site, delay_reason reason, COUNT(*) n FROM v_units
        WHERE YEAR(billing_date)=? AND service='FUERA DE TIEMPO' AND (site='YUR' OR ${cl.length ? "center IN (?)" : "1=1"})
-       GROUP BY site, delay_reason ORDER BY n DESC`,
+       GROUP BY site, delay_reason ORDER BY n DESC, site ASC, delay_reason ASC`,
       cl.length ? [year, cl] : [year],
     ),
   ]);

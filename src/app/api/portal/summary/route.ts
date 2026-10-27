@@ -27,22 +27,22 @@ export async function GET() {
        FROM v_units WHERE ${w}`, a,
     ),
     queryList<{ site: string; status: string; n: number; late: number }>(
-      `SELECT site, status, COUNT(*) n, SUM(alert='VENCIDA') late FROM v_units WHERE ${w} AND d_entrega IS NULL GROUP BY site, status`, a,
+      `SELECT site, status, COUNT(*) n, SUM(alert='VENCIDA') late FROM v_units WHERE ${w} AND d_entrega IS NULL GROUP BY site, status ORDER BY site ASC, status ASC`, a,
     ),
     queryList<{ ym: string; total: number; delivered: number; open: number; on_time: number; late: number }>(
       `SELECT DATE_FORMAT(billing_date,'%Y-%m') ym, COUNT(*) total, SUM(d_entrega IS NOT NULL) delivered, SUM(d_entrega IS NULL) open,
          SUM(service='A TIEMPO') on_time, SUM(service='FUERA DE TIEMPO') late
-       FROM v_units WHERE ${w} AND billing_date >= DATE_FORMAT(CURDATE() - INTERVAL 11 MONTH, '%Y-%m-01')
+       FROM v_units WHERE ${w} AND billing_date >= DATE_FORMAT(CURDATE() - INTERVAL 11 MONTH, '%Y-%m-01')::date
        GROUP BY ym ORDER BY ym`, a,
     ),
     queryList<{ dealer: string; total: number; open: number; delivered: number; on_time: number; late_open: number }>(
       `SELECT dealer, COUNT(*) total, SUM(d_entrega IS NULL) open, SUM(d_entrega IS NOT NULL) delivered,
          SUM(service='A TIEMPO') on_time, SUM(alert='VENCIDA') late_open
-       FROM v_units WHERE ${w} GROUP BY dealer ORDER BY open DESC, total DESC`, a,
+       FROM v_units WHERE ${w} GROUP BY dealer ORDER BY open DESC, total DESC, dealer ASC`, a,
     ),
     queryList<{ material: string | null; category: string | null; open: number; total: number }>(
       `SELECT material, MAX(category) category, SUM(d_entrega IS NULL) open, COUNT(*) total
-       FROM v_units WHERE ${w} GROUP BY material ORDER BY open DESC, total DESC LIMIT 8`, a,
+       FROM v_units WHERE ${w} GROUP BY material ORDER BY open DESC, total DESC, material ASC LIMIT 8`, a,
     ),
     queryList(
       `SELECT site, chassis, material, dealer, d_entrega, service, real_days FROM v_units

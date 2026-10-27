@@ -40,7 +40,7 @@ export async function GET() {
      FROM users u
      LEFT JOIN users cb ON cb.id = u.created_by LEFT JOIN companies cbc ON cbc.id = cb.company_id
      WHERE u.role = 'dealer' ${limit === null ? "" : "AND u.company_id = ?"}
-     ORDER BY u.client, u.id`,
+     ORDER BY u.client NULLS FIRST, u.id`,
     limit === null ? [] : [limit],
   );
   return NextResponse.json(rows);

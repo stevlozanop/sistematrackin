@@ -55,7 +55,7 @@ export async function GET(req: Request) {
        u.company_id, c.name AS company, c.kind AS company_kind, c.code AS company_code, u.dealer_id, d.name AS dealer, u.client,
        (SELECT COUNT(*) FROM dealers dc WHERE dc.client = u.client) AS client_stores, (c.owner_id <=> u.id) AS is_owner
      FROM users u LEFT JOIN companies c ON c.id = u.company_id LEFT JOIN dealers d ON d.id = u.dealer_id
-     WHERE u.role IN (?) AND (? = 'dev' OR u.role <> 'admin' OR u.company_id <=> ?) ORDER BY u.id DESC`,
+     WHERE u.role IN (?) AND (?::text = 'dev' OR u.role <> 'admin' OR u.company_id <=> ?) ORDER BY u.id DESC`,
     [roles, s.role, s.role === "dev" ? null : await companyOf(s.id)],
   );
   const stages = await query<{ user_id: number; site: string; field: string }>("SELECT user_id, site, field FROM user_stages");

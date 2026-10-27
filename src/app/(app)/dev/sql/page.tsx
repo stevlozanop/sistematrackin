@@ -12,9 +12,9 @@ type Past = { sql: string; at: string; ok: boolean; rows?: number };
 /** Consultas listas para lo que más se revisa. */
 const EXAMPLES: { label: string; sql: string }[] = [
   { label: "Empresas y consorcios", sql: "SELECT c.id, c.name, c.kind, p.name AS creada_por, c.created_at,\n  (SELECT COUNT(*) FROM users u WHERE u.company_id = c.id) AS cuentas\nFROM companies c LEFT JOIN companies p ON p.id = c.parent_id\nORDER BY c.id" },
-  { label: "Cuentas por empresa y tipo", sql: "SELECT IFNULL(c.name, 'The Iceberg Labs / sin empresa') AS empresa, u.role, COUNT(*) AS cuentas\nFROM users u LEFT JOIN companies c ON c.id = u.company_id\nGROUP BY empresa, u.role ORDER BY empresa, u.role" },
+  { label: "Cuentas por empresa y tipo", sql: "SELECT COALESCE(c.name, 'The Iceberg Labs / sin empresa') AS empresa, u.role, COUNT(*) AS cuentas\nFROM users u LEFT JOIN companies c ON c.id = u.company_id\nGROUP BY empresa, u.role ORDER BY empresa, u.role" },
   { label: "Dealers sin cuenta", sql: "SELECT d.id, d.name, d.department, COUNT(un.id) AS unidades\nFROM dealers d LEFT JOIN units un ON un.dealer_id = d.id\nWHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.dealer_id = d.id)\nGROUP BY d.id ORDER BY unidades DESC" },
-  { label: "% a tiempo por transportista", sql: "SELECT UPPER(carrier) AS transportista, COUNT(*) AS unidades,\n  ROUND(100 * SUM(service = 'A TIEMPO') / COUNT(*)) AS pct_a_tiempo\nFROM v_units WHERE carrier IS NOT NULL AND carrier <> ''\nGROUP BY UPPER(carrier) ORDER BY unidades DESC LIMIT 20" },
+  { label: "% a tiempo por transportista", sql: "SELECT UPPER(carrier) AS transportista, COUNT(*) AS unidades,\n  ROUND(100.0 * SUM(service = 'A TIEMPO') / COUNT(*)) AS pct_a_tiempo\nFROM v_units WHERE carrier IS NOT NULL AND carrier <> ''\nGROUP BY UPPER(carrier) ORDER BY unidades DESC LIMIT 20" },
   { label: "Unidades por estado", sql: "SELECT site, status, COUNT(*) AS unidades FROM v_units GROUP BY site, status ORDER BY site, unidades DESC" },
   { label: "Últimos registros", sql: "SELECT e.at, us.name AS usuario, un.site, un.chassis, e.field, e.old_value, e.new_value\nFROM unit_events e JOIN units un ON un.id = e.unit_id LEFT JOIN users us ON us.id = e.user_id\nORDER BY e.id DESC LIMIT 50" },
 ];
@@ -79,7 +79,7 @@ export default function DevSql() {
           placeholder="SELECT * FROM companies"
         />
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[11px] text-sb-on-surface-variant">SELECT, SHOW, DESCRIBE, EXPLAIN o WITH. Para cambiar datos usa las pantallas del sistema.</span>
+          <span className="text-[11px] text-sb-on-surface-variant">SELECT, SHOW, EXPLAIN o WITH (PostgreSQL). Para cambiar datos usa las pantallas del sistema.</span>
           <div className="flex gap-2">
             {res && !("error" in res) && res.rows.length > 0 && (
               <Button size="sm" variant="secondary" className="rounded-full" onPress={exportXlsx}><Download className="h-3.5 w-3.5" /> Excel</Button>

@@ -3,10 +3,10 @@ import { readOnlyQuery } from "@/lib/db";
 import { guard } from "@/lib/guard";
 
 /**
- * Consola SQL de The Iceberg Labs: solo consultas de lectura (SELECT, SHOW, DESCRIBE, EXPLAIN, WITH).
+ * Consola SQL de The Iceberg Labs: solo consultas de lectura (SELECT, SHOW, EXPLAIN, WITH).
  * Una sola consulta, en una transacción de solo lectura, con 10 s como máximo y hasta 1000 filas.
  */
-const READ = /^\s*(SELECT|SHOW|DESCRIBE|DESC|EXPLAIN|WITH)\b/i;
+const READ = /^\s*(SELECT|SHOW|EXPLAIN|WITH|TABLE)\b/i;
 const MAX_ROWS = 1000;
 
 export async function POST(req: Request) {
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const text = String(sql ?? "").trim().replace(/;\s*$/, "");
   if (!text) return NextResponse.json({ error: "Escribe una consulta" }, { status: 400 });
   if (!READ.test(text)) {
-    return NextResponse.json({ error: "Solo se permiten consultas de lectura: SELECT, SHOW, DESCRIBE, EXPLAIN o WITH." }, { status: 400 });
+    return NextResponse.json({ error: "Solo se permiten consultas de lectura: SELECT, SHOW, EXPLAIN o WITH." }, { status: 400 });
   }
   if (text.includes(";")) return NextResponse.json({ error: "Ejecuta una sola consulta a la vez (sin «;» en medio)." }, { status: 400 });
 

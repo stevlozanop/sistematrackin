@@ -44,7 +44,7 @@ export async function GET(req: Request) {
       `SELECT d.client, COUNT(*) total, SUM(v.d_entrega IS NULL) open, SUM(v.d_entrega IS NOT NULL) delivered, SUM(v.service='A TIEMPO') on_time
        FROM v_units v LEFT JOIN dealers d ON d.id = v.dealer_id
        WHERE ${where.replace(/\bdealer_id\b/g, "v.dealer_id").replace(/\bbilling_date\b/g, "v.billing_date")}
-       GROUP BY d.client ORDER BY total DESC`,
+       GROUP BY d.client ORDER BY total DESC, d.client ASC`,
       args,
     ),
   ]);

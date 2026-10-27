@@ -53,7 +53,7 @@ export async function readExcel(file: File): Promise<Preview | null> {
       const keys = rows.slice(i, i + KEYS_CHUNK).map((r) => ({ site: r.site, chassis: r.chassis }));
       for (const k of (await post({ step: "check", keys })).exists as string[]) exists.add(k);
     }
-    const has = (r: UnitRow) => exists.has(`${r.site}|${r.chassis}`);
+    const has = (r: UnitRow) => exists.has(`${r.site}|${r.chassis.toUpperCase()}`);
     const bySite = (site: Site) => {
       const list = rows.filter((r) => r.site === site);
       const upd = list.filter(has).length;
