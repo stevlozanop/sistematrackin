@@ -31,20 +31,19 @@ const SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
       { title: "Mi resumen", href: "/portal/resumen", icon: LayoutDashboard, roles: ["dealer"] },
       { title: "Mis unidades", href: "/portal", icon: PackageSearch, roles: ["dealer"] },
       { title: "Tablero", href: "/board", icon: ChartColumn, roles: READ },
-      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: READ },
-      { title: "Alertas", href: "/alerts", icon: Bell, roles: READ },
+      // Honda (viewer) solo ve Tablero y Reportes en el menú
+      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: SUPER },
+      { title: "Alertas", href: "/alerts", icon: Bell, roles: SUPER },
       { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship, roles: MODULES },
       { title: "YUR · Yurimaguas", href: "/units/yur", icon: Truck, roles: MODULES },
       { title: "Dealers", href: "/dealers", icon: Store, roles: SUPER },
-      // Honda (solo lectura de su consorcio) da acceso a sus clientes y saca reportes
-      { title: "Equipo y clientes", href: "/clients", icon: Users, roles: ["viewer"] },
       { title: "Reportes", href: "/reports", icon: FileSpreadsheet, roles: READ },
       { title: "Plazos y meta", href: "/settings", icon: SlidersHorizontal, roles: SUPER },
     ],
   },
   {
     title: "Sistema",
-    roles: READ,
+    roles: SUPER,
     items: [
       { title: "En vivo", href: "/live", icon: Activity },
       { title: "Usuarios", href: "/admins", icon: Users, roles: SUPER },
