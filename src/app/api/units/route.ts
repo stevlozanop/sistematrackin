@@ -13,7 +13,7 @@ const SORTABLE = new Set([
 const EDITABLE = new Set<string>([
   ...DATE_FIELDS, "delay_reason", "observation", "nave", "container", "carrier", "driver", "plan_almacen", "route", "department",
 ]);
-const UPPER = new Set(["delay_reason", "route", "department", "carrier"]);
+const UPPER = new Set(["delay_reason", "route", "department", "carrier", "nave"]);
 
 /**
  * GET /api/units?site=PCL&q=&status=&service=&dealer=&zone=&reason=&year=&month=&page=1&size=25&sort=billing_date&dir=desc
@@ -110,7 +110,8 @@ export async function GET(req: Request) {
 }
 
 /**
- * PATCH { ids: number[], changes: { d_zarpe: "2026-10-01" | null, delay_reason: "DEMORA ZARPE", ... } }
+ * PATCH { ids: number[], changes: { d_zarpe: "2026-10-01" | null, delay_reason: "DEMORA ZARPE", ... }, lateReason?: "DEMORA ZARPE" }
+ * lateReason (carga por guía): motivo de demora solo para las unidades que quedan fuera de tiempo y aún no lo tienen.
  * Encargado: solo sus etapas, solo la siguiente etapa de cada unidad, y una fecha ya guardada queda bloqueada.
  * Super admin: puede corregir cualquier campo. Cada cambio queda en unit_events (seguimiento en vivo).
  */
@@ -118,7 +119,8 @@ export async function PATCH(req: Request) {
   // Registran fechas los encargados; corrige la empresa. The Iceberg Labs y Honda solo miran.
   const { s, err } = await guard(["admin", "operator"]);
   if (err) return err;
-  const { ids, changes } = await req.json().catch(() => ({}));
+  const { ids, changes, lateReason: rawLate } = await req.json().catch(() => ({}));
+  const lateReason = typeof rawLate === "string" && rawLate.trim() ? rawLate.trim().toUpperCase().slice(0, 60) : null;
   const unitIds = Array.isArray(ids) ? [...new Set(ids.map(Number).filter(Number.isInteger))] : [];
   const entries = Object.entries((changes ?? {}) as Record<string, unknown>).filter(([k]) => EDITABLE.has(k));
   if (!unitIds.length || !entries.length) return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
@@ -131,6 +133,8 @@ export async function PATCH(req: Request) {
   // El almacén indica la empresa de transporte al registrar el despacho (así le aparece a esa empresa)
   const keys = entries.map(([k]) => k);
   const setsCarrierOnDispatch = keys.includes("carrier") && keys.includes("d_despacho");
+  // Iquitos indica la nave al registrar el zarpe (carga por guía)
+  const setsNaveOnZarpe = keys.includes("nave") && keys.includes("d_zarpe");
 
   // Normaliza valores
   const vals: [string, string | null][] = [];
@@ -140,7 +144,7 @@ export async function PATCH(req: Request) {
       if (t && !/^\d{4}-\d{2}-\d{2}$/.test(t)) return NextResponse.json({ error: "Fecha inválida" }, { status: 400 });
       vals.push([k, t || null]);
     } else {
-      if (!sup && !OPERATOR_TEXT.has(k) && !(k === "carrier" && setsCarrierOnDispatch)) {
+      if (!sup && !OPERATOR_TEXT.has(k) && !(k === "carrier" && setsCarrierOnDispatch) && !(k === "nave" && setsNaveOnZarpe)) {
         return NextResponse.json({ error: "No tienes permiso para cambiar ese campo" }, { status: 403 });
       }
       vals.push([k, t ? (UPPER.has(k) ? t.toUpperCase() : t).slice(0, 500) : null]);
@@ -157,6 +161,7 @@ export async function PATCH(req: Request) {
 
   // Valida unidad por unidad
   const ok: Record<string, unknown>[] = [];
+  const late: number[] = []; // unidades que reciben lateReason
   const skipped: { id: number; reason: string }[] = [];
   for (const u of current) {
     const site = u.site as Site;
@@ -166,7 +171,8 @@ export async function PATCH(req: Request) {
         reason = checkDateEdit(s.role, stages, site, u as never, k as DateField, v, scope?.carrier);
         // Si la unidad está fuera de tiempo y no tiene motivo, se pide antes de registrar la fecha
         if (!reason && needsDelayReason(u as never, v, vals.find(([key]) => key === "delay_reason")?.[1])) {
-          reason = "La unidad está fuera de tiempo: indica primero el motivo de demora";
+          if (lateReason) { if (!late.includes(u.id as number)) late.push(u.id as number); }
+          else reason = "La unidad está fuera de tiempo: indica primero el motivo de demora";
         }
       } else if (!sup && !stages.some((st) => st.site === site)) {
         reason = "No tienes etapas asignadas en este módulo";
@@ -190,13 +196,19 @@ export async function PATCH(req: Request) {
     const events = ok.flatMap((u) =>
       vals.filter(([k, v]) => (u[k] ?? null) !== v).map(([k, v]) => [u.id, s.id, k, (u[k] as string | null) ?? null, v]),
     );
+    // Motivo de demora solo para las que quedaron fuera de tiempo sin motivo
+    const lateOk = late.filter((id) => okIds.includes(id));
+    for (let i = 0; i < lateOk.length; i += 1000) {
+      await c.query("UPDATE units SET delay_reason=? WHERE id IN (?) AND delay_reason IS NULL", [lateReason, lateOk.slice(i, i + 1000)]);
+    }
+    events.push(...lateOk.map((id) => [id, s.id, "delay_reason", null, lateReason]));
     for (let i = 0; i < events.length; i += 1000) {
       await c.query("INSERT INTO unit_events(unit_id, user_id, field, old_value, new_value) VALUES ?", [events.slice(i, i + 1000)]);
     }
   });
 
   const rows = await queryList(`SELECT * FROM v_units WHERE id IN (?)`, [ok.slice(0, 500).map((u) => u.id)]);
-  return NextResponse.json({ ok: true, count: ok.length, skipped: skipped.length, skipReason: skipped[0]?.reason ?? null, rows });
+  return NextResponse.json({ ok: true, count: ok.length, late: late.length, skipped: skipped.length, skipReason: skipped[0]?.reason ?? null, rows });
 }
 
 /** DELETE /api/units?site=PCL -> elimina todas las unidades de ese módulo. */

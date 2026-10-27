@@ -85,7 +85,7 @@ export async function nextCompanyCode(kind: string) {
 
 /** Direcciones que ya usa el sistema: un consorcio no puede llamarse así. */
 const RESERVED = new Set(["api", "login", "dashboard", "alerts", "units", "dealers", "settings", "live", "admins", "companies",
-  "clients", "reports", "board", "my", "portal", "profile", "dev", "favicon.ico", "_next", "public", "clientes"]);
+  "clients", "reports", "board", "guias", "my", "portal", "profile", "dev", "favicon.ico", "_next", "public", "clientes"]);
 
 /** «Honda del Perú» -> «honda»: minúsculas, sin tildes ni espacios. */
 export function slugify(text: string) {
