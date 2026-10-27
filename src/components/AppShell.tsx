@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, BookOpen, Building2, ChevronLeft, Database, FileSpreadsheet, SquareTerminal, Terminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
+import { Activity, Bell, ChartColumn, BookOpen, Building2, ChevronLeft, Database, FileSpreadsheet, SquareTerminal, Terminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
@@ -29,6 +29,7 @@ const SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
       { title: "Mi trabajo", href: "/my", icon: ClipboardCheck, roles: ["operator"] },
       { title: "Mi resumen", href: "/portal/resumen", icon: LayoutDashboard, roles: ["dealer"] },
       { title: "Mis unidades", href: "/portal", icon: PackageSearch, roles: ["dealer"] },
+      { title: "Tablero", href: "/board", icon: ChartColumn, roles: READ },
       { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: READ },
       { title: "Alertas", href: "/alerts", icon: Bell, roles: READ },
       { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship, roles: MODULES },
