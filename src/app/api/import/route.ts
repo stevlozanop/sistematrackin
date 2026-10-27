@@ -5,6 +5,7 @@ import { DATE_FIELDS, isSite } from "@/lib/hsp";
 import { existing, saveRows, TEXT_FIELDS, type UnitRow } from "@/lib/importer";
 import { fillDealerClients } from "@/lib/clients";
 import { readJson } from "@/lib/gzip-json";
+import { clientConsortiumOf } from "@/lib/companies";
 
 export const maxDuration = 300;
 
@@ -36,8 +37,10 @@ function clean(raw: unknown): UnitRow | null {
  * 3. { step: "finish" } → asigna su cliente (SORSA, CREDIVARGAS…) a las tiendas nuevas.
  */
 export async function POST(req: Request) {
-  const { err } = await guard(["admin"]); // cargar el Excel: solo la empresa (The Iceberg Labs no opera)
+  // Cargar el Excel: la empresa (Leyva) y el consorcio (Honda, desde su Tablero). The Iceberg Labs no opera.
+  const { s, err } = await guard(["admin", "viewer"]);
   if (err) return err;
+  if (s.role === "viewer" && !(await clientConsortiumOf(s))) return NextResponse.json({ error: "No tienes permiso para esta acción" }, { status: 403 });
 
   const body = await readJson<{ step?: string; keys?: unknown[]; rows?: unknown[] }>(req);
   try {

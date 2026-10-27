@@ -1,7 +1,9 @@
 "use client";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ListBox, Modal, Select } from "@heroui/react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Upload } from "lucide-react";
+import { ImportPanel, readExcel, saveExcel, type Preview } from "@/components/ImportPanel";
+import { toast } from "@heroui/react";
 import { Card, PageTitle } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { MONTHS, SITE_INFO, STATUS_LABEL, STATUS_SHORT, type Site, type Status } from "@/lib/hsp";
@@ -97,7 +99,7 @@ function LineChart({ series, max, unit, goal, height = 210, width = 640 }: { ser
   // Si otra serie anterior tiene su etiqueta en el mismo mes y a menos de 14 px, esta va debajo del punto
   const labelBelow = (si: number, i: number) => series.slice(0, si).some((o) => {
     const v = o.values[i], w = series[si].values[i];
-    return v !== null && w !== null && (i === lastIdx(o) || i === hover) && Math.abs(y(v) - y(w)) < 14 && w <= v;
+    return v !== null && w !== null && (i === lastIdx(o) || i === hover) && Math.abs(y(v) - y(w)) < 14;
   });
   return (
     <div className="relative">
@@ -420,10 +422,41 @@ export default function Board() {
   const [year, setYear] = useState<number | null>(null);
   const [data, setData] = useState<Data | null>(null);
   const [ask, setAsk] = useState<Ask | null>(null);
+  const [reload, setReload] = useState(0);
+  // Carga masiva de Excel (HSP-OFICIAL o PCL-FACT): Leyva y Honda
+  const [role, setRole] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [reading, setReading] = useState(false);
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const canImport = role === "admin" || role === "viewer";
 
+  useEffect(() => { fetch("/api/me").then((r) => r.json()).then((m) => setRole(m.role ?? null)).catch(() => {}); }, []);
   useEffect(() => {
     fetch(`/api/board${year ? `?year=${year}` : ""}`).then((r) => r.json()).then((d) => (d.error ? null : setData(d)));
-  }, [year]);
+  }, [year, reload]);
+
+  async function upload(file: File) {
+    setReading(true);
+    const p = await readExcel(file);
+    setReading(false);
+    if (fileRef.current) fileRef.current.value = "";
+    if (p) setPreview(p);
+  }
+  async function savePreview() {
+    if (!preview || preview.saved) return;
+    setSaving(true); setProgress(0);
+    try {
+      const j = await saveExcel(preview.rows, setProgress);
+      setPreview((p) => p && { ...p, saved: true });
+      toast.success("Excel guardado: el tablero ya está actualizado", { description: `${j.created.toLocaleString()} nuevas, ${j.updated.toLocaleString()} actualizadas` });
+      setReload((n) => n + 1);
+    } catch (e) {
+      toast.danger((e as Error).message, { description: "Lo que alcanzó a guardarse se queda. Vuelve a subir el Excel para completar el resto." });
+    }
+    setSaving(false);
+  }
 
   const view = useMemo(() => {
     if (!data) return null;
@@ -470,6 +503,16 @@ export default function Board() {
     <div className="board-root flex flex-col gap-5">
       <style>{VIZ_CSS}</style>
       <PageTitle title={`Tablero · ${data.year}`} sub="Por mes de facturación. Haz clic en un mes o en una cifra para ver el detalle por distrito con motos (2W) y motokares (3W).">
+        {canImport && (
+          <>
+            <input ref={fileRef} type="file" accept=".xlsx,.xls" hidden onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={reading || saving}
+              title="HSP-OFICIAL (hojas PCL y YUR) o PCL-FACT de facturación"
+              className="flex h-10 items-center gap-1.5 rounded-full bg-sb-primary px-4 text-sm font-medium text-sb-on-primary transition-opacity duration-200 hover:opacity-90 disabled:opacity-50">
+              <Upload className="h-4 w-4" /> {reading ? "Leyendo Excel…" : "Cargar Excel"}
+            </button>
+          </>
+        )}
         <Select aria-label="Año" className="w-32" variant="secondary" value={String(data.year)} onChange={(v) => setYear(Number(v))}>
           <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
           <Select.Popover>
@@ -477,6 +520,14 @@ export default function Board() {
           </Select.Popover>
         </Select>
       </PageTitle>
+
+      <AnimatePresence>
+        {preview && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3, ease: EASE }}>
+            <ImportPanel preview={preview} saving={saving} progress={progress} onSave={savePreview} onClose={() => setPreview(null)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="grid gap-4 xl:grid-cols-2">
         {ROUTES.map((s) => <Progress key={s} site={s} rows={view.of(s)} onPick={setAsk} />)}
