@@ -119,7 +119,7 @@ export default function AdminsPage() {
   async function reset(a: Admin) {
     const pw = genPassword();
     const r = await fetch("/api/admins", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: a.id, password: pw }) });
-    if (!r.ok) return toast.danger("No se pudo restablecer");
+    if (!r.ok) return toast.danger("No se pudo cambiar la contraseña", { description: (await r.json().catch(() => null))?.error });
     await navigator.clipboard?.writeText(pw).catch(() => {});
     toast.success(`Nueva contraseña para ${a.name}`, { description: `${pw} (copiada)`, timeout: 15000 });
   }

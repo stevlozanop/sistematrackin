@@ -16,6 +16,12 @@ const ROLES: Role[] = ["admin", "operator", "viewer", "dealer"];
 const manageable = (me: string): Role[] => (me === "dev" ? ROLES : ["admin", "operator", "viewer", "dealer"]);
 /** ¿Es la cuenta principal de alguna empresa? */
 const isOwner = async (id: number) => (await query("SELECT 1 FROM companies WHERE owner_id=?", [id])).length > 0;
+/** ¿La cuenta es la principal de un consorcio que creó la empresa de quien pide? (Servihonda para Leyva) */
+const ownsConsortiumOwner = async (me: number, id: number) =>
+  (await query(
+    "SELECT 1 FROM companies c WHERE c.owner_id=? AND c.kind='client' AND c.parent_id=(SELECT company_id FROM users WHERE id=?)",
+    [id, me],
+  )).length > 0;
 const companyOf = async (id: number) => (await query<{ company_id: number | null }>("SELECT company_id FROM users WHERE id=?", [id]))[0]?.company_id ?? null;
 
 /** Valida la lista de etapas [{ site, field }] contra las etapas de cada módulo. */
@@ -134,11 +140,13 @@ export async function PATCH(req: Request) {
   const id = Number(b.id);
   const [u] = await query<{ role: Role }>("SELECT role FROM users WHERE id=?", [id]);
   if (!u || !manageable(s.role).includes(u.role)) return NextResponse.json({ error: "No existe" }, { status: 404 });
-  if (s.role !== "dev" && id !== s.id && (await isOwner(id))) {
+  // La cuenta principal de la empresa solo la cambia The Iceberg Labs; la de un consorcio (Servihonda),
+  // también la empresa que creó ese consorcio (Leyva)
+  if (s.role !== "dev" && id !== s.id && (await isOwner(id)) && !(await ownsConsortiumOwner(s.id, id))) {
     return NextResponse.json({ error: "Solo The Iceberg Labs puede cambiar la cuenta principal de la empresa" }, { status: 403 });
   }
   if (u.role === "admin" && s.role !== "dev" && (await companyOf(id)) !== (await companyOf(s.id))) {
-    return NextResponse.json({ error: "No existe" }, { status: 404 });
+    return NextResponse.json({ error: "Ese supervisor no es de tu empresa: pídele a The Iceberg Labs que le cambie la contraseña" }, { status: 403 });
   }
 
   if (b.area !== undefined || b.stages !== undefined) {
