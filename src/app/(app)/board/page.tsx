@@ -3,7 +3,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ListBox, Modal, Select } from "@heroui/react";
 import { ChevronRight, Upload } from "lucide-react";
 import { ImportPanel, readExcel, saveExcel, type Preview } from "@/components/ImportPanel";
-import { toast } from "@heroui/react";
+import { Button, toast } from "@heroui/react";
 import { Card, PageTitle } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { MONTHS, SITE_INFO, STATUS_LABEL, STATUS_SHORT, type Site, type Status } from "@/lib/hsp";
@@ -506,11 +506,11 @@ export default function Board() {
         {canImport && (
           <>
             <input ref={fileRef} type="file" accept=".xlsx,.xls" hidden onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
-            <button type="button" onClick={() => fileRef.current?.click()} disabled={reading || saving}
-              title="HSP-OFICIAL (hojas PCL y YUR) o PCL-FACT de facturación"
-              className="flex h-10 items-center gap-1.5 rounded-full bg-sb-primary px-4 text-sm font-medium text-sb-on-primary transition-opacity duration-200 hover:opacity-90 disabled:opacity-50">
-              <Upload className="h-4 w-4" /> {reading ? "Leyendo Excel…" : "Cargar Excel"}
-            </button>
+            {/* Mismo botón que el resto del sistema (HeroUI): misma animación al pasar y al presionar */}
+            <Button variant="primary" className="rounded-full" isDisabled={reading || saving} onPress={() => fileRef.current?.click()}
+              aria-label="Cargar Excel (HSP-OFICIAL o PCL-FACT)">
+              <Upload className={reading ? "h-4 w-4 animate-bounce" : "h-4 w-4"} /> {reading ? "Leyendo Excel…" : "Cargar Excel"}
+            </Button>
           </>
         )}
         <Select aria-label="Año" className="w-32" variant="secondary" value={String(data.year)} onChange={(v) => setYear(Number(v))}>
