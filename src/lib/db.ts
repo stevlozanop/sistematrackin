@@ -40,12 +40,14 @@ function poolConfig(): pg.PoolConfig {
   const local = ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname);
   // sslmode y los parámetros propios de Supabase se manejan con la opción ssl de abajo
   for (const k of ["sslmode", "supa", "pgbouncer"]) url.searchParams.delete(k);
+  // El pooler de Supabase en modo sesión (5432) admite solo 15 clientes y se llena con varias funciones de Vercel:
+  // el sistema usa el modo transacción (6543), hecho para eso. Los scripts (db:migrar) siguen usando 5432.
+  if (url.hostname.endsWith(".pooler.supabase.com") && (url.port === "5432" || !url.port)) url.port = "6543";
   return {
     connectionString: url.toString(),
     ssl: local || process.env.DB_SSL === "false" ? false
       : process.env.DB_SSL_CA ? { ca: process.env.DB_SSL_CA.replace(/\\n/g, "\n") } : { rejectUnauthorized: false },
-    // En Vercel cada función abre su propio pool: pocas conexiones para no agotar el límite de la base
-    // Supabase limita las conexiones (15 en el pooler en modo sesión): pocas por proceso y se sueltan rápido
+    // Pocas conexiones por proceso (en Vercel cada función abre las suyas)
     max: Number(process.env.DB_POOL_LIMIT) || 3,
     idleTimeoutMillis: 10_000,
     connectionTimeoutMillis: 15_000,
@@ -55,6 +57,32 @@ function poolConfig(): pg.PoolConfig {
 
 const pool: pg.Pool = (g.__pgPool ??= new pg.Pool(poolConfig()));
 
+/**
+ * SUM(condición) -> SUM((condición)::int). Postgres no suma condiciones; la función equivalente de la base
+ * funciona, pero es unas 10 veces más lenta en tablas grandes.
+ */
+function fastSum(sql: string) {
+  let out = "";
+  let from = 0;
+  const re = /\bSUM\(/gi;
+  for (let m = re.exec(sql); m; m = re.exec(sql)) {
+    const start = m.index + m[0].length;
+    let depth = 1, end = start;
+    for (; end < sql.length && depth; end++) {
+      if (sql[end] === "(") depth++;
+      else if (sql[end] === ")") depth--;
+    }
+    const inner = sql.slice(start, end - 1);
+    // Solo si lo de adentro es una condición (comparación, IS NULL, AND/OR, LIKE, IN…)
+    if (/(<>|<=|>=|[=<>]|\bIS\b|\bLIKE\b|\bAND\b|\bOR\b|\bIN\b|\bNOT\b|\bEXISTS\b)/i.test(inner) && !/^\s*DISTINCT\b/i.test(inner)) {
+      out += `${sql.slice(from, m.index)}SUM((${inner})::int)`;
+      from = end;
+      re.lastIndex = end;
+    }
+  }
+  return out + sql.slice(from);
+}
+
 /** MySQL -> Postgres: parámetros "?" y las pocas diferencias de sintaxis que usan las consultas. */
 export function toPg(sql: string, params: unknown[] = []) {
   const values: unknown[] = [];
@@ -63,7 +91,7 @@ export function toPg(sql: string, params: unknown[] = []) {
     return `$${values.length}`;
   };
   let i = 0;
-  const out = sql
+  const out = fastSum(sql)
     .replace(/`([^`]+)`/g, '"$1"')
     .replace(/<=>/g, " IS NOT DISTINCT FROM ")
     // Al ordenar, MySQL pone los vacíos (NULL) primero en ASC y al final en DESC; Postgres al revés

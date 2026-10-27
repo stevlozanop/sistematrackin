@@ -54,7 +54,8 @@ export async function GET(req: Request) {
   for (const [param, col] of eq) {
     const v = p.get(param);
     if (v === "__none") where.push(`${col} IS NULL`);
-    else if (v) { where.push(`${col} = ?`); args.push(v); }
+    // estado y servicio se guardan en mayúsculas: «entregado» también encuentra ENTREGADO
+    else if (v) { where.push(`${col} = ?`); args.push(col === "status" || col === "service" ? v.toUpperCase() : v); }
   }
   // Bandeja: unidades que esperan una etapa (pending=d_zarpe) o las etapas del usuario (mine=1)
   const pending = p.get("pending");

@@ -48,6 +48,18 @@ Al cambiar `AUTH_SECRET` se cierran las sesiones abiertas: todos vuelven a ingre
 Importa el repositorio de GitHub en Vercel; no hay que configurar nada más.
 En **Settings → Functions → Region**, deja **Washington, D.C. (iad1)**: es la misma zona de Supabase (us-east-1).
 
+## Actualizar el esquema (funciones y vista)
+
+Cuando cambie `database/schema.sql`, aplícalo a Supabase sin tocar los datos:
+```bash
+npm run db:esquema
+```
+
+## Conexiones (importante)
+
+El pooler de Supabase en **modo sesión (puerto 5432)** admite solo **15 conexiones**. Varias funciones de Vercel lo llenan y todo se pone lento o falla con «max clients reached».
+Por eso el sistema siempre se conecta por el **modo transacción (puerto 6543)**, aunque la cadena diga 5432. Los scripts `db:migrar` y `db:esquema` sí usan 5432.
+
 ## Trabajar en tu PC
 
 `npm run dev` usa la `DATABASE_URL` del `.env`, o sea la misma base de Supabase. XAMPP ya no hace falta, salvo para volver a copiar datos.

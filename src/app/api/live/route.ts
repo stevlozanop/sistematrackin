@@ -19,7 +19,7 @@ export async function GET(req: Request) {
     query<{ id: number; name: string; email: string; role: string; area: string | null; carrier: string | null; last_seen: string | null; online: number }>(
       `SELECT id, name, email, role, area, carrier, DATE_FORMAT(last_seen,'%Y-%m-%d %H:%i:%s') last_seen,
          (last_seen > NOW() - INTERVAL 60 SECOND) online
-       FROM users ORDER BY role = 'operator' DESC, name`,
+       FROM users ORDER BY role = 'operator' DESC, name, id`,
     ),
     query<{ user_id: number; site: Site; field: DateField }>("SELECT user_id, site, field FROM user_stages"),
     query<{ user_id: number; n: number; last_at: string }>(

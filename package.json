@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:migrar": "node --env-file-if-exists=.env scripts/mysql-to-postgres.mjs",
-    "clave": "node --env-file-if-exists=.env scripts/reset-password.mjs"
+    "clave": "node --env-file-if-exists=.env scripts/reset-password.mjs",
+    "db:esquema": "node --env-file-if-exists=.env scripts/apply-schema.mjs"
   },
   "dependencies": {
     "@heroui/react": "^3.2.6",

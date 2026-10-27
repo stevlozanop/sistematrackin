@@ -25,14 +25,15 @@ CREATE OR REPLACE FUNCTION datediff(a date, b date) RETURNS integer LANGUAGE sql
 CREATE OR REPLACE FUNCTION year(d date) RETURNS integer LANGUAGE sql IMMUTABLE AS $$ SELECT EXTRACT(YEAR FROM d)::integer $$;
 CREATE OR REPLACE FUNCTION month(d date) RETURNS integer LANGUAGE sql IMMUTABLE AS $$ SELECT EXTRACT(MONTH FROM d)::integer $$;
 -- DATE_FORMAT(fecha, '%Y-%m-%d %H:%i:%s')
-CREATE OR REPLACE FUNCTION date_format(t timestamp, f text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+CREATE OR REPLACE FUNCTION date_format(t timestamp, f text) RETURNS text LANGUAGE sql STABLE AS $$
   SELECT to_char(t, replace(replace(replace(replace(replace(replace(f, '%Y', 'YYYY'), '%m', 'MM'), '%d', 'DD'), '%H', 'HH24'), '%i', 'MI'), '%s', 'SS'))
 $$;
 CREATE OR REPLACE FUNCTION date_format(t timestamptz, f text) RETURNS text LANGUAGE sql STABLE AS $$ SELECT date_format(t::timestamp, f) $$;
-CREATE OR REPLACE FUNCTION date_format(t date, f text) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT date_format(t::timestamp, f) $$;
+CREATE OR REPLACE FUNCTION date_format(t date, f text) RETURNS text LANGUAGE sql STABLE AS $$ SELECT date_format(t::timestamp, f) $$;
 -- UNIX_TIMESTAMP(fecha): segundos desde 1970 (versión del logo para refrescarlo en el navegador)
 CREATE OR REPLACE FUNCTION unix_timestamp(t timestamp) RETURNS bigint LANGUAGE sql STABLE AS $$ SELECT EXTRACT(EPOCH FROM t::timestamptz)::bigint $$;
--- SUM(condición): cuántas filas la cumplen (en MySQL una condición vale 1 o 0)
+-- SUM(condición): cuántas filas la cumplen (en MySQL una condición vale 1 o 0).
+-- El sistema la convierte a SUM((condición)::int), que es mucho más rápida; esta queda para la consola SQL.
 CREATE OR REPLACE FUNCTION sum_bool_step(acc bigint, v boolean) RETURNS bigint LANGUAGE sql IMMUTABLE AS $$
   SELECT CASE WHEN v IS NULL THEN acc ELSE COALESCE(acc, 0) + CASE WHEN v THEN 1 ELSE 0 END END
 $$;
@@ -170,13 +171,17 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 INSERT INTO settings (id) VALUES (1) ON CONFLICT DO NOTHING;
 
-INSERT INTO lead_times (site, zone, days_cre, days_vac) VALUES
+-- Plazos iniciales: solo si la tabla está vacía (volver a aplicar el esquema no repone zonas que la empresa borró)
+INSERT INTO lead_times (site, zone, days_cre, days_vac)
+SELECT * FROM (VALUES
   ('PCL','UCAYALI',16,16), ('PCL','CORONEL PORTILLO',16,16), ('PCL','MADRE DE DIOS',25,25),
   ('PCL','JUNIN',21,21), ('PCL','HUANUCO',21,21), ('PCL','SATIPO',21,21), ('PCL','AREQUIPA',21,21),
   ('PCL','SAN MARTIN',19,19), ('PCL','PASCO',19,19), ('PCL','LIMA',19,19),
   ('PCL','CAJAMARCA',18,18), ('PCL','AMAZONAS',8,8), ('PCL','LORETO',7,7),
   ('YUR','RUTA ORIENTE 1',12,13), ('YUR','RUTA ORIENTE 2',13,14), ('YUR','RUTA ORIENTE 3',15,16),
   ('YUR','RUTA ORIENTE 4',15,16), ('YUR','RUTA ORIENTE 5',18,19), ('YUR','RUTA NORTE 1',19,20)
+) v(site, zone, days_cre, days_vac)
+WHERE NOT EXISTS (SELECT 1 FROM lead_times)
 ON CONFLICT DO NOTHING;
 
 -- Etapas (columnas de fecha) que llena cada encargado, por módulo
@@ -213,20 +218,20 @@ CREATE TABLE IF NOT EXISTS import_stash (
 DROP VIEW IF EXISTS v_units;
 CREATE VIEW v_units AS
 SELECT x.*,
-  (CASE WHEN x.est_date IS NULL THEN NULL
-        WHEN COALESCE(x.d_entrega, CURRENT_DATE) <= x.est_date THEN 'A TIEMPO'
-        ELSE 'FUERA DE TIEMPO' END)::citext AS service,
+  CASE WHEN x.est_date IS NULL THEN NULL
+       WHEN COALESCE(x.d_entrega, CURRENT_DATE) <= x.est_date THEN 'A TIEMPO'
+       ELSE 'FUERA DE TIEMPO' END AS service,
   x.d_entrega - x.billing_date AS real_days,
   -- Alertas (solo unidades sin entregar): días que faltan para la fecha estimada
   CASE WHEN x.d_entrega IS NULL THEN x.est_date - CURRENT_DATE END AS days_left,
-  (CASE WHEN x.d_entrega IS NOT NULL OR x.est_date IS NULL THEN NULL
-        WHEN x.est_date < CURRENT_DATE THEN 'VENCIDA'
-        WHEN x.est_date - CURRENT_DATE <= x.alert_days THEN 'POR VENCER'
-        END)::citext AS alert
+  CASE WHEN x.d_entrega IS NOT NULL OR x.est_date IS NULL THEN NULL
+       WHEN x.est_date < CURRENT_DATE THEN 'VENCIDA'
+       WHEN x.est_date - CURRENT_DATE <= x.alert_days THEN 'POR VENCER'
+       END AS alert
 FROM (
   SELECT u.*, d.name AS dealer, COALESCE(d.coast, 0) AS via_lima, s.alert_days,
-    (CASE WHEN u.site = 'PCL' THEN u.department ELSE u.route END) AS zone,
-    (CASE WHEN k.cre THEN 'CRECIENTE' ELSE 'VACIANTE' END)::citext AS season,
+    (CASE WHEN u.site::text = 'PCL' THEN u.department ELSE u.route END) AS zone,
+    CASE WHEN k.cre THEN 'CRECIENTE' ELSE 'VACIANTE' END AS season,
     CASE WHEN k.cre THEN lt.days_cre ELSE lt.days_vac END AS lead_time,
     u.billing_date + CASE WHEN k.cre THEN lt.days_cre ELSE lt.days_vac END AS est_date,
     (CASE
@@ -237,11 +242,11 @@ FROM (
       WHEN u.d_almacen  IS NOT NULL THEN 'EN ALMACÉN'
       WHEN u.d_arribo   IS NOT NULL THEN 'ARRIBO PUERTO'
       WHEN u.d_zarpe    IS NOT NULL THEN 'TRANSITO FLUVIAL'
-      ELSE 'IQT-PORT' END)::citext AS status,
+      ELSE 'IQT-PORT' END) AS status,
     -- Siguiente etapa a llenar (después de la última con fecha)
     (CASE
       WHEN u.d_entrega  IS NOT NULL THEN NULL
-      WHEN u.site = 'PCL' THEN CASE
+      WHEN u.site::text = 'PCL' THEN CASE
         WHEN u.d_sal_lima IS NOT NULL THEN 'd_entrega'
         WHEN u.d_alm_lima IS NOT NULL THEN 'd_sal_lima'
         -- Ruta Lima: 5 despacho -> 5.1 almacén Lima -> 5.2 salida Lima -> 6 entrega
@@ -257,17 +262,21 @@ FROM (
         WHEN u.d_zarpe    IS NOT NULL THEN 'd_arribo'
         WHEN u.d_carga    IS NOT NULL THEN 'd_zarpe'
         ELSE 'd_carga' END
-    END)::citext AS next_step
+    END) AS next_step
   FROM units u
   CROSS JOIN settings s
   -- ¿El mes de facturación es de creciente? (FIND_IN_SET de MySQL)
   CROSS JOIN LATERAL (SELECT EXTRACT(MONTH FROM u.billing_date)::integer::text = ANY (string_to_array(s.creciente_months, ',')) AS cre) k
   LEFT JOIN dealers d ON d.id = u.dealer_id
-  LEFT JOIN lead_times lt ON lt.site = u.site AND lt.zone = (CASE WHEN u.site = 'PCL' THEN u.department ELSE u.route END)
+  -- Plazo de la zona: se compara en mayúsculas como texto (mismo resultado que citext, mucho más rápido)
+  LEFT JOIN lead_times lt ON upper(lt.site::text) = upper(u.site::text)
+    AND upper(lt.zone::text) = upper(CASE WHEN u.site::text = 'PCL' THEN u.department ELSE u.route END::text)
   WHERE s.id = 1
 ) x;
 
 -- Usuario dev inicial:  dev@trackin.local  /  Dev12345!   (cámbialo después)
+-- Solo si todavía no hay una cuenta dev
 INSERT INTO users (name, email, password_hash, role)
-VALUES ('Desarrollador', 'dev@trackin.local', '$2b$10$MC6ibUpcCnEine1wH97p0OIUmHLLYLD0uUMrTef6Fig3rUZw/lg/K', 'dev')
+SELECT 'Desarrollador', 'dev@trackin.local', '$2b$10$MC6ibUpcCnEine1wH97p0OIUmHLLYLD0uUMrTef6Fig3rUZw/lg/K', 'dev'
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE role = 'dev')
 ON CONFLICT DO NOTHING;
