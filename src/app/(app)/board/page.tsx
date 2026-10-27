@@ -4,7 +4,9 @@ import { ListBox, Modal, Select } from "@heroui/react";
 import { ChevronRight } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { MONTHS, SITE_INFO, STATUS_SHORT, type Site, type Status } from "@/lib/hsp";
+import { MONTHS, SITE_INFO, STATUS_LABEL, STATUS_SHORT, type Site, type Status } from "@/lib/hsp";
+import { AnimatePresence, MotionConfig, motion } from "framer-motion";
+import { AnimatedNumber, SERVICE_STYLE, ServiceBadge, ServiceSplitBar } from "@/components/Service";
 
 /**
  * Tablero de Honda: lo que pidió ver de cada ruta (Pucallpa y Yurimaguas) por mes de facturación.
@@ -35,6 +37,8 @@ const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : null);
 const VIZ_CSS = `
 .board-root{--route-PCL:#eb6834;--route-YUR:#1baf7a;--r1:#eb6834;--r2:#1baf7a;--r3:#eda100;--r4:#e87ba4;--r5:#008300;--r6:#6250d6;--r-other:#8b8b93}
 html.dark .board-root{--route-PCL:#d95926;--route-YUR:#199e70;--r1:#d95926;--r2:#199e70;--r3:#c98500;--r4:#d55181;--r5:#008300;--r6:#9085e9;--r-other:#6b6b73}`;
+/** Curva de las animaciones: arranca rápido y frena suave */
+const EASE = [0.22, 1, 0.36, 1] as const;
 const REASON_SLOTS = ["--r1", "--r2", "--r3", "--r4", "--r5", "--r6"];
 
 /* ---------- 1. Avance de entregas: una píldora por mes ---------- */
@@ -58,7 +62,8 @@ function Progress({ site, rows, onPick }: { site: Site; rows: MonthRow[]; onPick
                 className="group flex min-w-[2.6rem] flex-1 flex-col items-center gap-1.5 rounded-xl py-1 hover:bg-sb-surface-container">
                 <span className={cn("text-xs font-bold tabular-nums", p < 100 ? "text-sb-on-surface" : "text-sb-on-surface-variant")}>{p}%</span>
                 <span className="relative h-28 w-7 overflow-hidden rounded-full border border-sb-outline-variant bg-sb-surface-container">
-                  <span className="absolute inset-x-0 bottom-0 rounded-full transition-[height] duration-700" style={{ height: `${p}%`, background: `var(--route-${site})` }} />
+                  <motion.span className="absolute inset-x-0 bottom-0 rounded-full" style={{ background: `var(--route-${site})` }}
+                    initial={{ height: 0 }} animate={{ height: `${p}%` }} transition={{ duration: 0.9, delay: 0.04 * (m - 1), ease: EASE }} />
                 </span>
                 <span className="text-[10px] font-semibold uppercase text-sb-on-surface">{MES[m - 1]}</span>
                 <span className="text-[9px] tabular-nums text-sb-on-surface-variant">{n(r.delivered)}/{n(r.total)}</span>
@@ -117,9 +122,11 @@ function LineChart({ series, max, unit, goal, height = 210, width = 640 }: { ser
           const d = pts.reduce((acc, p, i) => (p ? `${acc}${acc && pts[i - 1] ? "L" : "M"}${p[0]},${p[1]}` : acc), "");
           return (
             <g key={s.name}>
-              <path d={d} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" />
+              <motion.path d={d} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round"
+                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease: EASE }} />
               {pts.map((p, i) => p && (
-                <circle key={i} cx={p[0]} cy={p[1]} r={hover === i ? 5 : 4} fill={s.color} stroke="var(--sb-surface)" strokeWidth={2} />
+                <motion.circle key={i} cx={p[0]} cy={p[1]} fill={s.color} stroke="var(--sb-surface)" strokeWidth={2}
+                  initial={{ r: 0 }} animate={{ r: hover === i ? 5 : 4 }} transition={{ duration: 0.3, delay: hover === null ? 0.08 * i : 0, ease: EASE }} />
               ))}
               {pts.map((p, i) => p && (i === lastIdx(s) || i === hover) && (
                 <text key={`t${i}`} x={p[0]} y={labelBelow(si, i) ? p[1] + 17 : p[1] - 9} textAnchor="middle" fontSize={11} fontWeight={700} fill="var(--sb-on-surface)"
@@ -175,20 +182,21 @@ function Reasons({ site, rows, colorOf, onPick }: {
               <button key={m} type="button" onClick={() => onPick({ title: `${ROUTE_NAME[site]} · ${MONTHS[m - 1]} · Fuera de tiempo`, site, m, service: "FUERA DE TIEMPO" })}
                 className="flex min-w-0 flex-1 flex-col items-center gap-1 text-left">
                 <span className="text-[10px] font-bold tabular-nums">{n(total)}</span>
-                <span className="flex w-full flex-1 flex-col-reverse gap-[2px] overflow-hidden rounded-md">
+                <motion.span className="flex w-full flex-1 origin-bottom flex-col-reverse gap-[2px] overflow-hidden rounded-md"
+                  initial={{ scaleY: 0, opacity: 0 }} animate={{ scaleY: 1, opacity: 1 }} transition={{ duration: 0.7, delay: 0.05 * months.indexOf(m), ease: EASE }}>
                   {list.map((r) => {
                     const p = (Number(r.n) / total) * 100;
                     const key = `${m}|${r.reason}`;
                     return (
                       <span key={r.reason} onPointerEnter={() => setHover(key)} onPointerLeave={() => setHover(null)}
                         title={`${MONTHS[m - 1]} · ${r.reason}: ${n(r.n)} (${Math.round(p)}%)`}
-                        className={cn("relative flex items-center justify-center overflow-hidden text-[9px] font-bold text-white transition-opacity", hover && hover !== key && "opacity-60")}
+                        className={cn("relative flex items-center justify-center overflow-hidden text-[9px] font-bold text-white transition-opacity duration-200 ease-out", hover && hover !== key && "opacity-60")}
                         style={{ height: `${p}%`, background: colorOf(r.reason) }}>
                         {p >= 9 && <span className="truncate px-0.5 [text-shadow:0_0_2px_rgb(0_0_0/0.6)]">{Math.round(p)}%</span>}
                       </span>
                     );
                   })}
-                </span>
+                </motion.span>
                 <span className="text-[10px] text-sb-on-surface-variant">{MES[m - 1]}</span>
               </button>
             );
@@ -199,66 +207,120 @@ function Reasons({ site, rows, colorOf, onPick }: {
   );
 }
 
-/* ---------- 4. Tránsito: mes × estado, con filas a tiempo / fuera de tiempo ---------- */
+/* ---------- 4. Tránsito: mes × estado, con filas a tiempo / fuera de tiempo (mismo diseño que el Dashboard) ---------- */
+
+/** Fondo de la celda: más intenso cuanto mayor es el número (azul = a tiempo, rojo = fuera). */
+const heat = (sv: "A TIEMPO" | "FUERA DE TIEMPO", v: number, max: number) =>
+  ({ background: `color-mix(in oklab, var(${sv === "A TIEMPO" ? "--sb-ontime" : "--sb-late"}) ${Math.round(12 + 48 * (v / Math.max(1, max)))}%, transparent)` });
 
 function Transit({ site, rows, onPick }: { site: Site; rows: Data["transit"]; onPick: (a: Ask) => void }) {
   const statuses = SITE_INFO[site].statuses;
   const months = [...new Set(rows.map((r) => r.m))].sort((a, b) => a - b);
   const [open, setOpen] = useState<Set<number>>(() => new Set(months.slice(-2)));
-  const sum = (f: (r: Data["transit"][number]) => boolean) => rows.filter(f).reduce((t, r) => t + Number(r.n), 0);
-  const cell = (v: number, ask: Ask, tone?: "on" | "late") => (
-    <td className="px-2 py-1.5 text-right tabular-nums">
-      {v ? (
-        <button type="button" onClick={() => onPick(ask)} className={cn("rounded px-1 hover:underline", tone === "on" && "text-sb-ontime", tone === "late" && "text-sb-late")}>{n(v)}</button>
-      ) : <span className="text-sb-on-surface-variant/40">·</span>}
-    </td>
-  );
-  const SV = [["A TIEMPO", "A tiempo", "on"], ["FUERA DE TIEMPO", "Fuera de tiempo", "late"]] as const;
+  const get = (m: number | null, st: Status | null, sv: string | null) =>
+    rows.filter((r) => (m === null || r.m === m) && (st === null || r.status === st) && (sv === null || r.service === sv)).reduce((t, r) => t + Number(r.n), 0);
+  const max = (sv: string) => Math.max(1, ...months.flatMap((m) => statuses.map((st) => get(m, st, sv))));
+  const maxOn = max("A TIEMPO"), maxLate = max("FUERA DE TIEMPO");
+  const toggle = (m: number) => setOpen((s) => { const x = new Set(s); if (x.has(m)) x.delete(m); else x.add(m); return x; });
+  const SV = ["A TIEMPO", "FUERA DE TIEMPO"] as const;
+
   return (
     <Card className="overflow-hidden">
-      <div className="border-b border-sb-outline-variant/40 px-4 py-3 text-center text-sm font-bold uppercase tracking-wide">
-        Tránsito <span style={{ color: `var(--route-${site})` }}>{ROUTE_NAME[site]}</span>
+      <div className="flex flex-col gap-2 border-b border-sb-outline-variant/40 px-4 py-3">
+        <h3 className="text-sm font-semibold">Tránsito <span style={{ color: `var(--route-${site})` }}>{ROUTE_NAME[site]}</span> · unidades por estado</h3>
+        <div className="flex flex-wrap items-center gap-3 text-[11px] text-sb-on-surface-variant">
+          <ServiceBadge s="A TIEMPO" size="xs" /><ServiceBadge s="FUERA DE TIEMPO" size="xs" />
+          <span>Color más intenso = más unidades. Abre un mes para ver a tiempo / fuera de tiempo; haz clic en una cifra para el detalle 2W/3W.</span>
+        </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-xs">
+      <div className="overflow-x-auto px-2 pb-2">
+        <table className="w-full min-w-[760px] border-separate border-spacing-y-[2px] text-left text-xs">
           <thead>
-            <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
-              <th className="px-3 py-2 text-left font-semibold">Mes fact.</th>
-              {statuses.map((s) => <th key={s} className="px-2 py-2 text-right font-semibold">{STATUS_SHORT[s]}</th>)}
+            <tr className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">
+              <th className="px-3 py-2 font-semibold">Mes fact.</th>
+              {statuses.map((st) => <th key={st} className="px-2 py-2 text-right font-semibold">{STATUS_LABEL[st]}</th>)}
               <th className="px-3 py-2 text-right font-semibold">Total</th>
             </tr>
           </thead>
           <tbody>
-            {months.map((m) => {
+            {months.map((m, i) => {
               const isOpen = open.has(m);
               const title = `${ROUTE_NAME[site]} · ${MONTHS[m - 1]}`;
+              const on = get(m, null, "A TIEMPO"), late = get(m, null, "FUERA DE TIEMPO");
               return (
                 <Fragment key={m}>
-                  <tr className="border-b border-sb-outline-variant/30 bg-sb-surface-container-low font-semibold">
-                    <td className="px-3 py-1.5">
-                      <button type="button" onClick={() => setOpen((s) => { const x = new Set(s); if (x.has(m)) x.delete(m); else x.add(m); return x; })}
-                        className="flex items-center gap-1" aria-expanded={isOpen}>
-                        <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", isOpen && "rotate-90")} />{MONTHS[m - 1]}
+                  <motion.tr initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.04, duration: 0.4, ease: EASE }}
+                    className="bg-sb-surface-container-low font-semibold">
+                    <td className="rounded-l-xl px-3 py-2">
+                      <button type="button" onClick={() => toggle(m)} aria-expanded={isOpen} className="flex w-full items-center gap-1.5 text-left">
+                        <motion.span animate={{ rotate: isOpen ? 90 : 0 }} transition={{ duration: 0.25, ease: EASE }} className="inline-flex">
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </motion.span>
+                        {MONTHS[m - 1]}
                       </button>
+                      <ServiceSplitBar onTime={on} late={late} className="ml-5 mt-1 w-40" />
                     </td>
-                    {statuses.map((st) => <Fragment key={st}>{cell(sum((r) => r.m === m && r.status === st), { title: `${title} · ${STATUS_SHORT[st]}`, site, m, status: st })}</Fragment>)}
-                    {cell(sum((r) => r.m === m), { title, site, m })}
-                  </tr>
-                  {isOpen && SV.map(([sv, label, tone]) => (
-                    <tr key={sv} className="border-b border-sb-outline-variant/20">
-                      <td className={cn("py-1.5 pl-8 pr-3", tone === "on" ? "text-sb-ontime" : "text-sb-late")}>{label}</td>
-                      {statuses.map((st) => <Fragment key={st}>{cell(sum((r) => r.m === m && r.status === st && r.service === sv), { title: `${title} · ${STATUS_SHORT[st]} · ${label}`, site, m, status: st, service: sv }, tone)}</Fragment>)}
-                      {cell(sum((r) => r.m === m && r.service === sv), { title: `${title} · ${label}`, site, m, service: sv }, tone)}
-                    </tr>
-                  ))}
+                    {statuses.map((st) => {
+                      const v = get(m, st, null);
+                      return (
+                        <td key={st} className="px-2 py-2 text-right">
+                          {v ? <button type="button" onClick={() => onPick({ title: `${title} · ${STATUS_SHORT[st]}`, site, m, status: st })} className="hover:underline"><AnimatedNumber value={v} /></button> : ""}
+                        </td>
+                      );
+                    })}
+                    <td className="rounded-r-xl px-3 py-2 text-right">
+                      <button type="button" onClick={() => onPick({ title, site, m })} className="hover:underline"><AnimatedNumber value={get(m, null, null)} /></button>
+                    </td>
+                  </motion.tr>
+                  <AnimatePresence initial={false}>
+                    {isOpen && SV.map((sv, j) => (
+                      <motion.tr key={sv}
+                        initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10, transition: { duration: 0.18 } }}
+                        transition={{ delay: 0.05 * j, duration: 0.3, ease: EASE }}>
+                        <td className="py-1 pl-8 pr-3"><ServiceBadge s={sv} size="xs" /></td>
+                        {statuses.map((st) => {
+                          const v = get(m, st, sv), stTotal = get(m, st, null);
+                          return (
+                            <td key={st} className="px-1 py-1 text-right">
+                              {v > 0 && (
+                                <button type="button"
+                                  onClick={() => onPick({ title: `${title} · ${STATUS_SHORT[st]} · ${SERVICE_STYLE[sv].label}`, site, m, status: st, service: sv })}
+                                  title={`${MONTHS[m - 1]} · ${STATUS_LABEL[st]} · ${SERVICE_STYLE[sv].label}: ${n(v)} (${Math.round((v / stTotal) * 100)}% de esa etapa)`}
+                                  style={heat(sv, v, sv === "A TIEMPO" ? maxOn : maxLate)}
+                                  className="block w-full rounded-lg px-2 py-1 text-right font-semibold transition-transform duration-200 ease-out hover:scale-105">
+                                  <AnimatedNumber value={v} />
+                                </button>
+                              )}
+                            </td>
+                          );
+                        })}
+                        <td className="px-3 py-1 text-right">
+                          <button type="button" onClick={() => onPick({ title: `${title} · ${SERVICE_STYLE[sv].label}`, site, m, service: sv })}
+                            className="inline-flex items-center gap-1.5 font-semibold hover:underline">
+                            <span className={cn("h-2 w-2 rounded-full", SERVICE_STYLE[sv].dot)} />
+                            <AnimatedNumber value={get(m, null, sv)} />
+                          </button>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
                 </Fragment>
               );
             })}
-            <tr className="font-bold">
-              <td className="px-3 py-2">Total</td>
-              {statuses.map((st) => <Fragment key={st}>{cell(sum((r) => r.status === st), { title: `${ROUTE_NAME[site]} · ${STATUS_SHORT[st]}`, site, status: st })}</Fragment>)}
-              {cell(sum(() => true), { title: `${ROUTE_NAME[site]} · Todas`, site })}
-            </tr>
+            {months.length > 0 && (
+              <tr className="font-bold">
+                <td className="border-t-2 border-sb-outline-variant/60 px-3 py-2">Total</td>
+                {statuses.map((st) => (
+                  <td key={st} className="border-t-2 border-sb-outline-variant/60 px-2 py-2 text-right">
+                    {get(null, st, null) ? <button type="button" onClick={() => onPick({ title: `${ROUTE_NAME[site]} · ${STATUS_SHORT[st]}`, site, status: st })} className="hover:underline">{n(get(null, st, null))}</button> : ""}
+                  </td>
+                ))}
+                <td className="border-t-2 border-sb-outline-variant/60 px-3 py-2 text-right">
+                  <button type="button" onClick={() => onPick({ title: `${ROUTE_NAME[site]} · Todas`, site })} className="hover:underline">{n(get(null, null, null))}</button>
+                </td>
+              </tr>
+            )}
+            {!months.length && <tr><td colSpan={statuses.length + 2} className="px-3 py-8 text-center text-sb-on-surface-variant/60">Sin unidades este año.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -307,21 +369,25 @@ function DetailModal({ ask, year, onClose }: { ask: Ask | null; year: number; on
                               <td className="px-3 py-2">
                                 <button type="button" aria-expanded={isOpen} className="flex items-center gap-1"
                                   onClick={() => setOpen((s) => { const x = new Set(s); if (x.has(d.district)) x.delete(d.district); else x.add(d.district); return x; })}>
-                                  <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", isOpen && "rotate-90")} />{d.district}
+                                  <ChevronRight className={cn("h-3.5 w-3.5 transition-transform duration-200 ease-out", isOpen && "rotate-90")} />{d.district}
                                 </button>
                               </td>
                               <td className="px-3 py-2 text-right tabular-nums">{d.w2 ? n(d.w2) : ""}</td>
                               <td className="px-3 py-2 text-right tabular-nums">{d.w3 ? n(d.w3) : ""}</td>
                               <td className="px-3 py-2 text-right tabular-nums">{n(d.total)}</td>
                             </tr>
-                            {isOpen && d.dealers.map((x) => (
-                              <tr key={x.dealer} className="border-b border-sb-outline-variant/10 text-xs text-sb-on-surface-variant">
+                            <AnimatePresence initial={false}>
+                            {isOpen && d.dealers.map((x, k) => (
+                              <motion.tr key={x.dealer} className="border-b border-sb-outline-variant/10 text-xs text-sb-on-surface-variant"
+                                initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                                transition={{ duration: 0.25, delay: 0.03 * k, ease: EASE }}>
                                 <td className="py-1.5 pl-9 pr-3">{x.dealer}</td>
                                 <td className="px-3 py-1.5 text-right tabular-nums">{x.w2 ? n(x.w2) : ""}</td>
                                 <td className="px-3 py-1.5 text-right tabular-nums">{x.w3 ? n(x.w3) : ""}</td>
                                 <td className="px-3 py-1.5 text-right tabular-nums">{n(x.total)}</td>
-                              </tr>
+                              </motion.tr>
                             ))}
+                            </AnimatePresence>
                           </Fragment>
                         );
                       })}
@@ -400,6 +466,7 @@ export default function Board() {
   const routeLegend = ROUTES.map((s) => ({ name: ROUTE_NAME[s], color: `var(--route-${s})` }));
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="board-root flex flex-col gap-5">
       <style>{VIZ_CSS}</style>
       <PageTitle title={`Tablero · ${data.year}`} sub="Por mes de facturación. Haz clic en un mes o en una cifra para ver el detalle por distrito con motos (2W) y motokares (3W).">
@@ -444,5 +511,6 @@ export default function Board() {
 
       <DetailModal key={ask ? JSON.stringify(ask) : "none"} ask={ask} year={data.year} onClose={() => setAsk(null)} />
     </div>
+    </MotionConfig>
   );
 }
