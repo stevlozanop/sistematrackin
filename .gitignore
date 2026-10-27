@@ -48,3 +48,7 @@ next-env.d.ts
 *.xlsx
 *.xls
 ACCESOS-ENCARGADOS.md
+
+# archivos temporales de LibreOffice / Excel
+.~lock.*
+~$*
