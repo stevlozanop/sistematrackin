@@ -45,7 +45,7 @@ export async function GET() {
        FROM v_units WHERE ${w} GROUP BY material ORDER BY open DESC, total DESC, material ASC LIMIT 8`, a,
     ),
     queryList(
-      `SELECT site, chassis, material, dealer, d_entrega, service, real_days FROM v_units
+      `SELECT site, chassis, guia, material, dealer, d_entrega, service, real_days FROM v_units
        WHERE ${w} AND d_entrega IS NOT NULL ORDER BY d_entrega DESC, id DESC LIMIT 6`, a,
     ),
   ]);

@@ -456,6 +456,9 @@ export default function SitePage({ params, searchParams }: {
                 <Table.Column allowsSorting id="material">
                   {({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Modelo</Table.SortableColumnHeader>}
                 </Table.Column>
+                <Table.Column allowsSorting id="guia">
+                  {({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Guía / Factura</Table.SortableColumnHeader>}
+                </Table.Column>
                 <Table.Column allowsSorting id="dealer">
                   {({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Dealer / {info.zoneLabel}</Table.SortableColumnHeader>}
                 </Table.Column>
@@ -496,6 +499,10 @@ export default function SitePage({ params, searchParams }: {
                     <Table.Cell>
                       <div className="whitespace-nowrap text-xs">{u.material}</div>
                       <div className="text-[10px] text-muted">{u.category}{u.lote ? ` · Lote ${u.lote}` : ""}</div>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <div className="whitespace-nowrap font-mono text-xs">{u.guia || "—"}</div>
+                      <div className="whitespace-nowrap font-mono text-[10px] text-muted">{u.invoice || ""}</div>
                     </Table.Cell>
                     <Table.Cell>
                       <div className="max-w-[14rem] truncate text-xs" title={u.dealer ?? ""}>{u.dealer}</div>

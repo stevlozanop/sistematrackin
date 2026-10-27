@@ -17,7 +17,7 @@ type Data = {
   byMonth: { ym: string; total: number; delivered: number; open: number; on_time: number; late: number }[];
   byStore: { dealer: string; total: number; open: number; delivered: number; on_time: number; late_open: number }[];
   byModel: { material: string | null; category: string | null; open: number; total: number }[];
-  recent: { site: string; chassis: string; material: string | null; dealer: string | null; d_entrega: string; service: Service | null; real_days: number | null }[];
+  recent: { site: string; chassis: string; guia: string | null; material: string | null; dealer: string | null; d_entrega: string; service: Service | null; real_days: number | null }[];
 };
 
 /** Las etapas en palabras que entiende el comprador final. */
@@ -201,7 +201,7 @@ export default function ClientSummary() {
             {d.recent.length ? d.recent.map((u) => (
               <Link key={u.chassis} href={`/portal?tab=all&q=${encodeURIComponent(u.chassis)}`}
                 className="flex items-center gap-2 border-b border-sb-outline-variant/20 py-1.5 text-xs last:border-0 hover:text-sb-primary">
-                <span className="min-w-0 flex-1 truncate"><b className="font-mono font-medium">{u.chassis}</b> <span className="text-sb-on-surface-variant">· {u.material} · {u.dealer}</span></span>
+                <span className="min-w-0 flex-1 truncate"><b className="font-mono font-medium">{u.chassis}</b> <span className="text-sb-on-surface-variant">· {u.material}{u.guia ? ` · Guía ${u.guia}` : ""} · {u.dealer}</span></span>
                 <ServiceBadge s={u.service} size="xs" />
                 <span className="shrink-0 text-[11px] text-sb-on-surface-variant">{fmtDate(u.d_entrega)}</span>
               </Link>

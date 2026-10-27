@@ -36,7 +36,7 @@ export async function GET(req: Request) {
        GROUP BY d.client ORDER BY total DESC, d.client ASC LIMIT 15`, a,
     ),
     queryList(
-      `SELECT site, chassis, dealer, status, billing_date, est_date, DATEDIFF(CURDATE(), billing_date) age, delay_reason
+      `SELECT site, chassis, guia, dealer, status, billing_date, est_date, DATEDIFF(CURDATE(), billing_date) age, delay_reason
        FROM v_units WHERE ${w} AND d_entrega IS NULL ORDER BY billing_date, id LIMIT 10`, a,
     ),
     queryList<{ target: number }>("SELECT target FROM settings WHERE id = 1"),

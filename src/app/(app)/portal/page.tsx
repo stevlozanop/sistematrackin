@@ -45,6 +45,7 @@ function statusText(u: Unit) {
     `Estado de tu moto Honda`,
     `Modelo: ${u.material ?? "—"}`,
     `Chasis: ${u.chassis}${u.motor ? ` · Motor: ${u.motor}` : ""}`,
+    u.guia ? `Guía de remisión: ${u.guia}` : "",
     `Etapa: ${STATUS_LABEL[u.status]}`,
     e,
     u.dealer ? `Tienda: ${u.dealer}` : "",
@@ -163,6 +164,7 @@ export default function PortalPage() {
                     <div className="min-w-0">
                       <p className="truncate font-mono text-sm font-semibold">{u.chassis}</p>
                       <p className="truncate text-[11px] text-sb-on-surface-variant">{u.material ?? "—"}{u.category ? ` · ${u.category}` : ""} · {SITE_INFO[u.site].short}</p>
+                      {u.guia && <p className="truncate font-mono text-[11px] text-sb-on-surface-variant">Guía {u.guia}</p>}
                       {stores.length > 1 && <p className="truncate text-[11px] font-medium text-sb-on-surface-variant">{u.dealer}</p>}
                     </div>
                     {(u.d_entrega || u.alert === "VENCIDA") && <ServiceBadge s={u.service} size="xs" />}
@@ -209,7 +211,7 @@ export default function PortalPage() {
                         ["Facturada", fmtDate(open.billing_date) || "—"],
                         ["Fecha estimada", fmtDate(open.est_date) || "—"],
                         ["Plazo", open.lead_time ? `${open.lead_time} días` : "—"],
-                        ["Guía", open.guia ?? "—"],
+                        ["Guía de remisión", open.guia ?? "—"],
                       ].map(([k, v]) => (
                         <div key={k}><p className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">{k}</p><p className="font-medium">{v}</p></div>
                       ))}

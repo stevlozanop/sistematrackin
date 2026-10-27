@@ -33,7 +33,7 @@ export async function GET(req: Request) {
       args,
     ),
     queryList<Record<string, unknown>>(
-      `SELECT v.site, v.chassis, v.motor, v.material, d.client, v.dealer, v.zone, v.status, v.billing_date, v.est_date, v.days_left,
+      `SELECT v.site, v.chassis, v.motor, v.material, v.guia, v.invoice, d.client, v.dealer, v.zone, v.status, v.billing_date, v.est_date, v.days_left,
          v.alert, v.service, v.carrier, v.delay_reason
        FROM v_units v LEFT JOIN dealers d ON d.id = v.dealer_id
        WHERE ${where.replace(/\bdealer_id\b/g, "v.dealer_id").replace(/\bbilling_date\b/g, "v.billing_date")} AND v.d_entrega IS NULL
@@ -72,7 +72,7 @@ export async function GET(req: Request) {
   XLSX.utils.book_append_sheet(wb, ws1, "Resumen");
 
   const ws2 = XLSX.utils.json_to_sheet(open.map((u) => ({
-    Módulo: u.site, Chasis: u.chassis, Motor: u.motor, Modelo: u.material, Cliente: u.client, Tienda: u.dealer, Zona: u.zone,
+    Módulo: u.site, Chasis: u.chassis, Motor: u.motor, Modelo: u.material, "Guía de remisión": u.guia ?? "", Factura: u.invoice ?? "", Cliente: u.client, Tienda: u.dealer, Zona: u.zone,
     Estado: STATUS_LABEL[u.status as Status] ?? u.status, Facturada: u.billing_date, "Fecha estimada": u.est_date,
     "Días para vencer": u.days_left, Alerta: u.alert ?? "", "Nivel de servicio": u.service ?? "", Transportista: u.carrier ?? "",
     "Motivo de demora": u.delay_reason ?? "",

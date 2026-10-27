@@ -5,7 +5,7 @@ import { DATE_FIELDS, isSite, type DateField, type Site } from "@/lib/hsp";
 import { checkDateEdit, isSuper, needsDelayReason, pendingSql, seesAll } from "@/lib/workflow";
 
 const SORTABLE = new Set([
-  "days_left", "chassis", "material", "dealer", "zone", "billing_date", "est_date", "status", "service", "delay_reason", "real_days",
+  "days_left", "chassis", "material", "guia", "dealer", "zone", "billing_date", "est_date", "status", "service", "delay_reason", "real_days",
   ...DATE_FIELDS,
 ]);
 

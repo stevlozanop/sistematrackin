@@ -13,7 +13,7 @@ type Summary = {
   byMonth: { ym: string; total: number; delivered: number; open: number; on_time: number; late: number }[];
   byStatus: { status: Status; n: number; overdue: number }[];
   byClient: { client: string | null; total: number; open: number; on_time: number }[];
-  oldest: { site: string; chassis: string; dealer: string | null; status: Status; billing_date: string; est_date: string | null; age: number; delay_reason: string | null }[];
+  oldest: { site: string; chassis: string; guia: string | null; dealer: string | null; status: Status; billing_date: string; est_date: string | null; age: number; delay_reason: string | null }[];
 };
 
 const ORDER: Status[] = ["IQT-PORT", "TRANSITO FLUVIAL", "ARRIBO PUERTO", "EN ALMACÉN", "TRANSITO DEALER", "EN ALMACÉN LIMA", "TRANSITO DEALER 2"];
@@ -192,7 +192,7 @@ export default function ReportsPage() {
               {data.oldest.map((u) => (
                 <div key={u.chassis} className="border-b border-sb-outline-variant/20 py-1.5 text-xs last:border-0">
                   <div className="flex justify-between gap-2"><b className="font-mono font-medium">{u.chassis}</b><span className="text-sb-on-surface-variant">{fmtDate(u.billing_date)} · {u.age} días</span></div>
-                  <div className="text-[11px] text-sb-on-surface-variant">{u.site} · {STATUS_LABEL[u.status]} · {u.dealer}{u.delay_reason ? ` · ${u.delay_reason}` : ""}</div>
+                  <div className="text-[11px] text-sb-on-surface-variant">{u.site} · {STATUS_LABEL[u.status]} · {u.dealer}{u.guia ? ` · Guía ${u.guia}` : ""}{u.delay_reason ? ` · ${u.delay_reason}` : ""}</div>
                 </div>
               ))}
               {!data.oldest.length && <p className="text-xs text-sb-on-surface-variant">Todo entregado.</p>}
