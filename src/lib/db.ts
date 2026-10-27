@@ -45,8 +45,9 @@ function poolConfig(): pg.PoolConfig {
     ssl: local || process.env.DB_SSL === "false" ? false
       : process.env.DB_SSL_CA ? { ca: process.env.DB_SSL_CA.replace(/\\n/g, "\n") } : { rejectUnauthorized: false },
     // En Vercel cada función abre su propio pool: pocas conexiones para no agotar el límite de la base
-    max: Number(process.env.DB_POOL_LIMIT) || (process.env.VERCEL ? 3 : 10),
-    idleTimeoutMillis: process.env.VERCEL ? 10_000 : 60_000,
+    // Supabase limita las conexiones (15 en el pooler en modo sesión): pocas por proceso y se sueltan rápido
+    max: Number(process.env.DB_POOL_LIMIT) || 3,
+    idleTimeoutMillis: 10_000,
     connectionTimeoutMillis: 15_000,
     types,
   };

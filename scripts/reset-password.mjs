@@ -34,7 +34,10 @@ const url = new URL(raw);
 const local = ["127.0.0.1", "localhost"].includes(url.hostname);
 for (const k of ["sslmode", "supa", "pgbouncer"]) url.searchParams.delete(k);
 const db = new pg.Client({ connectionString: url.toString(), ssl: local ? false : { rejectUnauthorized: false } });
-await db.connect();
+await db.connect().catch((e) => {
+  console.error(e.code === "28P01" ? "Supabase rechazó la contraseña de la base (DATABASE_URL en .env)." : `No se pudo conectar a la base: ${e.message}`);
+  process.exit(1);
+});
 try {
   const { rows: [u] } = await db.query("SELECT id, name, role FROM users WHERE email = $1", [email]);
   if (!u) throw new Error(`No existe una cuenta con el correo ${email}`);
