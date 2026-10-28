@@ -59,6 +59,9 @@ export default function GuiasPage() {
   const [stage, setStage] = useState<DateField | null>(null);
   const [q, setQ] = useState("");
   const [qInput, setQInput] = useState("");
+  // Fecha de facturación (ej. «todo lo facturado del 21 al 24»)
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [data, setData] = useState<Data | null>(null);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<string | null>(null);
@@ -77,20 +80,22 @@ export default function GuiasPage() {
   const current = site ?? sites[0] ?? null;
 
   // Cada consulta tiene su clave; mientras la respuesta no sea de la clave actual, se muestra «cargando»
-  const key = current ? `${current}|${stage ?? ""}|${q}|${reload}` : "";
+  const key = current ? `${current}|${stage ?? ""}|${q}|${from}|${to}|${reload}` : "";
   useEffect(() => {
     if (!current) return;
     let alive = true;
     const p = new URLSearchParams({ site: current });
     if (stage) p.set("stage", stage);
     if (q) p.set("q", q);
+    if (from) p.set("from", from);
+    if (to) p.set("to", to);
     fetch(`/api/guias?${p}`).then((r) => r.json()).then((d: Data) => {
       if (!alive) return;
       setData({ ...d, key });
       if (d.error) toast.danger(d.error);
     });
     return () => { alive = false; };
-  }, [current, stage, q, key]);
+  }, [current, stage, q, from, to, key]);
   const loading = data?.key !== key;
   // La búsqueda se aplica al dejar de escribir
   useEffect(() => { const t = setTimeout(() => setQ(qInput.trim()), 350); return () => clearTimeout(t); }, [qInput]);
@@ -165,9 +170,21 @@ export default function GuiasPage() {
               {stageLabel(current!, st)}
             </button>
           ))}
-          <label className="relative ml-auto w-full sm:w-80">
+          <div className="ml-auto flex flex-wrap items-center gap-2 text-[11px] text-sb-on-surface-variant">
+            <span>Facturadas del</span>
+            <input type="date" aria-label="Facturadas desde" className={cn(field, "h-9 px-2")} value={from} max={to || undefined}
+              onChange={(e) => { setFrom(e.target.value); resetSelection(); }} />
+            <span>al</span>
+            <input type="date" aria-label="Facturadas hasta" className={cn(field, "h-9 px-2")} value={to} min={from || undefined}
+              onChange={(e) => { setTo(e.target.value); resetSelection(); }} />
+            {(from || to) && (
+              <button type="button" onClick={() => { setFrom(""); setTo(""); resetSelection(); }} aria-label="Quitar filtro de fechas"
+                className="rounded-full p-1 hover:bg-sb-surface-container hover:text-sb-on-surface"><X className="h-3.5 w-3.5" /></button>
+            )}
+          </div>
+          <label className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sb-on-surface-variant" />
-            <input className={cn(field, "w-full pl-9")} placeholder="Buscar guías (varias separadas por coma)" value={qInput} onChange={(e) => setQInput(e.target.value)} aria-label="Buscar guías" />
+            <input className={cn(field, "w-full pl-9")} placeholder="Buscar guías (separa con coma)" value={qInput} onChange={(e) => setQInput(e.target.value)} aria-label="Buscar guías" />
           </label>
         </div>
 

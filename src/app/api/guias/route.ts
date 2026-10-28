@@ -8,7 +8,8 @@ import { isSuper } from "@/lib/workflow";
  * Carga por guía de remisión: las unidades que esperan una etapa, agrupadas por guía.
  * Una guía trae varias motos/motokares; el encargado marca las guías y registra la fecha de su etapa de una vez.
  *
- * GET /api/guias?site=PCL&stage=d_zarpe[&q=0T005]       -> guías pendientes de esa etapa
+ * GET /api/guias?site=PCL&stage=d_zarpe[&q=0T005][&from=2026-10-21&to=2026-10-24] -> guías pendientes de esa etapa
+ *   (from/to = fecha de facturación, ej. «todo lo facturado del 21 al 24»)
  * GET /api/guias?site=PCL&stage=d_zarpe&guia=09-0T005-1 -> unidades de esa guía
  * Para guardar se usa PATCH /api/units con los ids (mismas reglas que en «Mi trabajo»).
  */
@@ -42,6 +43,10 @@ export async function GET(req: Request) {
     return NextResponse.json({ units });
   }
 
+  const day = (v: string | null) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
+  const from = day(p.get("from")), to = day(p.get("to"));
+  if (from) { where.push("billing_date >= ?"); args.push(from); }
+  if (to) { where.push("billing_date <= ?"); args.push(to); }
   const q = p.get("q")?.trim();
   if (q) {
     // Varias guías separadas por coma, espacio o salto de línea (como las anota el encargado)
