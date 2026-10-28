@@ -39,5 +39,6 @@ export async function getScope(userId: number) {
     query<{ area: string | null; carrier: string | null; can_import: number }>("SELECT area, carrier, can_import FROM users WHERE id=?", [userId]),
     getStages(userId),
   ]);
-  return { stages, area: u?.area ?? null, carrier: u?.carrier || null, canImport: !!Number(u?.can_import) };
+  // Todo encargado puede subir Excel: el sistema registra solo las fechas de sus etapas
+  return { stages, area: u?.area ?? null, carrier: u?.carrier || null, canImport: true };
 }

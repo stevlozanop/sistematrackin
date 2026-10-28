@@ -71,15 +71,7 @@ export function AreaPicker({ value, onChange, carriers }: { value: Assignment; o
           <span className="text-[10px] text-muted">Si eliges una empresa, este usuario solo verá y registrará las unidades que lleva esa empresa.</span>
         </label>
       )}
-      {module && (
-        <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-sb-outline-variant/60 p-2.5 text-xs">
-          <input type="checkbox" checked={value.canImport} onChange={(e) => onChange({ ...value, canImport: e.target.checked })} className="mt-0.5 h-4 w-4 accent-[var(--sb-primary)]" />
-          <span>
-            <b>Puede subir Excel con las fechas de su etapa</b>
-            <span className="block text-[10px] text-muted">Carga masiva: solo se guardan sus etapas, en orden y sin cambiar fechas ya registradas.</span>
-          </span>
-        </label>
-      )}
+      {/* Subir Excel: todo encargado puede; el sistema toma solo las fechas de sus etapas */}
     </div>
   );
 }

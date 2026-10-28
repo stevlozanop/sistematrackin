@@ -24,7 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Tema: The Iceberg Labs en blanco y negro; las demás cuentas con el color de su empresa
   const swm = s.role === "dev";
   // Botón único «Subir Excel»: la empresa y el consorcio suben unidades; el encargado con permiso, las fechas de su etapa
-  const upload = s.role === "admin" || s.role === "viewer" ? "units" : s.role === "operator" && Number(u?.can_import) ? "stage" : null;
+  const upload = s.role === "admin" || s.role === "viewer" ? "units" : s.role === "operator" ? "stage" : null;
   return (
     <>
     <style dangerouslySetInnerHTML={{ __html: themeCss(brand?.color ?? null, swm) }} />

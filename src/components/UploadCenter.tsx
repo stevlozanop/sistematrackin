@@ -4,7 +4,8 @@ import { Modal, toast } from "@heroui/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FileSpreadsheet, Upload } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { ImportPanel, isUnknownExcel, readUnitsExcel, saveExcel, type Preview } from "@/components/ImportPanel";
+import { ImportPanel, isUnknownExcel, parseInBrowser, readUnitsExcel, saveExcel, type Preview } from "@/components/ImportPanel";
+import { SITE_INFO, type DateField, type Site } from "@/lib/hsp";
 import { StagePreview, type StagePreviewData } from "@/components/StageImport";
 
 /**
@@ -43,14 +44,45 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
     setStage(j);
   }
 
+  /**
+   * Encargado: si sube el archivo completo (HSP-OFICIAL), su navegador toma solo las columnas de sus etapas y de su ruta
+   * y envía ese Excel pequeño. La plantilla de «Mi trabajo» (u otro Excel con sus columnas) se envía tal cual.
+   */
+  async function stageFromAnyFile(file: File) {
+    let parsed: Awaited<ReturnType<typeof parseInBrowser>> | null = null;
+    try {
+      parsed = await parseInBrowser(file);
+    } catch (e) {
+      if (!isUnknownExcel(e)) throw e; // no es HSP ni facturación: es la plantilla u otro Excel con sus columnas
+    }
+    if (!parsed) {
+      if (file.size > 4_000_000) throw new Error("El archivo es muy grande. Usa la plantilla de «Mi trabajo» (solo tus unidades).");
+      return stageFile(file);
+    }
+    if (parsed.format === "FACT") throw new Error("Es la facturación: la sube la empresa. No trae fechas de tu etapa.");
+    const me = await fetch("/api/me").then((r) => r.json()) as { stages: { site: Site; field: DateField }[] };
+    const mine = me.stages ?? [];
+    const label = (st: { site: Site; field: DateField }) => SITE_INFO[st.site].dates.find((d) => d.key === st.field)?.label ?? st.field;
+    const fields = [...new Map(mine.map((st) => [st.field, st])).values()];
+    const header = ["Número Chasis", ...fields.map(label), "Motivo de demora"];
+    const rows = parsed.rows
+      .filter((r) => mine.some((st) => st.site === r.site && r.dates[st.field]))
+      .map((r) => [r.chassis, ...fields.map((st) => (r.site === st.site || mine.some((m) => m.site === r.site && m.field === st.field) ? r.dates[st.field] ?? null : null)), r.fields.delay_reason]);
+    if (!rows.length) throw new Error(`Este archivo no trae fechas de tus etapas (${mine.map(label).join(", ")}).`);
+    const XLSX = await import("xlsx");
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([header, ...rows]), "Registro");
+    const out = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+    return stageFile(new File([out], file.name, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+  }
+
   async function read(file: File) {
     reset();
     setReading(file.name);
     try {
       if (mode === "stage") {
-        // El encargado solo registra fechas de sus etapas (plantilla o el mismo HSP con su columna)
-        if (file.size > 4_000_000) throw new Error("El archivo es muy grande para fechas de etapa: usa la plantilla de «Mi trabajo» (solo tus unidades).");
-        await stageFile(file);
+        // El encargado solo registra fechas de sus etapas (plantilla o el archivo completo: se toma solo lo suyo)
+        await stageFromAnyFile(file);
       } else {
         try {
           setUnits(await readUnitsExcel(file));
@@ -103,7 +135,7 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
               <Modal.Heading>Subir Excel</Modal.Heading>
               <p className="text-xs text-sb-on-surface-variant">
                 {mode === "stage"
-                  ? "Sube la plantilla con las fechas de tus etapas. El sistema registra solo lo que te toca."
+                  ? "Sube tu plantilla o el archivo completo. El sistema toma solo las fechas de tus etapas y las registra con las reglas de siempre."
                   : "Sube la facturación o el HSP-OFICIAL. El sistema reconoce el archivo y lo distribuye: ruta por distrito, estado y plazos."}
               </p>
             </Modal.Header>
@@ -124,7 +156,7 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
                   <span className="text-sm font-semibold">{reading ? `Leyendo ${reading}…` : "Arrastra el Excel aquí o haz clic para elegirlo"}</span>
                   <span className="max-w-md text-[11px] text-sb-on-surface-variant">
                     {mode === "stage"
-                      ? "Plantilla de «Mi trabajo» (Número Chasis + la columna de tu etapa)."
+                      ? "La plantilla de «Mi trabajo» o el HSP-OFICIAL completo: se toman solo las fechas de tus etapas."
                       : "Facturación (FACT HSP-DATA / PCL-FACT) → unidades nuevas en IQT-Port, Yurimaguas o Pucallpa según el distrito · HSP-OFICIAL → crea y actualiza con sus fechas."}
                   </span>
                 </motion.button>

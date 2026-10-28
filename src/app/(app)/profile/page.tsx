@@ -140,7 +140,7 @@ export default function ProfilePage() {
           )}
           {isOperator && <Row label="Área">{area?.label ?? "—"}</Row>}
           {isOperator && <Row label="Empresa de transporte">{p.carrier ?? "Todas"}</Row>}
-          {isOperator && <Row label="Carga de Excel">{p.canImport ? "Permitida" : "No permitida"}</Row>}
+          {isOperator && <Row label="Carga de Excel">Solo las fechas de tus etapas</Row>}
           <Row label="Cuenta creada">{p.created_at.split("-").reverse().join("/")}</Row>
           {isOperator && (
             <div className="pt-3">

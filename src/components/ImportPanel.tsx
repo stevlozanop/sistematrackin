@@ -30,7 +30,7 @@ async function post(body: unknown) {
 }
 
 /** Lee el Excel en un worker del navegador (no congela la pantalla). */
-async function parseInBrowser(file: File) {
+export async function parseInBrowser(file: File) {
   const buf = await file.arrayBuffer();
   return new Promise<{ format: "HSP" | "FACT"; duplicates: number; rows: UnitRow[] }>((resolve, reject) => {
     const w = new Worker(new URL("../lib/excel-worker.ts", import.meta.url), { type: "module" });

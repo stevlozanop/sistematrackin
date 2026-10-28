@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button, toast } from "@heroui/react";
 import { Download, Save, X } from "lucide-react";
 import { Card } from "@/components/ui";
-import { SITE_INFO, fmtDate, type DateField, type Site } from "@/lib/hsp";
+import { SITE_INFO, fmtDate, stepLabel, type DateField, type Site } from "@/lib/hsp";
 import type { Stage } from "@/lib/workflow";
 
 export type StagePreviewData = {
@@ -14,6 +14,7 @@ export type StagePreviewData = {
   saved?: boolean;
 };
 
+/** Nombre de la columna en la plantilla (el que reconoce la carga). En pantalla se usa stepLabel, como en todo el sistema. */
 const label = (site: Site, f: DateField) => SITE_INFO[site].dates.find((d) => d.key === f)?.label ?? f;
 
 /** Plantilla del encargado: Excel con los chasis que esperan sus etapas. Se llena y se sube con «Subir Excel» del menú. */
@@ -88,7 +89,7 @@ export function StagePreview({ preview, saving, onSave, onClose, className }: {
           {preview.sample.map((u) => (
             <li key={u.chassis} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-2">
               <span className="font-mono font-semibold">{u.chassis}</span>
-              {Object.entries(u.changes).map(([f, v]) => <span key={f} className="text-sb-on-surface-variant">{label(u.site, f as DateField)}: <b className="text-sb-on-surface">{fmtDate(v)}</b></span>)}
+              {Object.entries(u.changes).map(([f, v]) => <span key={f} className="text-sb-on-surface-variant">{stepLabel(u.site, f as DateField)}: <b className="text-sb-on-surface">{fmtDate(v)}</b></span>)}
             </li>
           ))}
           {!preview.sample.length && <li className="px-4 py-6 text-center text-sb-on-surface-variant/60">No hay fechas válidas para registrar.</li>}
