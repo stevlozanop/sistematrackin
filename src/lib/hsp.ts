@@ -10,7 +10,7 @@ export const DATE_FIELDS: DateField[] = [
 ];
 
 export type Status =
-  | "IQT-PORT" | "TRANSITO FLUVIAL" | "ARRIBO PUERTO" | "EN ALMACÉN" | "TRANSITO DEALER" | "EN ALMACÉN LIMA"
+  | "IQT-PORT" | "EMBARQUE" | "TRANSITO FLUVIAL" | "ARRIBO PUERTO" | "EN ALMACÉN" | "TRANSITO DEALER" | "EN ALMACÉN LIMA"
   | "TRANSITO DEALER 2" | "ENTREGADO";
 export type Service = "A TIEMPO" | "FUERA DE TIEMPO";
 
@@ -25,6 +25,7 @@ export const SITE_INFO: Record<Site, {
     zoneField: "department",
     // n = número del paso al que lleva esa fecha (in = entrada, out = salida)
     dates: [
+      { key: "d_carga", n: "1.1", label: "Embarque Iquitos" },
       { key: "d_zarpe", n: "2", label: "Zarpe IQT" },
       { key: "d_arribo", n: "3", label: "Arribo PCL" },
       { key: "d_almacen", n: "4", label: "Entrega almacén (in)" },
@@ -33,7 +34,7 @@ export const SITE_INFO: Record<Site, {
       { key: "d_sal_lima", n: "5.2", label: "Salida alm. Lima (out)" },
       { key: "d_entrega", n: "6", label: "Entrega dealer" },
     ],
-    statuses: ["IQT-PORT", "TRANSITO FLUVIAL", "ARRIBO PUERTO", "EN ALMACÉN", "TRANSITO DEALER", "EN ALMACÉN LIMA", "TRANSITO DEALER 2", "ENTREGADO"],
+    statuses: ["IQT-PORT", "EMBARQUE", "TRANSITO FLUVIAL", "ARRIBO PUERTO", "EN ALMACÉN", "TRANSITO DEALER", "EN ALMACÉN LIMA", "TRANSITO DEALER 2", "ENTREGADO"],
   },
   YUR: {
     title: "YUR · Yurimaguas",
@@ -41,14 +42,14 @@ export const SITE_INFO: Record<Site, {
     zoneLabel: "Ruta",
     zoneField: "route",
     dates: [
-      { key: "d_carga", n: "1", label: "Carga en Iquitos" },
+      { key: "d_carga", n: "1.1", label: "Embarque Iquitos" },
       { key: "d_zarpe", n: "2", label: "Zarpe IQT" },
       { key: "d_arribo", n: "3", label: "Arribo Yurimaguas" },
       { key: "d_almacen", n: "4", label: "Ingreso ENAPU (in)" },
       { key: "d_despacho", n: "5", label: "Despacho (out)" },
       { key: "d_entrega", n: "6", label: "Entrega dealer" },
     ],
-    statuses: ["IQT-PORT", "TRANSITO FLUVIAL", "ARRIBO PUERTO", "EN ALMACÉN", "TRANSITO DEALER", "ENTREGADO"],
+    statuses: ["IQT-PORT", "EMBARQUE", "TRANSITO FLUVIAL", "ARRIBO PUERTO", "EN ALMACÉN", "TRANSITO DEALER", "ENTREGADO"],
   },
 };
 
@@ -58,6 +59,7 @@ for (const info of Object.values(SITE_INFO)) for (const d of info.dates) d.label
 /** Pasos del proceso (como en el Excel): 1 a 6, con 5.1 y 5.2 solo para dealers de Ruta Lima. */
 export const STATUS_STEP: Record<Status, string> = {
   "IQT-PORT": "1",
+  EMBARQUE: "1.1",
   "TRANSITO FLUVIAL": "2",
   "ARRIBO PUERTO": "3",
   "EN ALMACÉN": "4",
@@ -68,6 +70,7 @@ export const STATUS_STEP: Record<Status, string> = {
 };
 const STATUS_NAME: Record<Status, string> = {
   "IQT-PORT": "IQT-Port",
+  EMBARQUE: "Embarque",
   "TRANSITO FLUVIAL": "Tránsito fluvial",
   "ARRIBO PUERTO": "Arribo puerto",
   "EN ALMACÉN": "En almacén",

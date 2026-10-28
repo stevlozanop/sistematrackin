@@ -54,7 +54,7 @@ function statusText(u: Unit) {
 
 /** Barra de avance: un segmento por etapa, relleno hasta la etapa actual. */
 function Progress({ u }: { u: Unit }) {
-  const steps = ["1", "2", "3", "4", "5", ...(u.site === "PCL" && (Number(u.via_lima) || u.d_alm_lima) ? ["5.1", "5.2"] : []), "6"];
+  const steps = ["1", "1.1", "2", "3", "4", "5", ...(u.site === "PCL" && (Number(u.via_lima) || u.d_alm_lima) ? ["5.1", "5.2"] : []), "6"];
   const cur = steps.indexOf(STATUS_STEP[u.status]);
   return (
     <div className="flex gap-1" aria-label={`Etapa ${cur + 1} de ${steps.length}`}>

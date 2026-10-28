@@ -31,12 +31,12 @@ export type Area = {
   id: string; label: string; tag: string; site: Site | null; fields: DateField[]; carrier?: boolean; desc: string;
 };
 export const AREAS: Area[] = [
-  { id: "PUERTO_IQT_PCL", label: "Puerto Iquitos · PCL", tag: "iquitospcl", site: "PCL", fields: ["d_zarpe"], desc: "Registra el zarpe de la nave desde Iquitos." },
+  { id: "PUERTO_IQT_PCL", label: "Puerto Iquitos · PCL", tag: "iquitospcl", site: "PCL", fields: ["d_carga", "d_zarpe"], desc: "Registra el embarque por contenedor y el zarpe de la nave hacia Pucallpa." },
   { id: "RECEPCION_PCL", label: "Recepción Pucallpa", tag: "recepcionpcl", site: "PCL", fields: ["d_arribo"], desc: "Registra la llegada de la nave a Pucallpa." },
   { id: "ALMACEN_PCL", label: "Almacén / Stock PCL", tag: "almacenpcl", site: "PCL", fields: ["d_almacen", "d_despacho"], desc: "Registra el ingreso al almacén y el despacho, indicando qué transporte lleva la unidad." },
   { id: "TRANSPORTE_LIMA", label: "Transporte Lima", tag: "transportelima", site: "PCL", fields: ["d_alm_lima", "d_sal_lima"], carrier: true, desc: "Registra la entrega y la salida del almacén de Lima." },
   { id: "TRANSPORTE_PCL", label: "Transporte tramo final · PCL", tag: "transportepcl", site: "PCL", fields: ["d_entrega"], carrier: true, desc: "Registra la entrega de la unidad al dealer." },
-  { id: "PUERTO_IQT_YUR", label: "Puerto Iquitos · YUR", tag: "iquitosyur", site: "YUR", fields: ["d_carga", "d_zarpe"], desc: "Registra la carga y el zarpe de la nave hacia Yurimaguas." },
+  { id: "PUERTO_IQT_YUR", label: "Puerto Iquitos · YUR", tag: "iquitosyur", site: "YUR", fields: ["d_carga", "d_zarpe"], desc: "Registra el embarque por contenedor y el zarpe de la nave hacia Yurimaguas." },
   { id: "ALMACEN_YUR", label: "Almacén Yurimaguas", tag: "almacenyur", site: "YUR", fields: ["d_arribo", "d_almacen", "d_despacho"], desc: "Registra el arribo, el ingreso a ENAPU y el despacho." },
   { id: "TRANSPORTE_YUR", label: "Transporte · YUR", tag: "transporteyur", site: "YUR", fields: ["d_entrega"], desc: "Registra la entrega de la unidad al dealer." },
   { id: "CUSTOM", label: "Personalizado", tag: "encargado", site: null, fields: [], desc: "Eliges a mano las etapas." },
@@ -48,6 +48,7 @@ type Dates = Partial<Record<DateField, string | null>> & { via_lima?: number | b
 
 /**
  * Etapa que se puede llenar ahora (la siguiente a la última con fecha), en orden estricto.
+ * 1 IQT-Port → 1.1 Embarque (carga en contenedor) → 2 Zarpe → 3 Arribo → 4 Almacén → 5 Despacho → 6 Entrega.
  * PCL con dealer de Ruta Lima: 5 despacho → 5.1 almacén Lima → 5.2 salida Lima → 6 entrega. Los demás: 5 → 6.
  * Debe coincidir con la columna next_step de la vista v_units.
  */
@@ -60,7 +61,8 @@ export function allowedNext(site: Site, u: Dates): DateField[] {
     if (u.d_almacen) return ["d_despacho"];
     if (u.d_arribo) return ["d_almacen"];
     if (u.d_zarpe) return ["d_arribo"];
-    return ["d_zarpe"];
+    if (u.d_carga) return ["d_zarpe"];
+    return ["d_carga"]; // 1.1 Embarque (carga en contenedor en Iquitos)
   }
   if (u.d_despacho) return ["d_entrega"];
   if (u.d_almacen) return ["d_despacho"];

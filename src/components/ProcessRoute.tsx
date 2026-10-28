@@ -13,6 +13,7 @@ type StepDef = { n: string; label: string; place: string; icon: LucideIcon; fiel
 const STEPS: Record<Site, StepDef[]> = {
   PCL: [
     { n: "1", label: "IQT-Port", place: "Iquitos · armada y facturada", icon: Factory },
+    { n: "1.1", label: "Embarque", place: "Carga en contenedor", icon: PackagePlus, field: "d_carga" },
     { n: "2", label: "Tránsito fluvial", place: "Zarpe de Iquitos", icon: Ship, field: "d_zarpe" },
     { n: "3", label: "Arribo puerto", place: "Puerto Pucallpa", icon: Anchor, field: "d_arribo" },
     { n: "4", label: "En almacén", place: "Entrega almacén (in)", icon: Warehouse, field: "d_almacen" },
@@ -22,7 +23,8 @@ const STEPS: Record<Site, StepDef[]> = {
     { n: "6", label: "Entregado", place: "Entrega al dealer", icon: PackageCheck, field: "d_entrega" },
   ],
   YUR: [
-    { n: "1", label: "IQT-Port", place: "Carga en Iquitos", icon: PackagePlus, field: "d_carga" },
+    { n: "1", label: "IQT-Port", place: "Iquitos · armada y facturada", icon: Factory },
+    { n: "1.1", label: "Embarque", place: "Carga en contenedor", icon: PackagePlus, field: "d_carga" },
     { n: "2", label: "Tránsito fluvial", place: "Zarpe de Iquitos", icon: Ship, field: "d_zarpe" },
     { n: "3", label: "Arribo puerto", place: "Puerto Yurimaguas", icon: Anchor, field: "d_arribo" },
     { n: "4", label: "En almacén", place: "Ingreso ENAPU (in)", icon: Warehouse, field: "d_almacen" },

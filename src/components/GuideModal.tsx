@@ -85,7 +85,7 @@ const STATUS_STEP: Step = {
     <>
       <P>Nadie escribe el estado a mano: el sistema lo calcula solo con las fechas.</P>
       <div className="flex flex-col">
-        <Term k="Estado">Es la <b>última etapa que tiene fecha</b>. Sin fechas = IQT-PORT. Con zarpe = TRÁNSITO FLUVIAL. Con entrega al dealer = ENTREGADO.</Term>
+        <Term k="Estado">Es la <b>última etapa que tiene fecha</b>. Sin fechas = IQT-PORT. Con embarque = EMBARQUE. Con zarpe = TRÁNSITO FLUVIAL. Con entrega al dealer = ENTREGADO.</Term>
         <Term k="Plazo (lead time)">Días que debería tardar. PCL depende del <b>departamento</b> (Ucayali 16, Madre de Dios 25…). YUR depende de la <b>ruta</b> y de si el río está en creciente (enero–abril) o vaciante.</Term>
         <Term k="Fecha estimada">Fecha de facturación + plazo.</Term>
         <Term k="Nivel de servicio"><b className="text-sky-600">A TIEMPO</b> si se entregó (o sigue en camino) hasta la fecha estimada. Si no, <b className="text-red-500">FUERA DE TIEMPO</b>.</Term>

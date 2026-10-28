@@ -14,7 +14,7 @@ import { today } from "@/lib/workflow";
  */
 export const maxDuration = 120;
 
-const STATUSES: Status[] = ["IQT-PORT", "TRANSITO FLUVIAL", "ARRIBO PUERTO", "EN ALMACÉN", "TRANSITO DEALER", "EN ALMACÉN LIMA", "TRANSITO DEALER 2", "ENTREGADO"];
+const STATUSES: Status[] = ["IQT-PORT", "EMBARQUE", "TRANSITO FLUVIAL", "ARRIBO PUERTO", "EN ALMACÉN", "TRANSITO DEALER", "EN ALMACÉN LIMA", "TRANSITO DEALER 2", "ENTREGADO"];
 
 export async function GET(req: Request) {
   const { s, err } = await guard(["dev", "admin", "viewer", "dealer"]);

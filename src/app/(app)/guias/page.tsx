@@ -28,7 +28,7 @@ const field = "h-10 rounded-xl border border-sb-outline-variant bg-sb-surface px
 const n = (v: number) => Number(v ?? 0).toLocaleString("es-PE");
 /** Estado al que pasa la unidad al registrar cada etapa (lo que verá Honda). */
 const NEXT_STATUS: Record<DateField, string> = {
-  d_carga: "IQT-Port (cargada)", d_zarpe: "Tránsito fluvial", d_arribo: "Arribo puerto", d_almacen: "En almacén",
+  d_carga: "Embarque", d_zarpe: "Tránsito fluvial", d_arribo: "Arribo puerto", d_almacen: "En almacén",
   d_despacho: "Tránsito dealer", d_alm_lima: "En almacén Lima", d_sal_lima: "Tránsito dealer 2", d_entrega: "Entregado",
 };
 

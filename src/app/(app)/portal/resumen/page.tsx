@@ -23,6 +23,7 @@ type Data = {
 /** Las etapas en palabras que entiende el comprador final. */
 const STAGES: { status: Status; label: string; where: string }[] = [
   { status: "IQT-PORT", label: "En fábrica", where: "Iquitos · armada y facturada" },
+  { status: "EMBARQUE", label: "Embarcando", where: "Cargada en contenedor en Iquitos" },
   { status: "TRANSITO FLUVIAL", label: "Navegando por el río", where: "De Iquitos al puerto" },
   { status: "ARRIBO PUERTO", label: "Llegó al puerto", where: "Pucallpa o Yurimaguas" },
   { status: "EN ALMACÉN", label: "En almacén", where: "Listo para despacho" },

@@ -16,7 +16,7 @@ type Summary = {
   oldest: { site: string; chassis: string; guia: string | null; dealer: string | null; status: Status; billing_date: string; est_date: string | null; age: number; delay_reason: string | null }[];
 };
 
-const ORDER: Status[] = ["IQT-PORT", "TRANSITO FLUVIAL", "ARRIBO PUERTO", "EN ALMACÉN", "TRANSITO DEALER", "EN ALMACÉN LIMA", "TRANSITO DEALER 2"];
+const ORDER: Status[] = ["IQT-PORT", "EMBARQUE", "TRANSITO FLUVIAL", "ARRIBO PUERTO", "EN ALMACÉN", "TRANSITO DEALER", "EN ALMACÉN LIMA", "TRANSITO DEALER 2"];
 const pct = (a: number, b: number) => (b ? Math.round((100 * a) / b) : null);
 const monthName = (ym: string) => `${MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
 const thisMonth = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
