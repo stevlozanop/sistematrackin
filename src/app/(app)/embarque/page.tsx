@@ -5,6 +5,7 @@ import { Button, Modal, toast } from "@heroui/react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ArrowDown, Box, Eye, Plus, Ship, Trash2, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { cn } from "@/lib/cn";
 import { DATA_EVENT } from "@/components/UploadCenter";
 import { DELAY_REASONS, SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
@@ -61,16 +62,22 @@ function NaveDetail({ site, nave, canUndo, onClose, onChanged }: { site: Site; n
     }
     return [...m.entries()];
   }, [rows]);
+  // Contenedor que se va a quitar (se confirma en el modal del sistema)
+  const [ask, setAsk] = useState<{ id: number; code: string } | null>(null);
+  const [undoing, setUndoing] = useState(false);
   async function undo(id: number, code: string) {
-    if (!confirm(`¿Quitar el contenedor ${code}? Sus unidades vuelven a IQT-Port.`)) return;
+    setUndoing(true);
     const r = await fetch("/api/embarque", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "undo", id }) });
     const j = await r.json().catch(() => ({}));
+    setUndoing(false);
+    setAsk(null);
     if (!r.ok) return toast.danger(j.error ?? "No se pudo quitar");
     toast.success(`Contenedor ${code} quitado`, { description: `${n(j.units)} unidades volvieron a IQT-Port` });
     onChanged();
     setRows((x) => x?.filter((r) => r.cid !== id) ?? null);
   }
   return (
+    <>
     <Modal>
       <Modal.Backdrop isOpen={!!nave} onOpenChange={(o) => !o && onClose()}>
         <Modal.Container size="lg">
@@ -95,7 +102,7 @@ function NaveDetail({ site, nave, canUndo, onClose, onChanged }: { site: Site; n
                           <span className="flex items-center gap-2 font-semibold"><Box className="h-4 w-4" />{c.code}
                             <span className="font-normal text-sb-on-surface-variant">· embarcado {fmtDate(c.loaded_on)} · {all.filter((u) => u.category === "2W").length} 2W · {all.filter((u) => u.category === "3W").length} 3W · {all.length} total</span>
                           </span>
-                          {canUndo && <button type="button" onClick={() => undo(cid, c.code)} className="rounded-full p-1.5 text-sb-on-surface-variant hover:bg-sb-surface-container hover:text-sb-late" aria-label={`Quitar contenedor ${c.code}`}><Trash2 className="h-4 w-4" /></button>}
+                          {canUndo && <button type="button" onClick={() => setAsk({ id: cid, code: c.code })} className="rounded-full p-1.5 text-sb-on-surface-variant hover:bg-sb-surface-container hover:text-sb-late" aria-label={`Quitar contenedor ${c.code}`}><Trash2 className="h-4 w-4" /></button>}
                         </div>
                         {[...c.guias.entries()].map(([g, us]) => (
                           <div key={g} className="border-b border-sb-outline-variant/20 px-3 py-2 last:border-0">
@@ -116,6 +123,11 @@ function NaveDetail({ site, nave, canUndo, onClose, onChanged }: { site: Site; n
         </Modal.Container>
       </Modal.Backdrop>
     </Modal>
+      <ConfirmDialog open={!!ask} title={`¿Quitar el contenedor ${ask?.code ?? ""}?`} confirmLabel="Sí, quitar contenedor" busy={undoing}
+        onCancel={() => setAsk(null)} onConfirm={() => ask && undo(ask.id, ask.code)}>
+        Sus unidades salen de la nave <b className="text-sb-on-surface">{nave}</b> y <b className="text-sb-on-surface">vuelven a IQT-Port</b>, listas para embarcarse de nuevo.
+      </ConfirmDialog>
+    </>
   );
 }
 

@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { ImportPanel, isUnknownExcel, parseInBrowser, readUnitsExcel, saveExcel, type Preview } from "@/components/ImportPanel";
 import { SITE_INFO, type DateField, type Site } from "@/lib/hsp";
 import { StagePreview, type StagePreviewData } from "@/components/StageImport";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 /**
  * Botón único «Subir Excel»: el sistema reconoce el archivo y lo lleva a donde corresponde.
@@ -39,11 +40,10 @@ function SavedBatches() {
     return () => { alive = false; };
   }, [tick]);
 
+  // Carga que se va a eliminar (se confirma en el modal del sistema)
+  const [ask, setAsk] = useState<Batch | null>(null);
+
   async function undo(b: Batch) {
-    const what = b.kind === "units"
-      ? `Se borrarán las ${b.created.toLocaleString()} unidades nuevas que creó «${b.file_name ?? "este Excel"}» y que todavía nadie trabajó. Las que ya tienen registros de los encargados se quedan.`
-      : `Las ${b.dates.toLocaleString()} fechas que registró «${b.file_name ?? "este Excel"}» vuelven a como estaban (salvo donde alguien ya registró algo después).`;
-    if (!confirm(`${what}\n\n¿Eliminar lo cargado?`)) return;
     setBusy(b.id);
     const r = await fetch("/api/import/batches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: b.id }) });
     const j = await r.json().catch(() => ({ error: "Error del servidor" }));
@@ -56,6 +56,7 @@ function SavedBatches() {
       timeout: 8000,
     });
     notifyData();
+    setAsk(null);
     setTick((x) => x + 1);
   }
 
@@ -79,7 +80,7 @@ function SavedBatches() {
                 {b.undone_at && <p className="text-[11px] font-medium text-sb-late">Eliminada por {b.undone_by_name ?? "—"} · {b.undone_at}</p>}
               </div>
               {can && (
-                <Button size="sm" variant="secondary" className="rounded-full" isDisabled={busy === b.id} onPress={() => undo(b)}>
+                <Button size="sm" variant="secondary" className="rounded-full" isDisabled={busy === b.id} onPress={() => setAsk(b)}>
                   <Trash2 className="h-3.5 w-3.5" /> {busy === b.id ? "Eliminando…" : "Eliminar lo cargado"}
                 </Button>
               )}
@@ -87,6 +88,16 @@ function SavedBatches() {
           );
         })}
       </AnimatePresence>
+      <ConfirmDialog open={!!ask} title="¿Eliminar lo cargado?" confirmLabel="Sí, eliminar lo cargado" busy={!!ask && busy === ask.id}
+        onCancel={() => setAsk(null)} onConfirm={() => ask && undo(ask)}>
+        {ask && (ask.kind === "units" ? (
+          <>Se borrarán las <b className="text-sb-on-surface">{Number(ask.created).toLocaleString()} unidades nuevas</b> que creó <b className="text-sb-on-surface">«{ask.file_name ?? "este Excel"}»</b> y que todavía nadie trabajó.
+            Las que ya tienen registros de los encargados (embarque, zarpe, etc.) <b className="text-sb-on-surface">se quedan</b>.</>
+        ) : (
+          <>Las <b className="text-sb-on-surface">{Number(ask.dates).toLocaleString()} fechas</b> que registró <b className="text-sb-on-surface">«{ask.file_name ?? "este Excel"}»</b> vuelven a como estaban,
+            salvo en las unidades donde alguien ya registró algo después.</>
+        ))}
+      </ConfirmDialog>
     </ul>
   );
 }
