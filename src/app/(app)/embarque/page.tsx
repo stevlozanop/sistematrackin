@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Button, Modal, toast } from "@heroui/react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ArrowDown, Box, Eye, Plus, Ship, Trash2, X } from "lucide-react";
@@ -75,7 +76,14 @@ function NaveDetail({ site, nave, canUndo, onClose, onChanged }: { site: Site; n
         <Modal.Container size="lg">
           <Modal.Dialog>
             <Modal.CloseTrigger aria-label="Cerrar" />
-            <Modal.Header><Modal.Heading>Nave {nave}{rows ? ` — ${containers.length} contenedor(es) · ${n(rows.length)} unidades` : ""}</Modal.Heading></Modal.Header>
+            <Modal.Header className="flex flex-wrap items-center justify-between gap-2 pr-12">
+              <Modal.Heading>Nave {nave}{rows ? ` — ${containers.length} contenedor(es) · ${n(rows.length)} unidades` : ""}</Modal.Heading>
+              {nave && (
+                <Link href={`/units/${site.toLowerCase()}?${new URLSearchParams({ nave })}`} className="rounded-full bg-sb-surface-container-high px-3 py-1 text-xs font-medium hover:bg-sb-primary hover:text-sb-on-primary">
+                  Ver sus unidades en {SITE_INFO[site].short} →
+                </Link>
+              )}
+            </Modal.Header>
             <Modal.Body>
               {!rows ? <p className="py-8 text-center text-sm text-sb-on-surface-variant">Cargando…</p> : (
                 <div className="flex max-h-[62vh] flex-col gap-3 overflow-y-auto pr-1">

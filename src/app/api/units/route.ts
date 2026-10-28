@@ -5,7 +5,7 @@ import { DATE_FIELDS, isSite, type DateField, type Site } from "@/lib/hsp";
 import { checkDateEdit, isSuper, needsDelayReason, pendingSql, seesAll } from "@/lib/workflow";
 
 const SORTABLE = new Set([
-  "days_left", "chassis", "material", "guia", "dealer", "zone", "billing_date", "est_date", "status", "service", "delay_reason", "real_days",
+  "days_left", "chassis", "material", "guia", "nave", "dealer", "zone", "billing_date", "est_date", "status", "service", "delay_reason", "real_days",
   ...DATE_FIELDS,
 ]);
 
@@ -32,15 +32,18 @@ export async function GET(req: Request) {
   }
 
   if (p.get("meta")) {
-    const [dealers, zones, years, reasons] = await Promise.all([
+    const [dealers, zones, years, reasons, naves] = await Promise.all([
       queryList<{ v: string }>("SELECT DISTINCT d.name v FROM units u JOIN dealers d ON d.id=u.dealer_id WHERE u.site=? ORDER BY v", [site]),
       // Zona = departamento (PCL) o ruta (YUR); en YUR, las que vienen de la facturación sin ruta usan su distrito
       queryList<{ v: string }>(`SELECT DISTINCT ${site === "PCL" ? "department" : "COALESCE(route, district)"} v FROM units WHERE site=? AND ${site === "PCL" ? "department" : "COALESCE(route, district)"} IS NOT NULL ORDER BY v`, [site]),
       queryList<{ v: number }>("SELECT DISTINCT YEAR(billing_date) v FROM units WHERE site=? AND billing_date IS NOT NULL ORDER BY v DESC", [site]),
       queryList<{ v: string }>("SELECT DISTINCT delay_reason v FROM units WHERE site=? AND delay_reason IS NOT NULL ORDER BY v", [site]),
+      // Naves en las que viajan (las registra «Embarque y zarpe»)
+      queryList<{ v: string }>("SELECT DISTINCT nave v FROM units WHERE site=? AND nave IS NOT NULL AND nave <> '' ORDER BY v", [site]),
     ]);
     return NextResponse.json({
       dealers: dealers.map((r) => r.v), zones: zones.map((r) => r.v), years: years.map((r) => r.v), reasons: reasons.map((r) => r.v),
+      naves: naves.map((r) => r.v),
     });
   }
 
@@ -51,7 +54,7 @@ export async function GET(req: Request) {
     where.push("(chassis LIKE ? OR motor LIKE ? OR lote LIKE ? OR invoice LIKE ? OR guia LIKE ? OR material LIKE ? OR order_sap LIKE ?)");
     args.push(...Array(7).fill(`%${q}%`));
   }
-  const eq: [string, string][] = [["status", "status"], ["service", "service"], ["dealer", "dealer"], ["zone", "zone"], ["reason", "delay_reason"]];
+  const eq: [string, string][] = [["status", "status"], ["service", "service"], ["dealer", "dealer"], ["zone", "zone"], ["reason", "delay_reason"], ["nave", "nave"]];
   for (const [param, col] of eq) {
     const v = p.get(param);
     if (v === "__none") where.push(`${col} IS NULL`);

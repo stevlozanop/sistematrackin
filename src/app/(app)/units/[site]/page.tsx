@@ -29,7 +29,7 @@ type Unit = {
   status: Status; service: Service | null; real_days: number | null;
 } & Partial<Record<DateField, string | null>>;
 
-type Meta = { dealers: string[]; zones: string[]; years: number[]; reasons: string[] };
+type Meta = { dealers: string[]; zones: string[]; years: number[]; reasons: string[]; naves?: string[] };
 
 const PAGE = 25;
 const field = "rounded-xl border border-sb-outline-variant bg-sb-surface-container-low px-2 py-1 text-xs text-sb-on-surface outline-none transition-colors focus:border-sb-primary";
@@ -92,6 +92,24 @@ function DateCell({ value, onSave, label, mode, min }: {
 }
 
 /**
+ * Transporte (de «Embarque y zarpe»): nave y contenedor, y si la nave todavía está cargando o ya zarpó.
+ */
+function Transport({ u }: { u: Pick<Unit, "nave" | "container" | "d_carga" | "d_zarpe"> }) {
+  if (!u.nave && !u.container) return <span className="text-xs text-muted">—</span>;
+  return (
+    <div className="max-w-[12rem]">
+      <span className="block truncate text-xs font-semibold" title={u.nave ?? ""}>{u.nave ?? "—"}</span>
+      {u.container && <span className="block truncate font-mono text-[10px] text-muted" title={u.container}>{u.container}</span>}
+      {u.d_zarpe
+        ? <span className="mt-0.5 inline-block whitespace-nowrap rounded-full bg-sb-primary-soft px-1.5 py-px text-[9px] font-semibold">Zarpó {fmtDate(u.d_zarpe)}</span>
+        : u.d_carga
+          ? <span className="mt-0.5 inline-block whitespace-nowrap rounded-full bg-sb-surface-container-high px-1.5 py-px text-[9px] font-semibold">Cargando · embarque {fmtDate(u.d_carga)}</span>
+          : null}
+    </div>
+  );
+}
+
+/**
  * Motivo de demora como texto: lo registra el responsable de cada tramo (Iquitos, Pucallpa, almacén, Lima…)
  * al poner su fecha. Debajo, quién lo puso, de qué área y cuándo. Si falta y la unidad va fuera de tiempo, se avisa.
  */
@@ -144,7 +162,7 @@ function Filter({ label, value, onChange, options, className }: {
   );
 }
 
-const FILTER_KEYS = ["q", "status", "service", "dealer", "zone", "reason", "year", "month", "mine", "pending", "alert"] as const;
+const FILTER_KEYS = ["q", "status", "service", "dealer", "zone", "reason", "year", "month", "mine", "pending", "alert", "nave"] as const;
 
 export default function SitePage({ params, searchParams }: {
   params: Promise<{ site: string }>;
@@ -346,6 +364,7 @@ export default function SitePage({ params, searchParams }: {
       <div className={`${showFilters ? "flex" : "hidden"} flex-col gap-3 lg:flex lg:flex-row lg:flex-wrap lg:items-center`}>
         <Filter label="Todos los dealers" className="lg:w-64" value={f.dealer} onChange={(v) => setFilter("dealer", v)} options={meta.dealers.map((d) => ({ id: d, label: d }))} />
         <Filter label={`${info.zoneLabel}: todos`} className="lg:w-52" value={f.zone} onChange={(v) => setFilter("zone", v)} options={meta.zones.map((d) => ({ id: d, label: d }))} />
+        <Filter label="Nave: todas" className="lg:w-44" value={f.nave} onChange={(v) => setFilter("nave", v)} options={(meta.naves ?? []).map((n) => ({ id: n, label: n }))} />
         <Filter label="Año: todos" className="lg:w-36" value={f.year} onChange={(v) => setFilter("year", v)} options={meta.years.map((y) => ({ id: String(y), label: String(y) }))} />
         <Filter label="Mes: todos" className="lg:w-40" value={f.month} onChange={(v) => setFilter("month", v)} options={MONTHS.map((m, i) => ({ id: String(i + 1), label: m }))} />
         <Filter label="Motivo: todos" className="lg:w-56" value={f.reason} onChange={(v) => setFilter("reason", v)} options={[{ id: "__none", label: "Sin motivo" }, ...reasons.map((r) => ({ id: r, label: r }))]} />
@@ -357,7 +376,7 @@ export default function SitePage({ params, searchParams }: {
           <Filter label="Esperando etapa: todas" className="lg:w-60" value={f.pending} onChange={(v) => setFilter("pending", v)} options={info.dates.map((d) => ({ id: d.key, label: `Esperando ${stageLabel(site, d.key)}` }))} />
         )}
         {Object.entries(f).some(([k, v]) => v && k !== "q" && k !== "status" && k !== "mine") && (
-          <button className="sbf-chip" onClick={() => { setF((p) => ({ ...p, dealer: "", zone: "", year: "", month: "", reason: "", service: "", pending: "", alert: "" })); setPage(1); }}>Quitar filtros ✕</button>
+          <button className="sbf-chip" onClick={() => { setF((p) => ({ ...p, dealer: "", zone: "", year: "", month: "", reason: "", service: "", pending: "", alert: "", nave: "" })); setPage(1); }}>Quitar filtros ✕</button>
         )}
       </div>
       {!sup && me && (
@@ -450,6 +469,9 @@ export default function SitePage({ params, searchParams }: {
                 <Table.Column allowsSorting id="guia">
                   {({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Guía / Factura</Table.SortableColumnHeader>}
                 </Table.Column>
+                <Table.Column allowsSorting id="nave">
+                  {({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Transporte · nave / contenedor</Table.SortableColumnHeader>}
+                </Table.Column>
                 <Table.Column allowsSorting id="dealer">
                   {({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Dealer / {info.zoneLabel}</Table.SortableColumnHeader>}
                 </Table.Column>
@@ -495,6 +517,7 @@ export default function SitePage({ params, searchParams }: {
                       <div className="whitespace-nowrap font-mono text-xs">{u.guia || "—"}</div>
                       <div className="whitespace-nowrap font-mono text-[10px] text-muted">{u.invoice || ""}</div>
                     </Table.Cell>
+                    <Table.Cell><Transport u={u} /></Table.Cell>
                     <Table.Cell>
                       <div className="max-w-[14rem] truncate text-xs" title={u.dealer ?? ""}>{u.dealer}</div>
                       <div className="text-[10px] text-muted">{u.zone ?? "Sin zona"}{site === "PCL" && u.center ? ` · CL ${u.center}` : ""}</div>
