@@ -34,6 +34,7 @@ function clean(raw: unknown): UnitRow | null {
  * El navegador lee el Excel y llama en tres pasos (JSON, o JSON con gzip para los bloques grandes):
  * 1. { step: "check", keys: [{ site, chassis }] } → cuántas unidades ya existen (vista previa, no guarda nada).
  * 2. { step: "save", rows: [...] } → guarda un bloque de hasta 5000 filas.
+ * 0. { step: "begin", name } → crea la carga (lote) y devuelve batchId; save la usa para poder eliminarla después.
  * 3. { step: "finish" } → asigna su cliente (SORSA, CREDIVARGAS…) a las tiendas nuevas.
  * { step: "routes" } → rutas por distrito, para que el navegador ponga la ruta a la facturación.
  */
@@ -43,8 +44,15 @@ export async function POST(req: Request) {
   if (err) return err;
   if (s.role === "viewer" && !(await clientConsortiumOf(s))) return NextResponse.json({ error: "No tienes permiso para esta acción" }, { status: 403 });
 
-  const body = await readJson<{ step?: string; keys?: unknown[]; rows?: unknown[] }>(req);
+  const body = await readJson<{ step?: string; keys?: unknown[]; rows?: unknown[]; name?: string; batchId?: number }>(req);
   try {
+    if (body?.step === "begin") {
+      const [b] = await queryList<{ id: number }>(
+        "INSERT INTO import_batches(kind, file_name, user_id) VALUES ('units', ?, ?) RETURNING id", [String(body.name ?? "").slice(0, 200) || null, s.id],
+      );
+      return NextResponse.json({ batchId: b.id });
+    }
+
     if (body?.step === "routes") {
       const routes = await queryList("SELECT district, department, site, days FROM district_routes ORDER BY district");
       return NextResponse.json({ routes });
@@ -63,7 +71,14 @@ export async function POST(req: Request) {
     if (body?.step === "save") {
       const rows = (body.rows ?? []).slice(0, CHUNK).map(clean).filter((r): r is UnitRow => !!r);
       if (!rows.length) return NextResponse.json({ error: "El bloque no trae filas válidas" }, { status: 400 });
-      return NextResponse.json(await tx((c) => saveRows(c, rows)));
+      const batchId = Number(body.batchId) || null;
+      const [own] = batchId ? await queryList<{ id: number }>("SELECT id FROM import_batches WHERE id = ? AND user_id = ? AND undone_at IS NULL", [batchId, s.id]) : [];
+      const res = await tx(async (c) => {
+        const r = await saveRows(c, rows, own ? batchId : null);
+        if (own) await c.query("UPDATE import_batches SET created = created + ?, updated = updated + ? WHERE id = ?", [r.created, r.updated, batchId]);
+        return r;
+      });
+      return NextResponse.json(res);
     }
 
     if (body?.step === "finish") {

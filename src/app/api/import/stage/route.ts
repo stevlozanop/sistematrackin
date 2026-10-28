@@ -33,10 +33,13 @@ export async function POST(req: Request) {
       "SELECT payload FROM import_stash WHERE token = ? AND user_id = ? AND created_at > NOW() - INTERVAL 30 MINUTE", [String(token ?? ""), s.id],
     );
     await run("DELETE FROM import_stash WHERE token = ?", [String(token ?? "")]);
-    const p = row && { updates: JSON.parse(row.payload) as Update[] };
+    const saved = row ? JSON.parse(row.payload) : null;
+    const p = saved && (Array.isArray(saved) ? { updates: saved as Update[], name: null } : (saved as { updates: Update[]; name: string | null }));
     if (!p) return NextResponse.json({ error: "La vista previa expiró. Vuelve a subir el Excel." }, { status: 400 });
     let units = 0, dates = 0;
     await tx(async (c) => {
+      const [b] = await c.query("INSERT INTO import_batches(kind, file_name, user_id) VALUES ('stage', ?, ?) RETURNING id", [p.name, s.id]);
+      const batchId = (b as { id: number }[])[0].id;
       for (const u of p.updates) {
         const fields = Object.keys(u.changes) as DateField[];
         const sets = fields.map((f) => `${f}=?`);
@@ -55,8 +58,9 @@ export async function POST(req: Request) {
           ...(u.reason ? [[u.id, s.id, "delay_reason", null, u.reason]] : []),
           ...(u.carrier ? [[u.id, s.id, "carrier", null, u.carrier]] : []),
         ];
-        await c.query("INSERT INTO unit_events(unit_id, user_id, field, old_value, new_value) VALUES ?", [ev]);
+        await c.query("INSERT INTO unit_events(unit_id, user_id, field, old_value, new_value, batch_id) VALUES ?", [ev.map((e) => [...e, batchId])]);
       }
+      await c.query("UPDATE import_batches SET updated = ?, dates = ? WHERE id = ?", [units, dates, batchId]);
     });
     return NextResponse.json({ units, dates });
   }
@@ -127,7 +131,7 @@ export async function POST(req: Request) {
   // la vista previa se guarda en la base: en Vercel el paso 2 puede llegar a otro servidor
   await run("DELETE FROM import_stash WHERE created_at < NOW() - INTERVAL 30 MINUTE");
   const token = crypto.randomUUID();
-  await run("INSERT INTO import_stash(token, user_id, payload) VALUES (?, ?, ?)", [token, s.id, JSON.stringify(updates)]);
+  await run("INSERT INTO import_stash(token, user_id, payload) VALUES (?, ?, ?)", [token, s.id, JSON.stringify({ name: file.name, updates })]);
 
   const summary: Record<string, number> = {};
   for (const sk of skipped) summary[sk.reason] = (summary[sk.reason] ?? 0) + 1;

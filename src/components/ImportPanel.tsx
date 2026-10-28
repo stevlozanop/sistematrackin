@@ -88,10 +88,12 @@ export async function readUnitsExcel(file: File): Promise<Preview> {
 }
 
 /** Guarda las filas en bloques. onProgress recibe de 0 a 1. */
-export async function saveExcel(rows: UnitRow[], onProgress: (p: number) => void) {
+export async function saveExcel(rows: UnitRow[], onProgress: (p: number) => void, name?: string) {
   let created = 0, updated = 0;
+  // La carga queda registrada (qué archivo, quién, cuándo) para poder eliminar lo que guardó
+  const { batchId } = await post({ step: "begin", name });
   for (let i = 0; i < rows.length; i += SAVE_CHUNK) {
-    const j = await post({ step: "save", rows: rows.slice(i, i + SAVE_CHUNK) });
+    const j = await post({ step: "save", rows: rows.slice(i, i + SAVE_CHUNK), batchId });
     created += j.created; updated += j.updated;
     onProgress(Math.min(1, (i + SAVE_CHUNK) / rows.length));
   }

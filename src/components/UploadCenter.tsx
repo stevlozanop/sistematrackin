@@ -1,8 +1,8 @@
 "use client";
-import { useRef, useState } from "react";
-import { Modal, toast } from "@heroui/react";
+import { useEffect, useRef, useState } from "react";
+import { Button, Modal, toast } from "@heroui/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { FileSpreadsheet, Upload } from "lucide-react";
+import { FileSpreadsheet, History, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ImportPanel, isUnknownExcel, parseInBrowser, readUnitsExcel, saveExcel, type Preview } from "@/components/ImportPanel";
 import { SITE_INFO, type DateField, type Site } from "@/lib/hsp";
@@ -23,7 +23,76 @@ export const notifyData = () => window.dispatchEvent(new Event(DATA_EVENT));
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
+type Batch = {
+  id: number; kind: "units" | "stage"; file_name: string | null; created_at: string; created: number; updated: number; dates: number;
+  undone_at: string | null; user_name: string | null; undone_by_name: string | null; mine: number; remaining: number;
+};
+
+/** Cargas guardadas: cada Excel subido, con el botón para eliminar lo que guardó. */
+function SavedBatches() {
+  const [data, setData] = useState<{ batches: Batch[]; canUndoAll: boolean } | null>(null);
+  const [busy, setBusy] = useState<number | null>(null);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/import/batches").then((r) => r.json()).then((d) => { if (alive) setData(d); });
+    return () => { alive = false; };
+  }, [tick]);
+
+  async function undo(b: Batch) {
+    const what = b.kind === "units"
+      ? `Se borrarán las ${b.created.toLocaleString()} unidades nuevas que creó «${b.file_name ?? "este Excel"}» y que todavía nadie trabajó. Las que ya tienen registros de los encargados se quedan.`
+      : `Las ${b.dates.toLocaleString()} fechas que registró «${b.file_name ?? "este Excel"}» vuelven a como estaban (salvo donde alguien ya registró algo después).`;
+    if (!confirm(`${what}\n\n¿Eliminar lo cargado?`)) return;
+    setBusy(b.id);
+    const r = await fetch("/api/import/batches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: b.id }) });
+    const j = await r.json().catch(() => ({ error: "Error del servidor" }));
+    setBusy(null);
+    if (!r.ok) return toast.danger(j.error);
+    toast.success("Carga eliminada", {
+      description: j.kind === "units"
+        ? `${j.deleted.toLocaleString()} unidades borradas${j.kept ? ` · ${j.kept.toLocaleString()} se quedan porque ya tienen registros` : ""}`
+        : `${j.undone.toLocaleString()} fechas devueltas a como estaban${j.kept ? ` · ${j.kept.toLocaleString()} se quedan porque ya hubo registros después` : ""}`,
+      timeout: 8000,
+    });
+    notifyData();
+    setTick((x) => x + 1);
+  }
+
+  if (!data) return <p className="py-8 text-center text-sm text-sb-on-surface-variant">Cargando…</p>;
+  if (!data.batches.length) return <p className="py-8 text-center text-sm text-sb-on-surface-variant">Todavía no hay cargas guardadas.</p>;
+  return (
+    <ul className="flex flex-col divide-y divide-sb-outline-variant/30 rounded-xl border border-sb-outline-variant/40">
+      <AnimatePresence initial={false}>
+        {data.batches.map((b) => {
+          const can = !b.undone_at && (data.canUndoAll || Number(b.mine));
+          return (
+            <motion.li key={b.id} layout initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: EASE }}
+              className={cn("flex flex-wrap items-center justify-between gap-3 px-3 py-2.5", b.undone_at && "opacity-60")}>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{b.file_name ?? "(sin nombre)"}</p>
+                <p className="text-[11px] text-sb-on-surface-variant">
+                  {b.kind === "units" ? "Unidades" : "Fechas de etapa"} · {b.user_name ?? "—"} · {b.created_at}
+                  {" · "}
+                  {b.kind === "units" ? `${Number(b.created).toLocaleString()} nuevas, ${Number(b.updated).toLocaleString()} actualizadas` : `${Number(b.dates).toLocaleString()} fechas en ${Number(b.updated).toLocaleString()} unidades`}
+                </p>
+                {b.undone_at && <p className="text-[11px] font-medium text-sb-late">Eliminada por {b.undone_by_name ?? "—"} · {b.undone_at}</p>}
+              </div>
+              {can && (
+                <Button size="sm" variant="secondary" className="rounded-full" isDisabled={busy === b.id} onPress={() => undo(b)}>
+                  <Trash2 className="h-3.5 w-3.5" /> {busy === b.id ? "Eliminando…" : "Eliminar lo cargado"}
+                </Button>
+              )}
+            </motion.li>
+          );
+        })}
+      </AnimatePresence>
+    </ul>
+  );
+}
+
 export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: () => void; mode: UploadMode }) {
+  const [tab, setTab] = useState<"upload" | "history">("upload");
   const fileRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
   const [reading, setReading] = useState<string | null>(null);
@@ -102,7 +171,7 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
     if (!units || units.saved) return;
     setSaving(true); setProgress(0);
     try {
-      const j = await saveExcel(units.rows, setProgress);
+      const j = await saveExcel(units.rows, setProgress, units.name);
       setUnits((p) => p && { ...p, saved: true });
       toast.success("Excel guardado: todo el sistema ya está actualizado", { description: `${j.created.toLocaleString()} nuevas, ${j.updated.toLocaleString()} actualizadas` });
       notifyData();
@@ -140,6 +209,16 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
               </p>
             </Modal.Header>
             <Modal.Body className="flex flex-col gap-3">
+              {/* Subir un Excel · ver las cargas guardadas y eliminar lo que guardó una */}
+              <div className="flex w-fit rounded-full bg-sb-surface-container p-1">
+                {([["upload", "Subir", Upload], ["history", "Cargas guardadas", History]] as const).map(([k, t, Icon]) => (
+                  <button key={k} type="button" onClick={() => setTab(k)}
+                    className={cn("flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", tab === k ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+                    <Icon className="h-3.5 w-3.5" />{t}
+                  </button>
+                ))}
+              </div>
+              {tab === "history" ? <SavedBatches /> : (<>
               <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={(e) => e.target.files?.[0] && read(e.target.files[0])} />
               {!hasPreview && (
                 <motion.button type="button" disabled={!!reading}
@@ -173,6 +252,10 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
                   </motion.div>
                 )}
               </AnimatePresence>
+              {(units?.saved || stage?.saved) && (
+                <p className="text-[11px] text-sb-on-surface-variant">¿Te equivocaste de archivo? En <button type="button" className="font-semibold underline underline-offset-2" onClick={() => setTab("history")}>Cargas guardadas</button> puedes eliminar lo que se guardó.</p>
+              )}
+              </>)}
             </Modal.Body>
           </Modal.Dialog>
         </Modal.Container>

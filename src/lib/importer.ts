@@ -27,7 +27,7 @@ export async function movable(exec: (sql: string, params: unknown[]) => Promise<
 const COLS = ["site", "chassis", "dealer_id", "billing_date", ...TEXT_FIELDS, ...DATE_FIELDS] as const;
 
 /** Inserta o actualiza. Un valor vacío en el Excel nunca borra un dato que ya está en el sistema. */
-export async function saveRows(c: TxConnection, input: UnitRow[]) {
+export async function saveRows(c: TxConnection, input: UnitRow[], batchId: number | null = null) {
   // Postgres no deja tocar la misma fila dos veces en un INSERT: un chasis repetido (aunque cambie en
   // mayúsculas) se queda con la última fila, como en el Excel
   const uniq = new Map<string, UnitRow>();
@@ -67,8 +67,9 @@ export async function saveRows(c: TxConnection, input: UnitRow[]) {
       r.site, r.chassis, r.dealer ? ids.get(r.dealer.slice(0, 160).toUpperCase()) ?? null : null, r.billing_date,
       ...TEXT_FIELDS.map((f) => r.fields[f]),
       ...DATE_FIELDS.map((d) => r.dates[d] ?? null),
+      batchId, // solo queda en las unidades nuevas: al actualizar no se toca
     ]);
-    await c.query(`INSERT INTO units(${COLS.join(",")}) VALUES ? ON CONFLICT (site, chassis) DO UPDATE SET ${update}`, [values]);
+    await c.query(`INSERT INTO units(${COLS.join(",")}, import_batch_id) VALUES ? ON CONFLICT (site, chassis) DO UPDATE SET ${update}`, [values]);
   }
   const updated = rows.filter((r) => before.has(`${r.site}|${r.chassis.toUpperCase()}`)).length;
   return { created: rows.length - updated, updated };
