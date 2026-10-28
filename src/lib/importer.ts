@@ -6,6 +6,24 @@ export * from "./excel-parse";
 
 /* ---------- Guardado en la base de datos ---------- */
 
+/** La unidad todavía no tiene ninguna fecha de seguimiento (no empezó su recorrido). */
+const NO_DATES = DATE_FIELDS.map((d) => `u.${d} IS NULL`).join(" AND ");
+
+/** Chasis que están en la otra ruta sin fechas: al guardar se moverán a la ruta del Excel. Devuelve "SITE|CHASIS" (ruta nueva). */
+export async function movable(exec: (sql: string, params: unknown[]) => Promise<unknown[]>, rows: Pick<UnitRow, "site" | "chassis">[]) {
+  const set = new Set<string>();
+  for (let i = 0; i < rows.length; i += 2000) {
+    const chunk = rows.slice(i, i + 2000);
+    const found = await exec(`SELECT u.site, u.chassis FROM units u WHERE u.chassis IN (?) AND ${NO_DATES}`, [chunk.map((r) => r.chassis)]);
+    const at = new Map((found as { site: string; chassis: string }[]).map((f) => [f.chassis.toUpperCase(), f.site]));
+    for (const r of chunk) {
+      const s = at.get(r.chassis.toUpperCase());
+      if (s && s !== r.site) set.add(`${r.site}|${r.chassis.toUpperCase()}`);
+    }
+  }
+  return set;
+}
+
 const COLS = ["site", "chassis", "dealer_id", "billing_date", ...TEXT_FIELDS, ...DATE_FIELDS] as const;
 
 /** Inserta o actualiza. Un valor vacío en el Excel nunca borra un dato que ya está en el sistema. */
@@ -32,7 +50,16 @@ export async function saveRows(c: TxConnection, input: UnitRow[]) {
     for (const d of found as { id: number; name: string }[]) ids.set(d.name.toUpperCase(), d.id);
   }
 
-  // 2) Unidades
+  // 2) Unidades. Si el chasis está en la otra ruta y todavía no tiene ninguna fecha, se mueve a la del Excel
+  //    (ej. una factura de Tarapoto que se cargó como PCL pasa a YUR). Si ya empezó su recorrido, no se toca.
+  for (let i = 0; i < rows.length; i += 1000) {
+    await c.query(
+      `UPDATE units u SET site = v.site FROM (VALUES ?) AS v(site, chassis)
+       WHERE u.chassis = v.chassis::citext AND u.site <> v.site::citext AND ${NO_DATES}
+         AND NOT EXISTS (SELECT 1 FROM units x WHERE x.site = v.site::citext AND x.chassis = v.chassis::citext)`,
+      [rows.slice(i, i + 1000).map((r) => [r.site, r.chassis])],
+    );
+  }
   const before = await existing(async (sql, p) => (await c.query(sql, p))[0] as unknown[], rows);
   const update = COLS.filter((k) => k !== "site" && k !== "chassis").map((k) => `${k}=COALESCE(EXCLUDED.${k}, units.${k})`).join(", ");
   for (let i = 0; i < rows.length; i += 1000) {

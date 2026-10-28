@@ -34,7 +34,8 @@ export async function GET(req: Request) {
   if (p.get("meta")) {
     const [dealers, zones, years, reasons] = await Promise.all([
       queryList<{ v: string }>("SELECT DISTINCT d.name v FROM units u JOIN dealers d ON d.id=u.dealer_id WHERE u.site=? ORDER BY v", [site]),
-      queryList<{ v: string }>(`SELECT DISTINCT ${site === "PCL" ? "department" : "route"} v FROM units WHERE site=? AND ${site === "PCL" ? "department" : "route"} IS NOT NULL ORDER BY v`, [site]),
+      // Zona = departamento (PCL) o ruta (YUR); en YUR, las que vienen de la facturación sin ruta usan su distrito
+      queryList<{ v: string }>(`SELECT DISTINCT ${site === "PCL" ? "department" : "COALESCE(route, district)"} v FROM units WHERE site=? AND ${site === "PCL" ? "department" : "COALESCE(route, district)"} IS NOT NULL ORDER BY v`, [site]),
       queryList<{ v: number }>("SELECT DISTINCT YEAR(billing_date) v FROM units WHERE site=? AND billing_date IS NOT NULL ORDER BY v DESC", [site]),
       queryList<{ v: string }>("SELECT DISTINCT delay_reason v FROM units WHERE site=? AND delay_reason IS NOT NULL ORDER BY v", [site]),
     ]);

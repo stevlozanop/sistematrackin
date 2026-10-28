@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { queryList, tx } from "@/lib/db";
 import { guard } from "@/lib/guard";
 import { DATE_FIELDS, isSite } from "@/lib/hsp";
-import { existing, saveRows, TEXT_FIELDS, type UnitRow } from "@/lib/importer";
+import { existing, movable, saveRows, TEXT_FIELDS, type UnitRow } from "@/lib/importer";
 import { fillDealerClients } from "@/lib/clients";
 import { readJson } from "@/lib/gzip-json";
 import { clientConsortiumOf } from "@/lib/companies";
@@ -35,6 +35,7 @@ function clean(raw: unknown): UnitRow | null {
  * 1. { step: "check", keys: [{ site, chassis }] } → cuántas unidades ya existen (vista previa, no guarda nada).
  * 2. { step: "save", rows: [...] } → guarda un bloque de hasta 5000 filas.
  * 3. { step: "finish" } → asigna su cliente (SORSA, CREDIVARGAS…) a las tiendas nuevas.
+ * { step: "routes" } → rutas por distrito, para que el navegador ponga la ruta a la facturación.
  */
 export async function POST(req: Request) {
   // Cargar el Excel: la empresa (Leyva) y el consorcio (Honda, desde su Tablero). The Iceberg Labs no opera.
@@ -44,11 +45,18 @@ export async function POST(req: Request) {
 
   const body = await readJson<{ step?: string; keys?: unknown[]; rows?: unknown[] }>(req);
   try {
+    if (body?.step === "routes") {
+      const routes = await queryList("SELECT district, department, site, days FROM district_routes ORDER BY district");
+      return NextResponse.json({ routes });
+    }
+
     if (body?.step === "check") {
       const keys = (body.keys ?? [])
         .map((k) => k as { site?: unknown; chassis?: unknown })
         .filter((k): k is { site: "PCL" | "YUR"; chassis: string } => isSite(k.site) && typeof k.chassis === "string");
       const found = await existing(queryList, keys);
+      // Las que están en la otra ruta sin ninguna fecha registrada se moverán: cuentan como «se actualizarán»
+      for (const k of await movable(queryList, keys)) found.add(k);
       return NextResponse.json({ exists: [...found] });
     }
 

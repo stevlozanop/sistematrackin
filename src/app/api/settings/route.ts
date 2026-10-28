@@ -9,7 +9,7 @@ type LeadTime = { site: string; zone: string; days_cre: number; days_vac: number
 export async function GET() {
   const { err } = await guard(READ);
   if (err) return err;
-  const [[settings], leadTimes, missing] = await Promise.all([
+  const [[settings], leadTimes, missing, routes, byDistrict] = await Promise.all([
     queryList<{ target: number; creciente_months: string; alert_days: number }>("SELECT target, creciente_months, alert_days FROM settings WHERE id=1"),
     queryList<LeadTime & { units: number }>(
       `SELECT lt.*, COALESCE(c.n, 0) units FROM lead_times lt
@@ -23,11 +23,25 @@ export async function GET() {
        LEFT JOIN lead_times lt ON lt.site = c.site AND lt.zone = c.zone
        WHERE lt.zone IS NULL AND c.zone IS NOT NULL ORDER BY units DESC`,
     ),
+    queryList<{ district: string; department: string; site: string; days: number }>(
+      "SELECT district, department, site, days FROM district_routes ORDER BY site, district, department",
+    ),
+    queryList<{ site: string; district: string; department: string | null; n: number }>(
+      "SELECT site, UPPER(district) district, UPPER(department) department, COUNT(*) n FROM units WHERE district IS NOT NULL GROUP BY 1, 2, 3",
+    ),
   ]);
+  // Unidades de cada distrito en su ruta (si la fila tiene departamento, solo las de ese departamento)
+  const districtRoutes = routes.map((r) => ({
+    ...r,
+    units: byDistrict
+      .filter((u) => u.site === r.site && u.district === r.district.toUpperCase() && (!r.department || u.department === r.department.toUpperCase()))
+      .reduce((t, u) => t + Number(u.n), 0),
+  }));
   return NextResponse.json({
     target: settings?.target ?? 85,
     alertDays: settings?.alert_days ?? 2,
     creciente: (settings?.creciente_months ?? "").split(",").filter(Boolean).map(Number),
+    districtRoutes,
     leadTimes,
     missing,
   });
@@ -59,7 +73,30 @@ export async function PUT(req: Request) {
     keys.add(k);
   }
 
+  // Rutas por distrito (si vienen): distrito, departamento opcional, ruta y plazo
+  const dr = Array.isArray(body?.districtRoutes)
+    ? (body.districtRoutes as { district?: unknown; department?: unknown; site?: unknown; days?: unknown }[]).map((r) => ({
+        district: String(r.district ?? "").trim().toUpperCase().slice(0, 80),
+        department: String(r.department ?? "").trim().toUpperCase().slice(0, 60),
+        site: r.site, days: Math.round(Number(r.days)),
+      }))
+    : null;
+  if (dr) {
+    const badD = dr.find((r) => !r.district || !isSite(r.site) || !(r.days >= 0 && r.days < 365));
+    if (badD) return NextResponse.json({ error: `Ruta inválida en el distrito ${badD.district || "(sin nombre)"}` }, { status: 400 });
+    const seen = new Set<string>();
+    for (const r of dr) {
+      const k = `${r.district}|${r.department}`;
+      if (seen.has(k)) return NextResponse.json({ error: `Distrito repetido: ${r.district}${r.department ? ` (${r.department})` : ""}` }, { status: 400 });
+      seen.add(k);
+    }
+  }
+
   await tx(async (c) => {
+    if (dr) {
+      await c.query("DELETE FROM district_routes");
+      if (dr.length) await c.query("INSERT INTO district_routes(district, department, site, days) VALUES ?", [dr.map((r) => [r.district, r.department, r.site, r.days])]);
+    }
     await c.query("UPDATE settings SET target=?, alert_days=?, creciente_months=? WHERE id=1", [target, alertDays, [...new Set(creciente)].sort((a, b) => (a as number) - (b as number)).join(",")]);
     await c.query("DELETE FROM lead_times");
     if (rows.length) await c.query("INSERT INTO lead_times(site, zone, days_cre, days_vac) VALUES ?", [rows.map((r) => [r.site, r.zone, r.cre, r.vac])]);

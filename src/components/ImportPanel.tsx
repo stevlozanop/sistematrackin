@@ -3,7 +3,7 @@ import { Button, Chip, toast } from "@heroui/react";
 import { Save, X } from "lucide-react";
 import { Card, Table, Td, Th, Thead, Tr } from "@/components/ui";
 import { fmtDate, type Site } from "@/lib/hsp";
-import type { UnitRow } from "@/lib/excel-parse";
+import { applyRoutes, type DistrictRoute, type UnitRow } from "@/lib/excel-parse";
 import { GZIP_JSON, gzipJson } from "@/lib/gzip-json";
 
 export type Preview = {
@@ -47,7 +47,10 @@ async function parseInBrowser(file: File) {
 /** Lee el Excel en el navegador y arma la vista previa (no guarda nada). */
 export async function readExcel(file: File): Promise<Preview | null> {
   try {
-    const { format, duplicates, rows } = await parseInBrowser(file);
+    const parsed = await parseInBrowser(file);
+    const { format, duplicates } = parsed;
+    // Facturación: la ruta sale del distrito (lista de Yurimaguas; el resto, Pucallpa)
+    const rows = format === "FACT" ? applyRoutes(parsed.rows, (await post({ step: "routes" })).routes as DistrictRoute[]) : parsed.rows;
     const exists = new Set<string>();
     for (let i = 0; i < rows.length; i += KEYS_CHUNK) {
       const keys = rows.slice(i, i + KEYS_CHUNK).map((r) => ({ site: r.site, chassis: r.chassis }));

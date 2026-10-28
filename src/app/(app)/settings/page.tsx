@@ -6,7 +6,8 @@ import { Card, PageTitle } from "@/components/ui";
 import { MONTHS, SITE_INFO, type Site } from "@/lib/hsp";
 
 type LT = { site: Site; zone: string; days_cre: number; days_vac: number; units?: number };
-type Config = { target: number; alertDays: number; creciente: number[]; leadTimes: LT[]; missing: { site: Site; zone: string; units: number }[] };
+type DR = { district: string; department: string; site: Site; days: number; units?: number };
+type Config = { target: number; alertDays: number; creciente: number[]; leadTimes: LT[]; missing: { site: Site; zone: string; units: number }[]; districtRoutes: DR[] };
 
 const input = "h-8 rounded-xl border border-sb-outline-variant bg-sb-surface-container-low px-2 text-xs text-sb-on-surface outline-none transition-colors focus:border-sb-primary";
 
@@ -28,13 +29,15 @@ export default function SettingsPage() {
   const change = (next: Partial<Config>) => { setCfg({ ...cfg, ...next }); setSaved(false); };
   const setLT = (i: number, patch: Partial<LT>) => change({ leadTimes: cfg.leadTimes.map((l, j) => (j === i ? { ...l, ...patch } : l)) });
   const addLT = (site: Site, zone = "") => change({ leadTimes: [...cfg.leadTimes, { site, zone, days_cre: 0, days_vac: 0 }] });
+  const setDR = (i: number, patch: Partial<DR>) => change({ districtRoutes: cfg.districtRoutes.map((r, j) => (j === i ? { ...r, ...patch } : r)) });
+  const addDR = (site: Site) => change({ districtRoutes: [{ district: "", department: "", site, days: 0 }, ...cfg.districtRoutes] });
 
   async function save() {
     setSaving(true);
     const r = await fetch("/api/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ target: cfg!.target, alertDays: cfg!.alertDays, creciente: cfg!.creciente, leadTimes: cfg!.leadTimes }),
+      body: JSON.stringify({ target: cfg!.target, alertDays: cfg!.alertDays, creciente: cfg!.creciente, leadTimes: cfg!.leadTimes, districtRoutes: cfg!.districtRoutes }),
     });
     const j = await r.json().catch(() => ({ error: "Error del servidor" }));
     setSaving(false);
@@ -134,6 +137,59 @@ export default function SettingsPage() {
           );
         })}
       </div>
+
+      {/* Rutas por distrito: la facturación oficial trae el distrito; con él se decide la ruta y el plazo */}
+      <Card className="overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sb-outline-variant/40 px-4 py-3">
+          <div>
+            <h3 className="text-sm font-semibold">Rutas y plazos por distrito</h3>
+            <p className="text-[11px] text-sb-on-surface-variant/70">
+              Al cargar la facturación, los distritos de Yurimaguas van por YUR; cualquier otro, por Pucallpa. El plazo del distrito se usa cuando la unidad no tiene plazo por departamento o ruta.
+              Departamento vacío = cualquiera (ej. LA VICTORIA: Lima → PCL; el resto → YUR).
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" className="rounded-full" onPress={() => addDR("YUR")}><Plus className="h-3.5 w-3.5" /> Distrito YUR</Button>
+            <Button size="sm" variant="secondary" className="rounded-full" onPress={() => addDR("PCL")}><Plus className="h-3.5 w-3.5" /> Distrito PCL</Button>
+          </div>
+        </div>
+        <div className="grid xl:grid-cols-2">
+          {(["YUR", "PCL"] as const).map((site) => (
+            <table key={site} className="w-full text-left text-xs xl:[&:first-child]:border-r xl:border-sb-outline-variant/40">
+              <thead>
+                <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">
+                  <th className="px-4 py-2 font-semibold">{SITE_INFO[site].title} · distrito</th>
+                  <th className="px-2 py-2 font-semibold">Departamento</th>
+                  <th className="px-2 py-2 font-semibold">Ruta</th>
+                  <th className="px-2 py-2 font-semibold">LT días</th>
+                  <th className="px-2 py-2 text-right font-semibold">Unidades</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {cfg.districtRoutes.map((r, i) => r.site !== site ? null : (
+                  <tr key={i} className="border-b border-sb-outline-variant/25 last:border-0">
+                    <td className="px-4 py-1.5"><input value={r.district} onChange={(e) => setDR(i, { district: e.target.value.toUpperCase() })} className={`w-full ${input}`} aria-label="Distrito" placeholder="DISTRITO" /></td>
+                    <td className="px-2 py-1.5"><input value={r.department} onChange={(e) => setDR(i, { department: e.target.value.toUpperCase() })} className={`w-28 ${input}`} aria-label="Departamento" placeholder="cualquiera" /></td>
+                    <td className="px-2 py-1.5">
+                      <select value={r.site} onChange={(e) => setDR(i, { site: e.target.value as Site })} className={`w-20 ${input}`} aria-label="Ruta">
+                        <option value="YUR">YUR</option><option value="PCL">PCL</option>
+                      </select>
+                    </td>
+                    <td className="px-2 py-1.5"><input type="number" min={0} value={r.days} onChange={(e) => setDR(i, { days: Number(e.target.value) })} className={`w-16 ${input}`} aria-label="Plazo en días" /></td>
+                    <td className="px-2 py-1.5 text-right text-sb-on-surface-variant">{r.units?.toLocaleString() ?? "—"}</td>
+                    <td className="px-2 py-1.5 text-right">
+                      <button aria-label={`Quitar ${r.district}`} className="rounded-full p-1.5 opacity-40 hover:bg-sb-surface-container hover:opacity-100" onClick={() => change({ districtRoutes: cfg.districtRoutes.filter((_, j) => j !== i) })}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ))}
+        </div>
+      </Card>
 
       </fieldset>
 

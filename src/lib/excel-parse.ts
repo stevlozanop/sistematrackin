@@ -186,3 +186,27 @@ export function dedupe(rows: UnitRow[]) {
   return [...m.values()];
 }
 
+
+/* ---------- Ruta por distrito (facturación oficial) ---------- */
+
+/** Ruta y plazo de un distrito (tabla district_routes). department vacío = cualquier departamento. */
+export type DistrictRoute = { district: string; department: string; site: Site; days: number };
+
+const up = (v: string | null | undefined) => norm(String(v ?? "")).toUpperCase();
+
+/**
+ * Ruta de una unidad según su distrito: primero el distrito + departamento, después el distrito solo.
+ * Si el distrito es de la ruta Yurimaguas va por YUR; si no, por defecto por PCL (Pucallpa).
+ */
+export function routeOf(routes: DistrictRoute[], district: string | null, department: string | null): Site {
+  const d = up(district), dep = up(department);
+  const exact = routes.find((r) => up(r.district) === d && r.department && up(r.department) === dep);
+  const any = routes.find((r) => up(r.district) === d && !r.department);
+  return (exact ?? any)?.site === "YUR" ? "YUR" : "PCL";
+}
+
+/** Facturación (PCL-FACT / FACT HSP-DATA): cada fila toma la ruta de su distrito. */
+export function applyRoutes(rows: UnitRow[], routes: DistrictRoute[]) {
+  for (const r of rows) r.site = routeOf(routes, r.fields.district, r.fields.department);
+  return rows;
+}
