@@ -279,6 +279,9 @@ CREATE TABLE IF NOT EXISTS import_batches (
   undone_at  timestamp(0),                 -- cuándo se eliminó lo cargado
   undone_by  integer REFERENCES users(id) ON DELETE SET NULL
 );
+-- «Vaciar datos» (borrar todas las unidades de una ruta) también queda en la lista de cargas
+ALTER TABLE import_batches DROP CONSTRAINT IF EXISTS import_batches_kind_check;
+ALTER TABLE import_batches ADD CONSTRAINT import_batches_kind_check CHECK (kind IN ('units', 'stage', 'wipe'));
 ALTER TABLE units ADD COLUMN IF NOT EXISTS import_batch_id integer REFERENCES import_batches(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_units_batch ON units (import_batch_id);
 ALTER TABLE unit_events ADD COLUMN IF NOT EXISTS batch_id integer REFERENCES import_batches(id) ON DELETE SET NULL;

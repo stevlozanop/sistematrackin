@@ -25,13 +25,28 @@ export const notifyData = () => window.dispatchEvent(new Event(DATA_EVENT));
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 type Batch = {
-  id: number; kind: "units" | "stage"; file_name: string | null; created_at: string; created: number; updated: number; dates: number;
+  id: number; kind: "units" | "stage" | "wipe"; file_name: string | null; created_at: string; created: number; updated: number; dates: number;
   undone_at: string | null; user_name: string | null; undone_by_name: string | null; mine: number; remaining: number;
 };
 
 /** Cargas guardadas: cada Excel subido, con el botón para eliminar lo que guardó. */
 function SavedBatches() {
-  const [data, setData] = useState<{ batches: Batch[]; canUndoAll: boolean } | null>(null);
+  const [data, setData] = useState<{ batches: Batch[]; canUndoAll: boolean; sites: Record<string, number> } | null>(null);
+  // Vaciar datos (solo la empresa): rutas elegidas y confirmación escrita
+  const [wipeSites, setWipeSites] = useState<string[]>([]);
+  const [wipeAsk, setWipeAsk] = useState(false);
+  const [wiping, setWiping] = useState(false);
+  async function wipe() {
+    setWiping(true);
+    const r = await fetch("/api/import/batches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "wipe", sites: wipeSites, confirm: "ELIMINAR" }) });
+    const j = await r.json().catch(() => ({ error: "Error del servidor" }));
+    setWiping(false); setWipeAsk(false);
+    if (!r.ok) return toast.danger(j.error);
+    toast.success(`Datos vaciados: ${j.sites.join(" y ")}`, { description: `${Number(j.deleted).toLocaleString()} unidades borradas` });
+    setWipeSites([]);
+    notifyData();
+    setTick((x) => x + 1);
+  }
   const [busy, setBusy] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -61,21 +76,26 @@ function SavedBatches() {
   }
 
   if (!data) return <p className="py-8 text-center text-sm text-sb-on-surface-variant">Cargando…</p>;
-  if (!data.batches.length) return <p className="py-8 text-center text-sm text-sb-on-surface-variant">Todavía no hay cargas guardadas.</p>;
+  const wipeCount = wipeSites.reduce((t, x) => t + (data.sites?.[x] ?? 0), 0);
   return (
+    <div className="flex flex-col gap-4">
+    {!data.batches.length && <p className="py-6 text-center text-sm text-sb-on-surface-variant">Todavía no hay cargas guardadas.</p>}
+    {data.batches.length > 0 && (
     <ul className="flex flex-col divide-y divide-sb-outline-variant/30 rounded-xl border border-sb-outline-variant/40">
       <AnimatePresence initial={false}>
         {data.batches.map((b) => {
-          const can = !b.undone_at && (data.canUndoAll || Number(b.mine));
+          const can = b.kind !== "wipe" && !b.undone_at && (data.canUndoAll || Number(b.mine));
           return (
             <motion.li key={b.id} layout initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: EASE }}
               className={cn("flex flex-wrap items-center justify-between gap-3 px-3 py-2.5", b.undone_at && "opacity-60")}>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{b.file_name ?? "(sin nombre)"}</p>
                 <p className="text-[11px] text-sb-on-surface-variant">
-                  {b.kind === "units" ? "Unidades" : "Fechas de etapa"} · {b.user_name ?? "—"} · {b.created_at}
+                  {b.kind === "units" ? "Unidades" : b.kind === "stage" ? "Fechas de etapa" : "Vaciado"} · {b.user_name ?? "—"} · {b.created_at}
                   {" · "}
-                  {b.kind === "units" ? `${Number(b.created).toLocaleString()} nuevas, ${Number(b.updated).toLocaleString()} actualizadas` : `${Number(b.dates).toLocaleString()} fechas en ${Number(b.updated).toLocaleString()} unidades`}
+                  {b.kind === "units" ? `${Number(b.created).toLocaleString()} nuevas, ${Number(b.updated).toLocaleString()} actualizadas`
+                    : b.kind === "stage" ? `${Number(b.dates).toLocaleString()} fechas en ${Number(b.updated).toLocaleString()} unidades`
+                    : `${Number(b.created).toLocaleString()} unidades borradas`}
                 </p>
                 {b.undone_at && <p className="text-[11px] font-medium text-sb-late">Eliminada por {b.undone_by_name ?? "—"} · {b.undone_at}</p>}
               </div>
@@ -99,6 +119,37 @@ function SavedBatches() {
         ))}
       </ConfirmDialog>
     </ul>
+    )}
+
+    {/* Vaciar datos: solo la empresa. Borra todas las unidades de la ruta elegida */}
+    {data.canUndoAll && (
+      <div className="flex flex-col gap-3 rounded-xl border border-sb-late/40 bg-sb-late-soft/40 p-3">
+        <div>
+          <p className="text-sm font-semibold text-sb-late">Vaciar datos</p>
+          <p className="text-[11px] text-sb-on-surface-variant">Borra todas las unidades de la ruta, con sus fechas, motivos e historial. No se puede deshacer: después hay que volver a subir el Excel.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {(["PCL", "YUR"] as const).map((x) => {
+            const on = wipeSites.includes(x);
+            return (
+              <button key={x} type="button" onClick={() => setWipeSites((w) => (on ? w.filter((y) => y !== x) : [...w, x]))}
+                className={cn("rounded-full border px-3 py-1 text-xs font-semibold transition-colors duration-200", on ? "border-sb-late bg-sb-late text-white" : "border-sb-outline-variant text-sb-on-surface-variant hover:text-sb-on-surface")}>
+                {x === "PCL" ? "PCL · Pucallpa" : "YUR · Yurimaguas"} ({(data.sites?.[x] ?? 0).toLocaleString()})
+              </button>
+            );
+          })}
+          <Button size="sm" variant="danger" className="ml-auto rounded-full" isDisabled={!wipeSites.length || !wipeCount} onPress={() => setWipeAsk(true)}>
+            <Trash2 className="h-3.5 w-3.5" /> Vaciar…
+          </Button>
+        </div>
+      </div>
+    )}
+    <ConfirmDialog open={wipeAsk} title={`¿Vaciar ${wipeSites.join(" y ")}?`} confirmLabel="Sí, vaciar" busy={wiping} requireText="ELIMINAR"
+      onCancel={() => setWipeAsk(false)} onConfirm={wipe}>
+      Se borrarán <b className="text-sb-on-surface">{wipeCount.toLocaleString()} unidades</b> de {wipeSites.map((x) => (x === "PCL" ? "Pucallpa" : "Yurimaguas")).join(" y ")},
+      con sus fechas, motivos de demora, contenedores e historial. <b className="text-sb-on-surface">No se puede deshacer.</b>
+    </ConfirmDialog>
+    </div>
   );
 }
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { queryList, run, tx } from "@/lib/db";
+import { queryList, tx } from "@/lib/db";
 import { getScope, guard, READ } from "@/lib/guard";
 import { DATE_FIELDS, isSite, type DateField, type Site } from "@/lib/hsp";
 import { checkDateEdit, isSuper, needsDelayReason, pendingSql, seesAll } from "@/lib/workflow";
@@ -227,11 +227,3 @@ export async function PATCH(req: Request) {
 }
 
 /** DELETE /api/units?site=PCL -> elimina todas las unidades de ese módulo. */
-export async function DELETE(req: Request) {
-  const { err } = await guard(["admin"]); // borrar unidades: solo la empresa
-  if (err) return err;
-  const site = new URL(req.url).searchParams.get("site");
-  if (!isSite(site)) return NextResponse.json({ error: "Módulo inválido" }, { status: 400 });
-  const res = await run("DELETE FROM units WHERE site=?", [site]);
-  return NextResponse.json({ ok: true, deleted: res.affectedRows });
-}

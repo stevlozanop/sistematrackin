@@ -3,7 +3,7 @@ import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { notFound } from "next/navigation";
 import { Button, Chip, Input, Label, ListBox, Modal, Select, Table, toast, useOverlayState } from "@heroui/react";
 import type { Key, Selection, SortDescriptor } from "@heroui/react";
-import { Check as CheckIcon, ChevronLeft, ChevronRight, History, Lock, MoreHorizontal, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { Check as CheckIcon, ChevronLeft, ChevronRight, History, Lock, MoreHorizontal, Search, SlidersHorizontal, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { Check } from "@/components/Check";
 import { DATA_EVENT } from "@/components/UploadCenter";
@@ -196,8 +196,6 @@ export default function SitePage({ params, searchParams }: {
   const bulk = useOverlayState();
   const [bulkField, setBulkField] = useState<Key | null>(info.dates[0].key);
   const [bulkValue, setBulkValue] = useState("");
-  const wipe = useOverlayState();
-  const [wiping, setWiping] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const editing = rows.find((u) => u.id === editId) ?? null;
 
@@ -304,19 +302,6 @@ export default function SitePage({ params, searchParams }: {
     return true;
   }
 
-  async function deleteAll() {
-    setWiping(true);
-    const r = await fetch(`/api/units?site=${site}`, { method: "DELETE" });
-    const j = await r.json().catch(() => ({ error: "Error del servidor" }));
-    setWiping(false);
-    if (!r.ok) return toast.danger(j.error);
-    wipe.close();
-    setSelected(new Set());
-    toast.success(`Unidades ${site} eliminadas`, { description: `${j.deleted.toLocaleString()} unidades borradas` });
-    setReload((n) => n + 1);
-    loadMeta();
-  }
-
   const statusChips = [{ key: "", label: "Todos" }, ...info.statuses.map((s) => ({ key: s, label: STATUS_LABEL[s] }))];
   const bulkIsReason = bulkField === "delay_reason";
 
@@ -330,13 +315,6 @@ export default function SitePage({ params, searchParams }: {
         }}>
           Cambio masivo ({selIds.length})
         </Button>}
-        {sup && (
-          <>
-            <Button size="sm" variant="secondary" className="rounded-full" isDisabled={!total && !Object.values(f).some(Boolean)} onPress={wipe.open}>
-              <Trash2 className="h-3.5 w-3.5" /> Eliminar todo
-            </Button>
-          </>
-        )}
       </PageTitle>
 
 
@@ -616,31 +594,6 @@ export default function SitePage({ params, searchParams }: {
                     <Button variant="primary" className="rounded-full" onPress={async () => {
                       if (await patch(selIds, { [String(bulkField)]: bulkValue || null })) { setSelected(new Set()); close(); }
                     }}>Aplicar</Button>
-                  </Modal.Footer>
-                </>
-              )}
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
-
-      {/* Eliminar todo el módulo */}
-      <Modal>
-        <Modal.Backdrop isOpen={wipe.isOpen} onOpenChange={(o) => !wiping && wipe.setOpen(o)}>
-          <Modal.Container>
-            <Modal.Dialog>
-              {({ close }) => (
-                <>
-                  <Modal.CloseTrigger aria-label="Cerrar" /><Modal.Header><Modal.Heading>¿Eliminar todas las unidades {site}?</Modal.Heading></Modal.Header>
-                  <Modal.Body className="p-1 text-sm text-sb-on-surface-variant">
-                    Se borrarán <b className="text-sb-on-surface">todas las unidades del módulo {info.title}</b> con sus fechas y motivos de demora
-                    (no solo las filtradas). El otro módulo y los dealers se mantienen. Esta acción no se puede deshacer.
-                  </Modal.Body>
-                  <Modal.Footer>
-                    <Button variant="secondary" className="rounded-full" isDisabled={wiping} onPress={close}>Cancelar</Button>
-                    <Button variant="danger" className="rounded-full" isDisabled={wiping} onPress={deleteAll}>
-                      <Trash2 className="h-3.5 w-3.5" /> {wiping ? "Eliminando…" : "Sí, eliminar todo"}
-                    </Button>
                   </Modal.Footer>
                 </>
               )}
