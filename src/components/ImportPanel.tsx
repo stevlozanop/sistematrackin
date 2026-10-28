@@ -44,9 +44,22 @@ async function parseInBrowser(file: File) {
   });
 }
 
-/** Lee el Excel en el navegador y arma la vista previa (no guarda nada). */
+/** Lee el Excel en el navegador y arma la vista previa (no guarda nada). Si falla, avisa y devuelve null. */
 export async function readExcel(file: File): Promise<Preview | null> {
   try {
+    return await readUnitsExcel(file);
+  } catch (e) {
+    toast.danger((e as Error).message);
+    return null;
+  }
+}
+
+/** Mensaje del lector cuando el archivo no es HSP-OFICIAL ni facturación. */
+export const isUnknownExcel = (e: unknown) => /No se reconoce el Excel/.test((e as Error)?.message ?? "");
+
+/** Igual que readExcel, pero lanza el error (el botón único decide qué hacer con un archivo que no es de unidades). */
+export async function readUnitsExcel(file: File): Promise<Preview> {
+  {
     const parsed = await parseInBrowser(file);
     const { format, duplicates } = parsed;
     // Facturación: la ruta sale del distrito (lista de Yurimaguas; el resto, Pucallpa)
@@ -67,13 +80,10 @@ export async function readExcel(file: File): Promise<Preview | null> {
       sites: { PCL: bySite("PCL"), YUR: bySite("YUR") },
       sample: rows.slice(0, 200).map((r) => ({
         site: r.site, chassis: r.chassis, motor: r.fields.motor, material: r.fields.material, category: r.fields.category,
-        dealer: r.dealer, zone: r.site === "PCL" ? r.fields.department : r.fields.route,
+        dealer: r.dealer, zone: r.site === "PCL" ? r.fields.department : r.fields.route ?? r.fields.district,
         billing: r.billing_date, delivered: r.dates.d_entrega ?? null, exists: has(r),
       })),
     };
-  } catch (e) {
-    toast.danger((e as Error).message);
-    return null;
   }
 }
 

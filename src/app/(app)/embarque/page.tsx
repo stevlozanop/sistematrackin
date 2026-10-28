@@ -5,6 +5,7 @@ import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ArrowDown, Box, Eye, Plus, Ship, Trash2, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import { DATA_EVENT } from "@/components/UploadCenter";
 import { DELAY_REASONS, SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 
@@ -115,6 +116,12 @@ export default function EmbarquePage() {
   const [site, setSite] = useState<Site | null>(null);
   const [data, setData] = useState<Data | null>(null);
   const [reload, setReload] = useState(0);
+  // Se guardó un Excel con «Subir Excel» del menú: recargar
+  useEffect(() => {
+    const again = () => setReload((n) => n + 1);
+    window.addEventListener(DATA_EVENT, again);
+    return () => window.removeEventListener(DATA_EVENT, again);
+  }, []);
   // Contenedor que se está armando
   const [guiaInput, setGuiaInput] = useState("");
   const [adding, setAdding] = useState(false);

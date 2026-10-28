@@ -10,6 +10,7 @@ import { MonthClosing } from "@/components/MonthClosing";
 import { AnimatedNumber, SERVICE_STYLE, ServiceBadge, ServiceSplitBar } from "@/components/Service";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/cn";
+import { DATA_EVENT } from "@/components/UploadCenter";
 import { MONTHS, SITE_INFO, STATUS_LABEL, type Site, type Status } from "@/lib/hsp";
 
 type Cell = { m: number; status: Status; service: "A TIEMPO" | "FUERA DE TIEMPO" | null; n: number };
@@ -126,6 +127,7 @@ function StatusPivot({ site, cells, months, year }: { site: Site; cells: Cell[];
 export default function DashboardPage() {
   const [data, setData] = useState<Data | null>(null);
   const [year, setYear] = useState<number | null>(null);
+  const [tick, setTick] = useState(0);
   const [cl, setCl] = useState<string[] | null>(null); // null = por defecto (todos menos 3114, como la TABLA)
   const [months, setMonths] = useState<number[] | null>(null);
   const [alerts, setAlerts] = useState<{ overdue: number; soon: number; days: number } | null>(null);
@@ -146,7 +148,13 @@ export default function DashboardPage() {
     // Sin CL elegido, el servidor usa el filtro de la TABLA del Excel: PCL sin CL 3114
     fetch(`/api/dashboard?${p}`).then((r) => r.json()).then((d: Data) => { if (alive) setData(d); });
     return () => { alive = false; };
-  }, [year, cl]);
+  }, [year, cl, tick]);
+  // Se guardó un Excel con «Subir Excel» del menú: recargar
+  useEffect(() => {
+    const again = () => setTick((n) => n + 1);
+    window.addEventListener(DATA_EVENT, again);
+    return () => window.removeEventListener(DATA_EVENT, again);
+  }, []);
 
   const monthStats = useMemo(() => {
     if (!data) return [];

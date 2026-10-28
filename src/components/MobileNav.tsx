@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { BookOpen, LogOut, MoreHorizontal, Moon, Sun, type LucideIcon } from "lucide-react";
+import { BookOpen, LogOut, MoreHorizontal, Moon, Sun, Upload, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export type MobileItem = { title: string; href: string; icon: LucideIcon };
@@ -36,9 +36,11 @@ function NavButton({ item, active, onGo }: { item: MobileItem; active: boolean; 
 
 /** Barra inferior móvil: cápsula con iconos + botón «más» que se transforma en menú (morph). */
 export function MobileNav({
-  items, activeHref, maxVisible = 4, dark, onToggleTheme, onLogout, onGuide,
+  items, activeHref, maxVisible = 4, dark, onToggleTheme, onLogout, onGuide, onUpload,
 }: {
   items: MobileItem[]; activeHref: string; maxVisible?: number; dark: boolean; onToggleTheme: () => void; onLogout: () => void; onGuide: () => void;
+  /** Botón «Subir Excel»: va al centro de la cápsula, más grande y de color */
+  onUpload?: () => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -76,7 +78,16 @@ export function MobileNav({
       >
         <div className="mobile-nav-inner relative flex w-full items-end justify-between px-3">
           <div className="mobile-nav-buttons relative flex items-center justify-around gap-1 rounded-[50px] border border-sb-outline-variant bg-sb-surface-container-high/90 px-2 py-1.5 shadow-lg backdrop-blur-xl">
-            {visible.map((i) => <NavButton key={i.href} item={i} active={isActive(i)} onGo={() => router.push(i.href)} />)}
+            {visible.slice(0, onUpload ? 2 : visible.length).map((i) => <NavButton key={i.href} item={i} active={isActive(i)} onGo={() => router.push(i.href)} />)}
+            {onUpload && (
+              <motion.button type="button" onClick={onUpload} aria-label="Subir Excel" whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className="relative mx-0.5 -my-3 flex h-14 w-14 flex-col items-center justify-center rounded-full bg-sb-primary text-sb-on-primary shadow-lg ring-4 ring-[var(--page-bg)]">
+                <Upload className="h-5 w-5" strokeWidth={2.5} />
+                <span className="text-[8px] font-semibold leading-none">Excel</span>
+              </motion.button>
+            )}
+            {onUpload && visible.slice(2).map((i) => <NavButton key={i.href} item={i} active={isActive(i)} onGo={() => router.push(i.href)} />)}
           </div>
 
           <div className="relative bottom-0">

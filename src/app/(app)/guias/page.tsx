@@ -6,6 +6,7 @@ import { AlertTriangle, ChevronRight, FileStack, Search, Ship, X } from "lucide-
 import { Card, PageTitle } from "@/components/ui";
 import { ServiceBadge } from "@/components/Service";
 import { cn } from "@/lib/cn";
+import { DATA_EVENT } from "@/components/UploadCenter";
 import { DELAY_REASONS, SITE_INFO, fmtDate, type DateField, type Site } from "@/lib/hsp";
 import { stageLabel, today } from "@/lib/workflow";
 
@@ -70,6 +71,12 @@ export default function GuiasPage() {
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [reload, setReload] = useState(0);
+  // Se guardó un Excel con «Subir Excel» del menú: recargar
+  useEffect(() => {
+    const again = () => setReload((n) => n + 1);
+    window.addEventListener(DATA_EVENT, again);
+    return () => window.removeEventListener(DATA_EVENT, again);
+  }, []);
 
   useEffect(() => { fetch("/api/me").then((r) => r.json()).then(setMe); }, []);
   const sites = useMemo<Site[]>(() => {

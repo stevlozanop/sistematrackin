@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, ChartColumn, Container, FileStack, BookOpen, Building2, ChevronLeft, Database, FileSpreadsheet, SquareTerminal, Terminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
+import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, Database, FileSpreadsheet, SquareTerminal, Terminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
@@ -13,6 +13,7 @@ import { LogoBadge } from "@/components/CompanyLogo";
 type Co = { id: number; name: string; v: string | null; color?: string | null; kind?: string; code?: string | null } | null;
 
 import { companyCode, roleLabel, type Role } from "@/lib/workflow";
+import { UploadCenter, type UploadMode } from "@/components/UploadCenter";
 import { CodeTag } from "@/components/ui";
 
 type Item = { title: string; href: string; icon: LucideIcon; roles?: Role[] };
@@ -128,9 +129,10 @@ const Heading = ({ children }: { children: React.ReactNode }) => (
   <h3 className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/50">{children}</h3>
 );
 
-export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = false, brand = null, own = null, swm = false, isOwner = false, children }: {
-  name: string; role: Role; sites?: string[]; firstGuide?: boolean; brand?: Co; own?: Co; swm?: boolean; isOwner?: boolean; children: React.ReactNode;
+export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = false, brand = null, own = null, swm = false, isOwner = false, upload = null, children }: {
+  name: string; role: Role; sites?: string[]; firstGuide?: boolean; brand?: Co; own?: Co; swm?: boolean; isOwner?: boolean; upload?: UploadMode | null; children: React.ReactNode;
 }) {
+  const [uploadOpen, setUploadOpen] = useState(false);
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(true);
@@ -194,6 +196,18 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = fals
             </span>
           )}
         </div>
+
+        {/* Botón único para subir cualquier Excel: el sistema lo reconoce y lo distribuye */}
+        {upload && (
+          <div className={cn("shrink-0 px-2 pb-1", !open && "flex justify-center")}>
+            <motion.button type="button" onClick={() => setUploadOpen(true)} title={open ? undefined : "Subir Excel"}
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }} transition={SPRING}
+              className={cn("flex items-center gap-2 bg-sb-primary font-medium text-sb-on-primary shadow-sm",
+                open ? "h-9 w-full justify-center rounded-full px-3 text-[13px]" : "h-10 w-10 justify-center rounded-2xl")}>
+              <Upload className="h-4 w-4 shrink-0" />{open && "Subir Excel"}
+            </motion.button>
+          </div>
+        )}
 
         <nav className={cn("flex flex-1 flex-col overflow-y-auto overflow-x-hidden px-2 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", open ? "gap-4" : "gap-2")}>
           {sections.map((s) => (
@@ -266,7 +280,9 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = fals
           </AnimatePresence>
         </main>
 
-        <MobileNav items={[...sections.flatMap((x) => x.items), PROFILE]} activeHref={activeHref} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} onGuide={() => setGuide(true)} />
+        <MobileNav items={[...sections.flatMap((x) => x.items), PROFILE]} activeHref={activeHref} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} onGuide={() => setGuide(true)}
+          onUpload={upload ? () => setUploadOpen(true) : undefined} />
+        {upload && <UploadCenter open={uploadOpen} onClose={() => setUploadOpen(false)} mode={upload} />}
         <GuideModal open={guide} onClose={closeGuide} />
       </div>
     </div>

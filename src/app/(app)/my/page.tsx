@@ -5,6 +5,7 @@ import { CheckCircle2, ChevronLeft, ChevronRight, Search, X } from "lucide-react
 import { Card, PageTitle } from "@/components/ui";
 import { ProcessRoute } from "@/components/ProcessRoute";
 import { StageImport } from "@/components/StageImport";
+import { DATA_EVENT } from "@/components/UploadCenter";
 import { cn } from "@/lib/cn";
 import { DELAY_REASONS, SITE_INFO, STATUS_LABEL, daysText, fmtDate, type DateField, type Site, type Status } from "@/lib/hsp";
 import { areaOf, needsDelayReason, previousDate, stageLabel, today, type Stage } from "@/lib/workflow";
@@ -51,6 +52,12 @@ export default function MyWorkPage() {
     });
   }, []);
   useEffect(() => { loadMe(); }, [loadMe]);
+  // Se guardó un Excel con «Subir Excel» del menú: recargar la bandeja
+  useEffect(() => {
+    const again = () => { setReload((n) => n + 1); loadMe(); };
+    window.addEventListener(DATA_EVENT, again);
+    return () => window.removeEventListener(DATA_EVENT, again);
+  }, [loadMe]);
 
   useEffect(() => { const t = setTimeout(() => { setQDebounced(q); setPage(1); }, 300); return () => clearTimeout(t); }, [q]);
 
@@ -152,7 +159,7 @@ export default function MyWorkPage() {
                 <b className="text-sb-on-surface">Carga masiva con Excel:</b> descarga la plantilla (ya trae tus unidades pendientes), escribe la fecha en la columna de tu etapa y súbela.
                 Antes de guardar verás cuáles se registran y cuáles no.
               </p>
-              <StageImport stages={me.pending.map(({ site, field }) => ({ site, field }))} onSaved={() => { setReload((n) => n + 1); loadMe(); }} />
+              <StageImport stages={me.pending.map(({ site, field }) => ({ site, field }))} />
             </Card>
           )}
 

@@ -1,12 +1,12 @@
 "use client";
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { notFound } from "next/navigation";
 import { Button, Chip, Input, Label, ListBox, Modal, Select, Table, toast, useOverlayState } from "@heroui/react";
 import type { Key, Selection, SortDescriptor } from "@heroui/react";
-import { Check as CheckIcon, ChevronLeft, ChevronRight, History, Lock, MoreHorizontal, Search, SlidersHorizontal, Trash2, Upload, X } from "lucide-react";
+import { Check as CheckIcon, ChevronLeft, ChevronRight, History, Lock, MoreHorizontal, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { Check } from "@/components/Check";
-import { ImportPanel, readExcel, saveExcel, type Preview } from "@/components/ImportPanel";
+import { DATA_EVENT } from "@/components/UploadCenter";
 import { ProcessRoute } from "@/components/ProcessRoute";
 import { ServiceBadge } from "@/components/Service";
 import {
@@ -175,11 +175,6 @@ export default function SitePage({ params, searchParams }: {
     return myFields.has(k) && allowedNext(site, u).includes(k) ? "next" : "wait";
   };
 
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState<Preview | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [progress, setProgress] = useState(0);
 
   const reasons = useMemo(() => [...new Set([...DELAY_REASONS, ...meta.reasons])], [meta.reasons]);
 
@@ -221,6 +216,12 @@ export default function SitePage({ params, searchParams }: {
     fetch(`/api/units?site=${site}&meta=1`).then((r) => r.ok && r.json()).then((j) => j && setMeta(j));
   }, [site]);
   useEffect(() => { loadMeta(); }, [loadMeta]);
+  // Se guardó un Excel con el botón «Subir Excel»: recargar
+  useEffect(() => {
+    const again = () => { setReload((n) => n + 1); loadMeta(); };
+    window.addEventListener(DATA_EVENT, again);
+    return () => window.removeEventListener(DATA_EVENT, again);
+  }, [loadMeta]);
 
   useEffect(() => {
     fetch("/api/me").then((r) => r.ok && r.json()).then((m) => {
@@ -262,31 +263,6 @@ export default function SitePage({ params, searchParams }: {
     return true;
   }
 
-  async function upload(file: File) {
-    setUploading(true);
-    const p = await readExcel(file);
-    setUploading(false);
-    if (fileRef.current) fileRef.current.value = "";
-    if (p) setPreview(p);
-  }
-
-  async function savePreview() {
-    if (!preview || preview.saved) return;
-    setSaving(true);
-    setProgress(0);
-    try {
-      const j = await saveExcel(preview.rows, setProgress);
-      setPreview((p) => p && { ...p, saved: true });
-      toast.success("Carga masiva guardada", { description: `${j.created.toLocaleString()} nuevas, ${j.updated.toLocaleString()} actualizadas` });
-    } catch (e) {
-      // lo guardado hasta el error se queda; volver a subir el mismo Excel completa el resto sin duplicar
-      toast.danger((e as Error).message, { description: "Lo que alcanzó a guardarse se queda. Vuelve a subir el Excel para completar el resto." });
-    }
-    setSaving(false);
-    setReload((n) => n + 1);
-    loadMeta();
-  }
-
   async function deleteAll() {
     setWiping(true);
     const r = await fetch(`/api/units?site=${site}`, { method: "DELETE" });
@@ -318,18 +294,10 @@ export default function SitePage({ params, searchParams }: {
             <Button size="sm" variant="secondary" className="rounded-full" isDisabled={!total && !Object.values(f).some(Boolean)} onPress={wipe.open}>
               <Trash2 className="h-3.5 w-3.5" /> Eliminar todo
             </Button>
-            <input ref={fileRef} type="file" accept=".xlsx,.xls" hidden onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
-            <Button size="sm" variant="primary" className="rounded-full" isDisabled={uploading} onPress={() => fileRef.current?.click()}>
-              <Upload className="h-3.5 w-3.5" /> {uploading ? "Leyendo Excel…" : "Cargar Excel"}
-            </Button>
           </>
         )}
       </PageTitle>
 
-      {uploading && (
-        <Card className="px-4 py-3 text-xs text-sb-on-surface-variant">Leyendo el Excel… un archivo grande (como el HSP-OFICIAL) puede tardar unos 20 segundos.</Card>
-      )}
-      {preview && <ImportPanel preview={preview} saving={saving} progress={progress} onSave={savePreview} onClose={() => setPreview(null)} />}
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <label className="sbf-search w-full lg:w-80">
