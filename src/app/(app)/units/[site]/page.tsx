@@ -13,7 +13,7 @@ import {
   DELAY_REASONS, MONTHS, SITE_INFO, STATUS_LABEL, STATUS_STEP, daysText, fmtDate, isSite,
   type DateField, type Service, type Site, type Status,
 } from "@/lib/hsp";
-import { allowedNext, isSuper, previousDate, stageLabel, today, type Role, type Stage } from "@/lib/workflow";
+import { allowedNext, areaOf, isSuper, previousDate, stageLabel, today, type Role, type Stage } from "@/lib/workflow";
 
 type Unit = {
   id: number; site: Site; chassis: string; motor: string | null; lote: string | null; material: string | null;
@@ -21,6 +21,8 @@ type Unit = {
   center: string | null; dealer: string | null; dealer_group: string | null; department: string | null; district: string | null;
   route: string | null; nave: string | null; container: string | null; carrier: string | null; plan_almacen: string | null;
   driver: string | null; gm_com: string | null; observation: string | null; delay_reason: string | null;
+  // quién puso el motivo de demora (responsable del tramo)
+  reason_at?: string | null; reason_by?: string | null; reason_area?: string | null; reason_role?: string | null;
   billing_date: string | null; zone: string | null; season: string; via_lima: number;
   days_left: number | null; alert: "VENCIDA" | "POR VENCER" | null;
   last_field?: string; last_at?: string; last_by?: string | null; lead_time: number | null; est_date: string | null;
@@ -86,6 +88,27 @@ function DateCell({ value, onSave, label, mode, min }: {
       onBlur={(e) => e.target.value !== (value ?? "") && onSave(e.target.value)}
       className={`w-[8.5rem] ${field}`}
     />
+  );
+}
+
+/**
+ * Motivo de demora como texto: lo registra el responsable de cada tramo (Iquitos, Pucallpa, almacén, Lima…)
+ * al poner su fecha. Debajo, quién lo puso, de qué área y cuándo. Si falta y la unidad va fuera de tiempo, se avisa.
+ */
+function ReasonInfo({ u }: { u: Pick<Unit, "delay_reason" | "service" | "reason_at" | "reason_by" | "reason_area" | "reason_role"> }) {
+  if (!u.delay_reason) {
+    return u.service === "FUERA DE TIEMPO"
+      ? <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-sb-late-soft px-2 py-0.5 text-[10px] font-semibold text-sb-late" title="Lo registra el responsable de la etapa al poner su fecha">Falta motivo</span>
+      : <span className="text-xs text-muted">—</span>;
+  }
+  const who = u.reason_by
+    ? [u.reason_by, u.reason_area ? areaOf(u.reason_area)?.label ?? u.reason_area : u.reason_role === "admin" ? "Empresa" : null].filter(Boolean).join(" · ")
+    : "Del Excel";
+  return (
+    <div className="max-w-[13rem]">
+      <span className="block truncate text-xs font-semibold" title={u.delay_reason}>{u.delay_reason}</span>
+      <span className="block truncate text-[10px] text-muted" title={who}>{who}{u.reason_at ? ` · ${fmtDate(u.reason_at.slice(0, 10))}` : ""}</span>
+    </div>
   );
 }
 
@@ -506,7 +529,7 @@ export default function SitePage({ params, searchParams }: {
                       <ServiceChip s={u.service} />
                       {u.real_days != null && <div className="mt-1 text-[10px] text-muted">Real: {u.real_days} días</div>}
                     </Table.Cell>
-                    <Table.Cell><ReasonCell readOnly={viewer} value={u.delay_reason} reasons={reasons} onSave={(v) => patch([u.id], { delay_reason: v || null })} /></Table.Cell>
+                    <Table.Cell><ReasonInfo u={u} /></Table.Cell>
                     <Table.Cell>
                       <div className="flex justify-end">
                         <Button isIconOnly size="sm" variant="tertiary" aria-label={`Más opciones de ${u.chassis}`} onPress={() => setEditId(u.id)}>
@@ -642,7 +665,10 @@ export default function SitePage({ params, searchParams }: {
                     <div className="grid gap-3 sm:grid-cols-2">
                       <label className="flex flex-col gap-1 text-xs">
                         Motivo de demora
-                        <ReasonCell readOnly={viewer} value={editing.delay_reason} reasons={reasons} onSave={(v) => patch([editing.id], { delay_reason: v || null })} />
+                        {/* Solo la empresa corrige el motivo; lo registra el responsable de cada tramo */}
+                        {sup
+                          ? <ReasonCell value={editing.delay_reason} reasons={reasons} onSave={(v) => patch([editing.id], { delay_reason: v || null })} />
+                          : <ReasonInfo u={editing} />}
                       </label>
                       {(site === "PCL"
                         ? [["nave", "Nave"], ["container", "Contenedor"], ["carrier", "Tramo final (transportista)"], ["plan_almacen", "Plan almacén"]]

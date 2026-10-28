@@ -102,9 +102,20 @@ export async function GET(req: Request) {
       [rows.map((r) => r.id)],
     );
     const byUnit = new Map(last.map((l) => [l.unit_id, l]));
+    // Quién puso el motivo de demora (el responsable del tramo), su área y cuándo
+    const reasons = await queryList<{ unit_id: number; at: string; by: string | null; area: string | null; role: string | null }>(
+      `SELECT e.unit_id, DATE_FORMAT(e.at,'%Y-%m-%d %H:%i') at, us.name \`by\`, us.area, us.role
+       FROM unit_events e
+       JOIN (SELECT unit_id, MAX(id) id FROM unit_events WHERE field = 'delay_reason' AND unit_id IN (?) GROUP BY unit_id) m ON m.id = e.id
+       LEFT JOIN users us ON us.id = e.user_id`,
+      [rows.map((r) => r.id)],
+    );
+    const reasonOf = new Map(reasons.map((x) => [x.unit_id, x]));
     for (const r of rows) {
       const l = byUnit.get(r.id as number);
       if (l) Object.assign(r, { last_field: l.field, last_at: l.at, last_by: l.by });
+      const x = reasonOf.get(r.id as number);
+      if (x) Object.assign(r, { reason_at: x.at, reason_by: x.by, reason_area: x.area, reason_role: x.role });
     }
   }
   return NextResponse.json({ total, page, size, rows });
