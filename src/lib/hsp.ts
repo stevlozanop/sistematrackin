@@ -16,7 +16,8 @@ export type Service = "A TIEMPO" | "FUERA DE TIEMPO";
 
 export const SITE_INFO: Record<Site, {
   title: string; short: string; zoneLabel: string; zoneField: "department" | "route";
-  dates: { key: DateField; n: string; label: string }[]; statuses: Status[];
+  /** label = nombre de la fecha (columna del Excel, ej. «2. Zarpe IQT»); action = la acción sin número; step = el paso como se ve en todo el sistema */
+  dates: { key: DateField; n: string; label: string; action?: string; step?: string }[]; statuses: Status[];
 }> = {
   PCL: {
     title: "PCL · Pucallpa",
@@ -54,7 +55,7 @@ export const SITE_INFO: Record<Site, {
 };
 
 // Cada fecha se muestra con su número de paso: "4. Entrega almacén (in)"
-for (const info of Object.values(SITE_INFO)) for (const d of info.dates) d.label = `${d.n}. ${d.label}`;
+for (const info of Object.values(SITE_INFO)) for (const d of info.dates) { d.action = d.label; d.label = `${d.n}. ${d.label}`; }
 
 /** Pasos del proceso (como en el Excel): 1 a 6, con 5.1 y 5.2 solo para dealers de Ruta Lima. */
 export const STATUS_STEP: Record<Status, string> = {
@@ -117,3 +118,18 @@ export function daysText(days: number | null | undefined) {
   if (days === 1) return "Vence mañana";
   return `Vence en ${days} días`;
 }
+
+/** Estado al que pasa la unidad cuando se registra cada fecha. */
+export const FIELD_STATUS: Record<DateField, Status> = {
+  d_carga: "EMBARQUE", d_zarpe: "TRANSITO FLUVIAL", d_arribo: "ARRIBO PUERTO", d_almacen: "EN ALMACÉN",
+  d_despacho: "TRANSITO DEALER", d_alm_lima: "EN ALMACÉN LIMA", d_sal_lima: "TRANSITO DEALER 2", d_entrega: "ENTREGADO",
+};
+
+// Un solo nombre por paso en todo el sistema: el del estado («2. Tránsito fluvial»), como en la tabla y los gráficos
+for (const info of Object.values(SITE_INFO)) for (const d of info.dates) d.step = STATUS_LABEL[FIELD_STATUS[d.key]];
+
+/** «2. Tránsito fluvial · Zarpe IQT»: el paso (igual que la tabla) y lo que se registra en él. */
+export const stepLabel = (site: Site, field: DateField) => {
+  const d = SITE_INFO[site].dates.find((x) => x.key === field);
+  return d ? `${d.step} · ${d.action}` : field;
+};

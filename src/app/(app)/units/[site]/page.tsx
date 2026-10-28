@@ -354,7 +354,7 @@ export default function SitePage({ params, searchParams }: {
           { id: "VENCIDA", label: "Vencidas (sin entregar)" }, { id: "POR VENCER", label: "Por vencer" }, { id: "SIN_MOTIVO", label: "Fuera de tiempo sin motivo" },
         ]} />
         {seesAllUnits && (
-          <Filter label="Esperando etapa: todas" className="lg:w-60" value={f.pending} onChange={(v) => setFilter("pending", v)} options={info.dates.map((d) => ({ id: d.key, label: `Esperando ${d.label}` }))} />
+          <Filter label="Esperando etapa: todas" className="lg:w-60" value={f.pending} onChange={(v) => setFilter("pending", v)} options={info.dates.map((d) => ({ id: d.key, label: `Esperando ${stageLabel(site, d.key)}` }))} />
         )}
         {Object.entries(f).some(([k, v]) => v && k !== "q" && k !== "status" && k !== "mine") && (
           <button className="sbf-chip" onClick={() => { setF((p) => ({ ...p, dealer: "", zone: "", year: "", month: "", reason: "", service: "", pending: "", alert: "" })); setPage(1); }}>Quitar filtros ✕</button>
@@ -369,7 +369,7 @@ export default function SitePage({ params, searchParams }: {
           ) : myFields.size ? (
             <>
               <button className={`sbf-chip ${f.mine ? "active" : ""}`} onClick={() => setFilter("mine", f.mine ? "" : "1")}>Mis pendientes</button>
-              <span>Tus etapas: {info.dates.filter((d) => myFields.has(d.key)).map((d) => d.label).join(", ")}. Solo puedes registrar la siguiente etapa de cada unidad; al guardar queda bloqueada.</span>
+              <span>Tus etapas: {info.dates.filter((d) => myFields.has(d.key)).map((d) => stageLabel(site, d.key)).join(", ")}. Solo puedes registrar la siguiente etapa de cada unidad; al guardar queda bloqueada.</span>
             </>
           ) : (
             <span>No tienes etapas asignadas en {info.title}. Solo puedes consultar.</span>
@@ -458,7 +458,7 @@ export default function SitePage({ params, searchParams }: {
                 </Table.Column>
                 {info.dates.map((d) => (
                   <Table.Column key={d.key} id={d.key} allowsSorting>
-                    {({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>{d.label}</Table.SortableColumnHeader>}
+                    {({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}><span title={d.action}>{d.step}<span className="block text-[9px] font-normal normal-case opacity-70">{d.action}</span></span></Table.SortableColumnHeader>}
                   </Table.Column>
                 )) as never}
                 <Table.Column allowsSorting id="status">
@@ -567,7 +567,7 @@ export default function SitePage({ params, searchParams }: {
                       <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
                       <Select.Popover>
                         <ListBox>
-                          {[...info.dates.filter((d) => sup || myFields.has(d.key)).map((d) => ({ id: d.key as string, label: d.label })), { id: "delay_reason", label: "Motivo de demora" }].map((o) => (
+                          {[...info.dates.filter((d) => sup || myFields.has(d.key)).map((d) => ({ id: d.key as string, label: stageLabel(site, d.key) })), { id: "delay_reason", label: "Motivo de demora" }].map((o) => (
                             <ListBox.Item key={o.id} id={o.id} textValue={o.label}>{o.label}<ListBox.ItemIndicator /></ListBox.Item>
                           ))}
                         </ListBox>
@@ -657,8 +657,8 @@ export default function SitePage({ params, searchParams }: {
                     <div className="grid gap-2 sm:grid-cols-2">
                       {info.dates.map((d) => (
                         <label key={d.key} className="flex items-center justify-between gap-3 text-sm">
-                          <span>{d.label}</span>
-                          <DateCell key={`${editing.id}-${d.key}`} label={d.label} value={editing[d.key]} mode={modeOf(editing, d.key)} min={previousDate(site, editing, d.key)} onSave={(v) => patch([editing.id], { [d.key]: v || null })} />
+                          <span>{stageLabel(site, d.key)}</span>
+                          <DateCell key={`${editing.id}-${d.key}`} label={stageLabel(site, d.key)} value={editing[d.key]} mode={modeOf(editing, d.key)} min={previousDate(site, editing, d.key)} onSave={(v) => patch([editing.id], { [d.key]: v || null })} />
                         </label>
                       ))}
                     </div>

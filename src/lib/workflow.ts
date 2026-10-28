@@ -1,5 +1,5 @@
 /** Reglas de edición por etapas: orden estricto, bloqueo y encargados. Se usa en el servidor y en la pantalla. */
-import { SITE_INFO, type DateField, type Site } from "./hsp";
+import { SITE_INFO, stepLabel, type DateField, type Site } from "./hsp";
 
 /** dev/admin = super admin · operator = encargado · viewer = solo lectura de todo (Honda) · dealer = solo sus unidades */
 export type Role = "dev" | "admin" | "operator" | "viewer" | "dealer";
@@ -118,8 +118,9 @@ export function needsDelayReason(
   return value > u.est_date || today() > u.est_date;
 }
 
+/** Nombre del paso en todo el sistema: «2. Tránsito fluvial · Zarpe IQT» (igual que la tabla de estados). */
 export const stageLabel = (site: Site, field: string) =>
-  SITE_INFO[site].dates.find((d) => d.key === field)?.label ?? (field === "delay_reason" ? "Motivo de demora" : field);
+  SITE_INFO[site].dates.some((d) => d.key === field) ? stepLabel(site, field as DateField) : field === "delay_reason" ? "Motivo de demora" : field;
 
 /** Dominio de los usuarios del sistema (solo sirve para entrar; no tiene que ser un correo real). */
 export const USER_DOMAIN = "trackin.pe";

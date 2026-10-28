@@ -96,10 +96,16 @@ function LineChart({ series, max, unit, goal, height = 210, width = 640 }: { ser
   // Etiquetas solo en el último punto de cada serie y en el punto señalado
   const lastIdx = (s: Series) => s.values.reduce<number>((a, v, i) => (v !== null ? i : a), -1);
   // Si otra serie anterior tiene su etiqueta en el mismo mes y a menos de 14 px, esta va debajo del punto
-  const labelBelow = (si: number, i: number) => series.slice(0, si).some((o) => {
-    const v = o.values[i], w = series[si].values[i];
-    return v !== null && w !== null && (i === lastIdx(o) || i === hover) && Math.abs(y(v) - y(w)) < 14;
-  });
+  const labelBelow = (si: number, i: number) => {
+    // Si dos etiquetas del mismo mes quedan a menos de 14 px, la del valor más bajo va debajo de su punto
+    const w = series[si].values[i];
+    if (w === null) return false;
+    return series.some((o, oi) => {
+      const v = o.values[i];
+      if (oi === si || v === null || !(i === lastIdx(o) || i === hover) || Math.abs(y(v) - y(w)) >= 14) return false;
+      return v > w || (v === w && oi < si);
+    });
+  };
   return (
     <div className="relative">
       <svg ref={ref} viewBox={`0 0 ${W} ${H}`} className="h-auto w-full touch-none select-none" onPointerMove={move} onPointerLeave={() => setHover(null)} role="img"
@@ -137,6 +143,16 @@ function LineChart({ series, max, unit, goal, height = 210, width = 640 }: { ser
           );
         })}
       </svg>
+      {/* Con un solo mes no hay línea: se avisa para que no parezca vacío */}
+      {Array.from({ length: 12 }, (_, i) => i).filter((i) => series.some((s) => s.values[i] !== null)).length < 2 && (
+        <div className="pointer-events-none absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center px-4">
+          <span className="rounded-full border border-sb-outline-variant bg-sb-surface/90 px-3 py-1.5 text-center text-[11px] text-sb-on-surface-variant shadow-sm">
+            {series.some((s) => s.values.some((v) => v !== null))
+              ? "La tendencia se verá cuando haya al menos 2 meses con datos."
+              : "Todavía no hay datos para este gráfico."}
+          </span>
+        </div>
+      )}
       {hover !== null && series.some((s) => s.values[hover] !== null) && (
         <div className="pointer-events-none absolute top-0 rounded-lg border border-sb-outline-variant bg-sb-surface px-2.5 py-1.5 text-[11px] shadow-md"
           style={{ left: `${(x(hover) / W) * 100}%`, transform: hover > 8 ? "translateX(-105%)" : "translateX(8px)" }}>

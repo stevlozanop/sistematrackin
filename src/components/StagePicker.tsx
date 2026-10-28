@@ -17,7 +17,7 @@ export function StagePicker({ value, onChange }: { value: Stage[]; onChange: (v:
               return (
                 <label key={d.key} className="flex cursor-pointer items-center gap-2 text-xs">
                   <input type="checkbox" checked={has(st)} onChange={() => toggle(st)} className="h-3.5 w-3.5 accent-[var(--sb-primary)]" />
-                  {d.label}
+                  {d.step} · {d.action}
                 </label>
               );
             })}

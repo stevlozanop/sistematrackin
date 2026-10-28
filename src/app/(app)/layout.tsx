@@ -10,7 +10,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const s = await getSession();
   if (!s) redirect("/login");
   // El encargado solo ve los módulos (PCL / YUR) donde tiene etapas asignadas
-  const sites = s.role === "operator" ? [...new Set((await getStages(s.id)).map((st) => st.site))] : ["PCL", "YUR"];
+  const stages = s.role === "operator" ? await getStages(s.id) : [];
+  const sites = s.role === "operator" ? [...new Set(stages.map((st) => st.site))] : ["PCL", "YUR"];
+  const fields = [...new Set(stages.map((st) => st.field))];
   // Primera vez: la guía del sistema se abre sola
   // Marca del menú (logo de la transportista) y empresa propia (avatar de la barra): se leen de la base en cada carga
   const [[u], brand, own] = await Promise.all([
@@ -26,7 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <>
     <style dangerouslySetInnerHTML={{ __html: themeCss(brand?.color ?? null, swm) }} />
-    <AppShell name={s.name} role={s.role} sites={sites} firstGuide={!!u && !Number(u.guide_seen)} brand={brand} own={own} swm={swm} isOwner={isOwner} upload={upload}>
+    <AppShell name={s.name} role={s.role} sites={sites} fields={fields} firstGuide={!!u && !Number(u.guide_seen)} brand={brand} own={own} swm={swm} isOwner={isOwner} upload={upload}>
       {children}
     </AppShell>
     </>

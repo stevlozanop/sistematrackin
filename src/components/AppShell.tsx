@@ -16,39 +16,73 @@ import { companyCode, roleLabel, type Role } from "@/lib/workflow";
 import { UploadCenter, type UploadMode } from "@/components/UploadCenter";
 import { CodeTag } from "@/components/ui";
 
-type Item = { title: string; href: string; icon: LucideIcon; roles?: Role[] };
+type Item = { title: string; href: string; icon: LucideIcon; roles?: Role[]; fields?: string[] };
 const SUPER: Role[] = ["dev", "admin"];
 const READ: Role[] = ["dev", "admin", "viewer"]; // ven todo (viewer = solo lectura, Honda)
-// PCL / YUR en el menú: quien opera o supervisa. Honda (solo lectura) no los necesita en el menú;
-// llega al detalle desde el dashboard o las alertas.
-const MODULES: Role[] = ["dev", "admin", "operator"];
 
+/**
+ * Menú ordenado por lo que hace cada rol:
+ * - Encargado: marca su paso (Mi trabajo, embarque y zarpe si es de Iquitos, carga por guía) y ve su módulo.
+ * - Empresa (Leyva) y The Iceberg Labs: supervisan el flujo en tiempo real (Dashboard general, En vivo, Tablero, Alertas),
+ *   siguen las unidades por ruta y configuran. Las pantallas de marcación quedan al final, para verificar o corregir.
+ * - Honda: Tablero y Reportes. Cliente: su resumen y sus unidades.
+ */
 const SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
   {
-    title: "Principal",
+    title: "Mi trabajo",
+    roles: ["operator"],
     items: [
-      { title: "Mi trabajo", href: "/my", icon: ClipboardCheck, roles: ["operator"] },
-      { title: "Embarque y zarpe", href: "/embarque", icon: Container, roles: ["admin", "operator"] },
-      { title: "Carga por guía", href: "/guias", icon: FileStack, roles: ["admin", "operator"] },
-      { title: "Mi resumen", href: "/portal/resumen", icon: LayoutDashboard, roles: ["dealer"] },
-      { title: "Mis unidades", href: "/portal", icon: PackageSearch, roles: ["dealer"] },
-      { title: "Tablero", href: "/board", icon: ChartColumn, roles: READ },
-      // Honda (viewer) solo ve Tablero y Reportes en el menú
-      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: SUPER },
-      { title: "Alertas", href: "/alerts", icon: Bell, roles: SUPER },
-      { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship, roles: MODULES },
-      { title: "YUR · Yurimaguas", href: "/units/yur", icon: Truck, roles: MODULES },
-      { title: "Dealers", href: "/dealers", icon: Store, roles: SUPER },
-      { title: "Reportes", href: "/reports", icon: FileSpreadsheet, roles: READ },
-      { title: "Plazos y meta", href: "/settings", icon: SlidersHorizontal, roles: SUPER },
+      { title: "Mi trabajo", href: "/my", icon: ClipboardCheck },
+      // Solo quien embarca o zarpa en Iquitos
+      { title: "Embarque y zarpe", href: "/embarque", icon: Container, fields: ["d_carga", "d_zarpe"] },
+      { title: "Carga por guía", href: "/guias", icon: FileStack },
+      { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship },
+      { title: "YUR · Yurimaguas", href: "/units/yur", icon: Truck },
     ],
   },
   {
-    title: "Sistema",
+    title: "Mis pedidos",
+    roles: ["dealer"],
+    items: [
+      { title: "Mi resumen", href: "/portal/resumen", icon: LayoutDashboard },
+      { title: "Mis unidades", href: "/portal", icon: PackageSearch },
+    ],
+  },
+  {
+    title: "Supervisión",
+    roles: READ,
+    items: [
+      { title: "Dashboard general", href: "/dashboard", icon: LayoutDashboard, roles: SUPER },
+      { title: "En vivo", href: "/live", icon: Activity, roles: SUPER },
+      { title: "Tablero", href: "/board", icon: ChartColumn },
+      { title: "Alertas", href: "/alerts", icon: Bell, roles: SUPER },
+    ],
+  },
+  {
+    title: "Seguimiento por ruta",
+    roles: READ,
+    items: [
+      { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship, roles: SUPER },
+      { title: "YUR · Yurimaguas", href: "/units/yur", icon: Truck, roles: SUPER },
+      { title: "Reportes", href: "/reports", icon: FileSpreadsheet },
+    ],
+  },
+  {
+    // Lo marcan los encargados; la empresa entra para verificar o corregir
+    title: "Marcación de encargados",
     roles: SUPER,
     items: [
-      { title: "En vivo", href: "/live", icon: Activity },
-      { title: "Usuarios", href: "/admins", icon: Users, roles: SUPER },
+      { title: "Embarque y zarpe", href: "/embarque", icon: Container },
+      { title: "Carga por guía", href: "/guias", icon: FileStack },
+    ],
+  },
+  {
+    title: "Configuración",
+    roles: SUPER,
+    items: [
+      { title: "Usuarios", href: "/admins", icon: Users },
+      { title: "Dealers", href: "/dealers", icon: Store },
+      { title: "Plazos y meta", href: "/settings", icon: SlidersHorizontal },
       { title: "Empresas", href: "/companies", icon: Building2, roles: ["dev"] },
       { title: "Consorcios", href: "/companies", icon: Building2, roles: ["admin"] },
     ],
@@ -129,8 +163,8 @@ const Heading = ({ children }: { children: React.ReactNode }) => (
   <h3 className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/50">{children}</h3>
 );
 
-export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = false, brand = null, own = null, swm = false, isOwner = false, upload = null, children }: {
-  name: string; role: Role; sites?: string[]; firstGuide?: boolean; brand?: Co; own?: Co; swm?: boolean; isOwner?: boolean; upload?: UploadMode | null; children: React.ReactNode;
+export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firstGuide = false, brand = null, own = null, swm = false, isOwner = false, upload = null, children }: {
+  name: string; role: Role; sites?: string[]; fields?: string[]; firstGuide?: boolean; brand?: Co; own?: Co; swm?: boolean; isOwner?: boolean; upload?: UploadMode | null; children: React.ReactNode;
 }) {
   const [uploadOpen, setUploadOpen] = useState(false);
   const path = usePathname();
@@ -165,9 +199,12 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], firstGuide = fals
     .map((s) => ({
       ...s,
       items: s.items.filter((i) => (!i.roles || i.roles.includes(role)) &&
+        // pantallas de una etapa: solo si el encargado tiene esa etapa
+        (!i.fields || i.fields.some((f) => fields.includes(f))) &&
         // módulos PCL / YUR: solo los que le corresponden
         (!i.href.startsWith("/units/") || sites.includes(i.href.slice(7).toUpperCase()))),
-    }));
+    }))
+    .filter((s) => s.items.length);
   // Título: la opción con la ruta más larga que coincide (/dev/database antes que /dev)
   // Opción activa: la de ruta más larga que coincide (/portal/resumen antes que /portal, /dev/database antes que /dev)
   const activeHref = [...sections.flatMap((s) => s.items), PROFILE].filter((i) => path === i.href || path.startsWith(i.href + "/"))

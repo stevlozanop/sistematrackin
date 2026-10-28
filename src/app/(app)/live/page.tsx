@@ -116,7 +116,7 @@ export default function LivePage() {
                     const n = data.pending[`${site}|${d.key}`] ?? 0;
                     return (
                       <tr key={d.key} className="border-b border-sb-outline-variant/25 last:border-0">
-                        <td className="px-4 py-2 font-medium">{d.label}</td>
+                        <td className="px-4 py-2 font-medium">{d.step}<span className="block text-[10px] font-normal text-muted">{d.action}</span></td>
                         <td className="px-2 py-2 text-right">
                           <Link href={`/units/${site.toLowerCase()}?pending=${d.key}`} className="font-semibold hover:underline">{n.toLocaleString()}</Link>
                         </td>
