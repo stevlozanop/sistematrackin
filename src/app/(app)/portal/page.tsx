@@ -1,4 +1,5 @@
 "use client";
+import { DATA_EVENT } from "@/components/UploadCenter";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button, Modal, toast } from "@heroui/react";
@@ -93,7 +94,8 @@ export default function PortalPage() {
     });
     load();
     const t = setInterval(load, 30_000); // se actualiza solo: así ve cada avance que registran
-    return () => { alive = false; clearInterval(t); };
+    window.addEventListener(DATA_EVENT, load); // y al instante cuando algo cambia
+    return () => { alive = false; clearInterval(t); window.removeEventListener(DATA_EVENT, load); };
   }, [url]);
 
   if (error) return <Card className="mt-4 px-5 py-8 text-center text-sm text-sb-on-surface-variant">{error}</Card>;

@@ -1,4 +1,5 @@
 "use client";
+import { DATA_EVENT } from "@/components/UploadCenter";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Chip } from "@heroui/react";
@@ -38,7 +39,8 @@ export default function LivePage() {
       });
     tick();
     const t = setInterval(tick, 5000);
-    return () => { alive = false; clearInterval(t); };
+    window.addEventListener(DATA_EVENT, tick);
+    return () => { alive = false; clearInterval(t); window.removeEventListener(DATA_EVENT, tick); };
   }, []);
 
   if (!data) return <div className="p-6 text-sm text-sb-on-surface-variant">Cargando seguimiento…</div>;

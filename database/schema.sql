@@ -287,6 +287,26 @@ CREATE INDEX IF NOT EXISTS idx_units_batch ON units (import_batch_id);
 ALTER TABLE unit_events ADD COLUMN IF NOT EXISTS batch_id integer REFERENCES import_batches(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_events_batch ON unit_events (batch_id);
 
+-- Tiempo real: contador que sube con cada cambio de datos (guardar, cargar o eliminar).
+-- Cada pantalla abierta lo consulta cada pocos segundos y, si cambió, se recarga sola.
+CREATE TABLE IF NOT EXISTS data_version (
+  id integer PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  v  bigint NOT NULL DEFAULT 0
+);
+INSERT INTO data_version (id, v) VALUES (1, 0) ON CONFLICT DO NOTHING;
+CREATE OR REPLACE FUNCTION bump_data_version() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE data_version SET v = v + 1 WHERE id = 1;
+  RETURN NULL;
+END $$;
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['units', 'containers', 'import_batches', 'dealers', 'lead_times', 'district_routes', 'settings'] LOOP
+    EXECUTE format('CREATE OR REPLACE TRIGGER %I AFTER INSERT OR UPDATE OR DELETE ON %I FOR EACH STATEMENT EXECUTE FUNCTION bump_data_version()', t || '_data_version', t);
+  END LOOP;
+END $$;
+
 /* ---------- Vista con los campos calculados del Excel: plazo, fecha estimada, estado y nivel de servicio ---------- */
 DROP VIEW IF EXISTS v_units;
 CREATE VIEW v_units AS

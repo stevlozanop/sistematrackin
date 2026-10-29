@@ -1,4 +1,5 @@
 "use client";
+import { DATA_EVENT } from "@/components/UploadCenter";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
@@ -17,7 +18,8 @@ export function AlertBell({ href }: { href: string }) {
       });
     load();
     const t = setInterval(load, 60_000);
-    return () => { alive = false; clearInterval(t); };
+    window.addEventListener(DATA_EVENT, load);
+    return () => { alive = false; clearInterval(t); window.removeEventListener(DATA_EVENT, load); };
   }, []);
 
   const label = n ? `${n.overdue} vencidas y ${n.total - n.overdue} por vencer` : "Alertas";

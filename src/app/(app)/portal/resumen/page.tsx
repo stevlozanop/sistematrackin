@@ -1,4 +1,5 @@
 "use client";
+import { DATA_EVENT } from "@/components/UploadCenter";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -54,7 +55,8 @@ export default function ClientSummary() {
     });
     load();
     const t = setInterval(load, 60_000);
-    return () => { alive = false; clearInterval(t); };
+    window.addEventListener(DATA_EVENT, load);
+    return () => { alive = false; clearInterval(t); window.removeEventListener(DATA_EVENT, load); };
   }, []);
 
   if (error) return <Card className="mt-4 px-5 py-8 text-center text-sm text-sb-on-surface-variant">{error}</Card>;

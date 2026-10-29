@@ -1,4 +1,5 @@
 "use client";
+import { DATA_EVENT } from "@/components/UploadCenter";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, Clock, FileQuestion } from "lucide-react";
@@ -29,7 +30,8 @@ export default function AlertsPage() {
     const load = () => fetch("/api/alerts?list=1").then((r) => r.json()).then((d) => alive && setData(d));
     load();
     const t = setInterval(load, 30_000);
-    return () => { alive = false; clearInterval(t); };
+    window.addEventListener(DATA_EVENT, load);
+    return () => { alive = false; clearInterval(t); window.removeEventListener(DATA_EVENT, load); };
   }, []);
   if (!data) return <div className="p-6 text-sm text-sb-on-surface-variant">Cargando alertas…</div>;
 
