@@ -48,8 +48,8 @@ export function LoginForm({ brand, figure }: { brand?: PortalBrand; figure?: Rea
   const accent = brand?.color ?? "#078a04";
 
   return (
-    <main className="grid min-h-screen bg-[#0b0b0b] text-white lg:grid-cols-[minmax(24rem,1fr)_1.25fr]">
-      <section className="flex items-center justify-center px-6 py-10">
+    <main className="grid min-h-dvh bg-[#0b0b0b] text-white lg:h-dvh lg:grid-cols-[minmax(24rem,1fr)_1.25fr] lg:overflow-hidden">
+      <section className="flex min-h-0 items-center justify-center overflow-y-auto px-6 py-10">
         <form key={shake} ref={formRef} onSubmit={submit} className={`flex w-full max-w-sm flex-col ${shake ? "sb-anim-shake" : ""}`}>
           <div className="flex items-center justify-between gap-3">
             <span className="flex min-w-0 items-center gap-2.5">
@@ -96,7 +96,7 @@ export function LoginForm({ brand, figure }: { brand?: PortalBrand; figure?: Rea
         </form>
       </section>
 
-      <section className="hidden p-3 lg:block">
+      <section className="hidden min-h-0 p-3 lg:block">
         {figure ?? (
           <div className="relative h-full overflow-hidden rounded-[2rem] bg-black">
             <RouteBackdrop color={brand ? accent : undefined} dot={brand ? "#ffffff" : undefined} />

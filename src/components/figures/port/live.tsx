@@ -18,6 +18,8 @@ const SPREADER_H = 3;
 const SCRUB = 0.35; // segundos para alcanzar el punto que marca el cursor
 const BACK_TO_TOUR = 2600; // ms sin tocar para volver al recorrido solo
 const KEY_STEP = 1.2;
+/** Recorte del viewBox: acerca la figura (lo que sobra por los lados es agua y muelle, se corta en la tarjeta) */
+const CROP = 44;
 
 type Art = { water: string; quay: string; house: string; trolley: string };
 type Item = { id: string; html: string };
@@ -202,7 +204,7 @@ export function PortLive({ art, items, label }: { art: Art; items: Item[]; label
       onPointerLeave={touch}
       onKeyDown={onKeyDown}
     >
-      <svg className="iso-svg" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={label} focusable="false">
+      <svg className="iso-svg" viewBox={`${CROP} ${CROP * 0.4} ${WIDTH - CROP * 2} ${HEIGHT - CROP}`} role="img" aria-label={label} focusable="false">
         <g dangerouslySetInnerHTML={{ __html: art.water }} />
         <g dangerouslySetInnerHTML={{ __html: art.quay }} />
         <g ref={sorted} dangerouslySetInnerHTML={{ __html: itemsHtml }} />
