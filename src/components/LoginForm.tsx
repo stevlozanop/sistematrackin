@@ -16,7 +16,8 @@ export type PortalBrand = {
 
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
-export function LoginForm({ brand }: { brand?: PortalBrand }) {
+/** figure: la figura del panel derecho (la arma el servidor: muelle de Iquitos) */
+export function LoginForm({ brand, figure }: { brand?: PortalBrand; figure?: React.ReactNode }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -96,20 +97,11 @@ export function LoginForm({ brand }: { brand?: PortalBrand }) {
       </section>
 
       <section className="hidden p-3 lg:block">
-        <div
-          className="relative h-full overflow-hidden rounded-[2rem] bg-black"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px),radial-gradient(circle at 50% 50%,rgba(255,255,255,.12),transparent 65%)",
-            backgroundSize: "48px 48px,48px 48px,100% 100%",
-          }}
-        >
-          <RouteBackdrop color={brand ? accent : undefined} dot={brand ? "#ffffff" : undefined} />
-          <div className="absolute bottom-8 left-8 right-8">
-            <p className="text-xs tracking-[0.3em] text-white/50">CALLAO · PUCALLPA · IQUITOS · YURIMAGUAS</p>
-            <p className="mt-2 text-xl font-light">{clients ? "Cada pedido, de la fábrica a tu tienda." : "Cada caja, de puerto a dealer."}</p>
+        {figure ?? (
+          <div className="relative h-full overflow-hidden rounded-[2rem] bg-black">
+            <RouteBackdrop color={brand ? accent : undefined} dot={brand ? "#ffffff" : undefined} />
           </div>
-        </div>
+        )}
       </section>
     </main>
   );
