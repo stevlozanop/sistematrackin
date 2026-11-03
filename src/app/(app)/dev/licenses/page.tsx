@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Button, Modal, toast } from "@heroui/react";
+import { Button, toast } from "@heroui/react";
+import { LicenseEditor, type LicenseForm } from "@/components/dev/LicenseEditor";
 import { AlertTriangle, CalendarClock, CheckCircle2, History, KeyRound, Lock, Pencil, Unlock, Users, XCircle } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -41,7 +42,6 @@ export default function DevLicenses() {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [edit, setEdit] = useState<Lic | null>(null);
-  const [form, setForm] = useState({ plan: "", expiresAt: "", maxUsers: "", note: "" });
 
   if (!data) return <div className="p-6 text-sm text-sb-on-surface-variant">Cargando licencias…</div>;
 
@@ -55,15 +55,14 @@ export default function DevLicenses() {
     });
     setAsk(null); setReason("");
   };
-  const openEdit = (l: Lic) => { setForm({ plan: l.plan, expiresAt: l.expires_at ?? "", maxUsers: l.max_users ? String(l.max_users) : "", note: l.note ?? "" }); setEdit(l); };
-  const save = async () => {
+  const openEdit = (l: Lic) => setEdit(l);
+  const save = async (form: LicenseForm) => {
     if (!edit) return;
     setBusy(true);
     const ok = await send({ companyId: edit.id, action: "update", plan: form.plan, expiresAt: form.expiresAt || null, maxUsers: form.maxUsers || null, note: form.note });
     setBusy(false);
     if (ok) { toast.success("Licencia actualizada"); setEdit(null); }
   };
-  const input = "h-10 w-full rounded-xl border border-sb-outline-variant bg-sb-surface px-3 text-sm outline-none focus:border-sb-primary";
 
   return (
     <div className="flex flex-col gap-5">
@@ -147,37 +146,10 @@ export default function DevLicenses() {
         ) : <p>Las {ask?.lic.accounts} cuentas vuelven a entrar solas en unos segundos, sin tener que iniciar sesión de nuevo.</p>}
       </ConfirmDialog>
 
-      <Modal>
-        <Modal.Backdrop isOpen={!!edit} onOpenChange={(o) => !o && !busy && setEdit(null)}>
-          <Modal.Container>
-            <Modal.Dialog>
-              <Modal.CloseTrigger aria-label="Cerrar" />
-              <Modal.Header><Modal.Heading>Licencia de {edit?.name}</Modal.Heading></Modal.Header>
-              <Modal.Body className="flex flex-col gap-3 p-1 text-xs">
-                <label className="flex flex-col gap-1">Plan
-                  <input list="lic-plans" value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })} className={input} />
-                  <datalist id="lic-plans"><option value="Estándar" /><option value="Profesional" /><option value="Empresarial" /><option value="Prueba" /></datalist>
-                </label>
-                <label className="flex flex-col gap-1">Vence (vacío = sin vencimiento)
-                  <input type="date" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} className={input} />
-                  <span className="text-[10px] text-sb-on-surface-variant">Desde 15 días antes, la empresa ve un aviso. Al pasar la fecha, nadie entra hasta renovarla.</span>
-                </label>
-                <label className="flex flex-col gap-1">Máximo de cuentas (vacío = sin límite)
-                  <input type="number" min={1} value={form.maxUsers} onChange={(e) => setForm({ ...form, maxUsers: e.target.value })} className={input} />
-                  <span className="text-[10px] text-sb-on-surface-variant">Cuenta a la empresa, sus consorcios y sus clientes. Hoy tiene {edit?.accounts}. Al llegar al máximo no se pueden crear más cuentas.</span>
-                </label>
-                <label className="flex flex-col gap-1">Nota
-                  <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} className={input} />
-                </label>
-              </Modal.Body>
-              <Modal.Footer>
-                <Button variant="secondary" className="rounded-full" isDisabled={busy} onPress={() => setEdit(null)}>Cancelar</Button>
-                <Button className="rounded-full" isDisabled={busy} onPress={save}>{busy ? "Guardando…" : "Guardar"}</Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+      {edit && (
+        <LicenseEditor key={edit.id} open company={edit.name} used={edit.accounts} busy={busy} onCancel={() => setEdit(null)} onSave={save}
+          initial={{ plan: edit.plan, expiresAt: edit.expires_at ?? "", maxUsers: edit.max_users ? String(edit.max_users) : "", note: edit.note ?? "" }} />
+      )}
     </div>
   );
 }
