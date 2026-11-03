@@ -1,13 +1,17 @@
 "use client";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { notFound } from "next/navigation";
-import { Button, Chip, ListBox, Select, Table, ToggleButton, ToggleButtonGroup, toast, useOverlayState } from "@heroui/react";
+import { Button, Chip, ListBox, Select, Switch, Table, ToggleButton, ToggleButtonGroup, toast, useOverlayState } from "@heroui/react";
+import { RouteFlow, type FlowData, type Pick as RoutePick } from "@/components/figures/route/RouteFlow";
+import { RoutePanel, type PanelUnit } from "@/components/units/RoutePanel";
+import { GuiaGroups } from "@/components/units/GuiaGroups";
+import { MiniRoute } from "@/components/units/MiniRoute";
 import { Sheet, SheetSection } from "@/components/modal/Sheet";
 import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
 import { ChoiceCards } from "@/components/modal/ChoiceCards";
 import { humanDate } from "@/lib/dates";
 import type { Key, Selection, SortDescriptor } from "@heroui/react";
-import { Bike, CalendarDays, Check as CheckIcon, Layers, MessageSquareWarning, ChevronLeft, ChevronRight, History, Lock, MoreHorizontal, Search, SlidersHorizontal, X } from "lucide-react";
+import { Bike, CalendarDays, Check as CheckIcon, FileStack, Layers, Map as MapIcon, MessageSquareWarning, Table2, ChevronLeft, ChevronRight, History, Lock, MoreHorizontal, Search, SlidersHorizontal, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { Check } from "@/components/Check";
 import { DATA_EVENT } from "@/components/UploadCenter";
@@ -214,7 +218,25 @@ export default function SitePage({ params, searchParams }: {
   const [bulkField, setBulkField] = useState<Key | null>(info.dates[0].key);
   const [bulkValue, setBulkValue] = useState("");
   const [editId, setEditId] = useState<number | null>(null);
-  const editing = rows.find((u) => u.id === editId) ?? null;
+  // Unidades abiertas desde la ruta o la vista por guía (pueden no estar en la página actual de la tabla)
+  const [extra, setExtra] = useState<Unit[]>([]);
+  const editing = rows.find((u) => u.id === editId) ?? extra.find((u) => u.id === editId) ?? null;
+  const openUnit = (u: PanelUnit) => { setExtra((x) => [u as unknown as Unit, ...x.filter((y) => y.id !== u.id)].slice(0, 50)); setEditId(u.id); };
+
+  // Vista: Ruta (animada), Por guía o Tabla; la tabla puede ser Compacta (columna Recorrido) o Completa (todas las fechas). Se recuerda.
+  type View = "route" | "guias" | "table";
+  const [view, setViewState] = useState<View>("route");
+  const [dense, setDenseState] = useState(true);
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem("sb-units-view"); if (v === "route" || v === "guias" || v === "table") setViewState(v); // eslint-disable-line react-hooks/set-state-in-effect
+      if (localStorage.getItem("sb-units-dense") === "0") setDenseState(false);
+    } catch { /* sin almacenamiento */ }
+  }, []);
+  const setView = (v: View) => { setViewState(v); try { localStorage.setItem("sb-units-view", v); } catch {} };
+  const setDense = (v: boolean) => { setDenseState(v); try { localStorage.setItem("sb-units-dense", v ? "1" : "0"); } catch {} };
+  const [flow, setFlow] = useState<FlowData | null>(null);
+  const [pick, setPick] = useState<RoutePick | null>(null);
 
   // Usuario actual: la empresa (Leyva) y sus supervisores corrigen todo; el encargado solo la siguiente etapa que le toca.
   // The Iceberg Labs (dev) y Honda solo miran: la operación es de Leyva.
@@ -245,6 +267,18 @@ export default function SitePage({ params, searchParams }: {
     for (const [k, v] of Object.entries(f)) if (v) p.set(k, v);
     return p.toString();
   }, [site, page, sort, f]);
+  /** Filtros actuales, sin página ni orden (para la ruta y la vista por guía) */
+  const filters = useMemo(() => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries(f)) if (v) p.set(k, v);
+    return p.toString();
+  }, [f]);
+  useEffect(() => {
+    if (view !== "route") return;
+    let alive = true;
+    fetch(`/api/units/flow?site=${site}${filters ? `&${filters}` : ""}`).then((r) => r.json()).then((j) => alive && !j.error && setFlow(j)).catch(() => {});
+    return () => { alive = false; };
+  }, [view, site, filters, reload]);
 
   useEffect(() => {
     let alive = true;
@@ -334,6 +368,23 @@ export default function SitePage({ params, searchParams }: {
         </Button>}
       </PageTitle>
 
+      {/* Cómo ver las unidades: la ruta animada, agrupadas por guía o la tabla (compacta o completa) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ToggleButtonGroup aria-label="Vista" size="sm" disallowEmptySelection selectedKeys={new Set<Key>([view])} onSelectionChange={(k) => { const v = [...k][0]; if (v) setView(v as View); }}>
+          <ToggleButton id="route"><MapIcon className="h-4 w-4" /> Ruta</ToggleButton>
+          <ToggleButton id="guias"><ToggleButtonGroup.Separator /><FileStack className="h-4 w-4" /> Por guía</ToggleButton>
+          <ToggleButton id="table"><ToggleButtonGroup.Separator /><Table2 className="h-4 w-4" /> Tabla</ToggleButton>
+        </ToggleButtonGroup>
+        {view === "table" && (
+          <Switch size="sm" isSelected={dense} onChange={setDense}>
+            <Switch.Content className="cursor-pointer gap-2 text-xs">
+              <Switch.Control><Switch.Thumb /></Switch.Control>
+              {dense ? "Compacta: una columna «Recorrido»" : "Completa: todas las fechas"}
+            </Switch.Content>
+          </Switch>
+        )}
+      </div>
+
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <label className="sbf-search w-full lg:w-80">
@@ -390,6 +441,19 @@ export default function SitePage({ params, searchParams }: {
           )}
         </div>
       )}
+      {view === "route" && (
+        <Card className="overflow-hidden p-2 sm:p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-2 pb-2 text-xs text-sb-on-surface-variant">
+            <span>Toca una estación o una nave para ver sus motos. La pila de cajas crece con las motos que hay en cada paso; los puntos muestran hacia dónde avanzan.</span>
+            {flow && <span>El río tarda ~{Math.round(flow.riverDays)} días (promedio real zarpe → arribo)</span>}
+          </div>
+          <RouteFlow site={site} data={flow} pick={pick} onPick={setPick} />
+        </Card>
+      )}
+      {view === "guias" && <GuiaGroups site={site} filters={filters} reload={reload} onOpenUnit={openUnit} />}
+      <RoutePanel site={site} pick={pick} flow={flow} filters={filters} onClose={() => setPick(null)} onOpenUnit={openUnit} />
+
+      {view === "table" && (<>
       <div className="flex gap-1.5 overflow-x-auto pb-1">
         {statusChips.map((c) => (
           <button key={c.key} className={`sbf-chip ${f.status === c.key ? "active" : ""}`} onClick={() => setFilter("status", c.key)}>{c.label}</button>
@@ -446,7 +510,7 @@ export default function SitePage({ params, searchParams }: {
           <Table.ScrollContainer>
             <Table.Content
               aria-label={`Unidades ${site}`}
-              className="min-w-[1900px]"
+              className={dense ? "min-w-[1200px]" : "min-w-[1900px]"}
               selectionMode={viewer ? "none" : "multiple"}
               selectedKeys={selected}
               onSelectionChange={setSelected}
@@ -473,7 +537,7 @@ export default function SitePage({ params, searchParams }: {
                 <Table.Column allowsSorting id="billing_date">
                   {({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>F. facturación</Table.SortableColumnHeader>}
                 </Table.Column>
-                {info.dates.map((d) => (
+                {dense ? <Table.Column id="route">Recorrido</Table.Column> : info.dates.map((d) => (
                   <Table.Column key={d.key} id={d.key} allowsSorting>
                     {({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}><span title={d.action}>{d.step}<span className="block text-[9px] font-normal normal-case opacity-70">{d.action}</span></span></Table.SortableColumnHeader>}
                   </Table.Column>
@@ -518,7 +582,16 @@ export default function SitePage({ params, searchParams }: {
                       <div className="text-[10px] text-muted">{u.zone ?? "Sin zona"}{site === "PCL" && u.center ? ` · CL ${u.center}` : ""}</div>
                     </Table.Cell>
                     <Table.Cell className="text-xs">{fmtDate(u.billing_date) || "—"}</Table.Cell>
-                    {info.dates.map((d) => (
+                    {dense ? (
+                      <Table.Cell>
+                        <div className="flex items-center gap-2">
+                          <MiniRoute site={site} unit={u} />
+                          {info.dates.some((d) => modeOf(u, d.key) === "next") && (
+                            <Button size="sm" variant="secondary" onPress={() => setEditId(u.id)}>Registrar</Button>
+                          )}
+                        </div>
+                      </Table.Cell>
+                    ) : info.dates.map((d) => (
                       <Table.Cell key={d.key}>
                         <span className={u[d.key] ? "whitespace-nowrap text-xs" : "text-xs text-muted"}>{u[d.key] ? fmtDate(u[d.key]) : "—"}</span>
                       </Table.Cell>
@@ -570,6 +643,7 @@ export default function SitePage({ params, searchParams }: {
           </div>
         </div>
       </Card>
+      </>)}
 
       {/* Cambio masivo: una fecha o el motivo de demora para las unidades seleccionadas */}
       <Sheet open={bulk.isOpen} onClose={bulk.close} size="lg" icon={Layers} title="Cambio masivo"

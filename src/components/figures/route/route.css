@@ -1,0 +1,27 @@
+/* Ruta animada (PCL / YUR): tokens propios dentro de .rf, en claro y oscuro */
+.rf{--rf-water:color-mix(in oklab,var(--sb-ontime,#2a78d6) 16%,var(--anatomy-paper));--rf-road:var(--anatomy-shade-1);background:transparent}
+.iso.rf[data-theme="light"]{--anatomy-paper:var(--sb-surface,#fff);--anatomy-card:var(--sb-surface,#fff)}
+.iso.rf[data-theme="dark"]{--anatomy-paper:var(--sb-surface,#0a0a0b);--anatomy-card:var(--sb-surface,#0a0a0b)}
+.rf .rf-water{fill:var(--rf-water);stroke:none}
+.rf .rf-road{fill:var(--rf-road);stroke:none}
+.rf .rf-flow circle{fill:var(--sb-primary)}
+.rf .rf-pick{cursor:pointer}
+.rf .rf-pick .iso-edge{transition:stroke .25s ease}
+.rf .rf-pick:hover .iso-edge,.rf .rf-pick.is-on .iso-edge{stroke:var(--sb-primary)}
+.rf .rf-pick.is-on .iso-top{fill:color-mix(in oklab,var(--sb-primary) 18%,var(--anatomy-top))}
+.rf .rf-pick.is-empty{opacity:.55}
+.rf .rf-boat{animation:rf-bob 3.2s ease-in-out infinite}
+@keyframes rf-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
+/* Etiquetas: botones sobre la maqueta */
+.rf-tag{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 9px;border-radius:12px;
+  background:var(--sb-surface);border:1px solid var(--sb-outline-variant);box-shadow:0 4px 14px -6px rgb(0 0 0/.25);
+  font-size:10px;line-height:1.15;color:var(--sb-on-surface-variant);white-space:nowrap;transition:transform .2s ease,border-color .2s ease,background .2s ease}
+.rf-tag:hover{transform:translate(-50%,-100%) translateY(-2px)}
+.rf-tag.is-on{border-color:var(--sb-primary);background:var(--sb-primary);color:var(--sb-on-primary)}
+.rf-tag.is-empty{opacity:.6}
+.rf-tag-n{font-size:13px;font-weight:700;color:var(--sb-on-surface)}
+.rf-tag.is-on .rf-tag-n{color:var(--sb-on-primary)}
+.rf-tag-late{margin-top:1px;border-radius:999px;padding:0 6px;background:var(--sb-late-soft);color:var(--sb-late);font-weight:600}
+.rf-tag-boat .rf-tag-n{font-size:11px}
+@media (max-width:640px){.rf-tag{padding:3px 7px;font-size:9px}.rf-tag-n{font-size:12px}}
+@media (prefers-reduced-motion:reduce){.rf .rf-boat{animation:none}.rf .rf-flow{display:none}}
