@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button, toast } from "@heroui/react";
 import { Sheet } from "@/components/modal/Sheet";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
-import { ArrowDown, Box, Eye, Plus, Ship, Trash2, X } from "lucide-react";
+import { ArrowDown, Box, Eye, Plus, Ship, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { cn } from "@/lib/cn";
@@ -12,6 +12,7 @@ import { DATA_EVENT } from "@/components/UploadCenter";
 import { DELAY_REASONS, SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { DockScene } from "@/components/figures/dock/DockScene";
+import { NaveContents } from "@/components/embarque/NaveContents";
 
 /**
  * Embarque y zarpe (Iquitos):
@@ -88,32 +89,8 @@ function NaveDetail({ site, nave, canUndo, onClose, onChanged }: { site: Site; n
           Ver sus unidades en {SITE_INFO[site].short} →
         </Link>
       ) : null}>
-              {!rows ? <p className="py-8 text-center text-sm text-sb-on-surface-variant">Cargando…</p> : (
-                <div className="flex max-h-[62vh] flex-col gap-3 overflow-y-auto pr-1">
-                  {containers.map(([cid, c]) => {
-                    const all = [...c.guias.values()].flat();
-                    return (
-                      <div key={cid} className="rounded-xl border border-sb-outline-variant/50">
-                        <div className="flex items-center justify-between gap-2 border-b border-sb-outline-variant/40 bg-sb-surface-container-low px-3 py-2 text-sm">
-                          <span className="flex items-center gap-2 font-semibold"><Box className="h-4 w-4" />{c.code}
-                            <span className="font-normal text-sb-on-surface-variant">· embarcado {fmtDate(c.loaded_on)} · {all.filter((u) => u.category === "2W").length} 2W · {all.filter((u) => u.category === "3W").length} 3W · {all.length} total</span>
-                          </span>
-                          {canUndo && <button type="button" onClick={() => setAsk({ id: cid, code: c.code })} className="rounded-full p-1.5 text-sb-on-surface-variant hover:bg-sb-surface-container hover:text-sb-late" aria-label={`Quitar contenedor ${c.code}`}><Trash2 className="h-4 w-4" /></button>}
-                        </div>
-                        {[...c.guias.entries()].map(([g, us]) => (
-                          <div key={g} className="border-b border-sb-outline-variant/20 px-3 py-2 last:border-0">
-                            <p className="text-xs"><b className="font-mono">{g}</b> <span className="text-sb-on-surface-variant">· {us[0].district} · {us[0].dealer}</span></p>
-                            <div className="mt-1 grid gap-x-4 text-[11px] sm:grid-cols-2">
-                              {us.map((u) => <span key={u.chassis} className="font-mono">{u.chassis} <span className="font-sans text-sb-on-surface-variant">{u.material} · {u.category}</span></span>)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })}
-                  {!containers.length && <p className="py-6 text-center text-xs text-sb-on-surface-variant">Esta nave ya no tiene contenedores pendientes.</p>}
-                </div>
-              )}
+              {!rows ? <p className="py-8 text-center text-sm text-sb-on-surface-variant">Cargando…</p>
+                : <NaveContents rows={rows} canUndo={canUndo} onUndo={(id, code) => setAsk({ id, code })} />}
     </Sheet>
       <ConfirmDialog open={!!ask} title={`¿Quitar el contenedor ${ask?.code ?? ""}?`} confirmLabel="Sí, quitar contenedor" busy={undoing}
         onCancel={() => setAsk(null)} onConfirm={() => ask && undo(ask.id, ask.code)}>
