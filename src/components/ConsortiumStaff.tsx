@@ -1,6 +1,8 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Modal, toast } from "@heroui/react";
+import { Button, toast } from "@heroui/react";
+import { Sheet } from "@/components/modal/Sheet";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Copy, KeyRound, Trash2, UserPlus } from "lucide-react";
 import { Card, Pill } from "@/components/ui";
 import { suggestEmail } from "@/lib/workflow";
@@ -88,15 +90,15 @@ export function ConsortiumStaff() {
         {data.staff.length === 1 && <p className="px-4 py-3 text-xs text-sb-on-surface-variant">Todavía no creaste empleados.</p>}
       </Card>
 
-      <Modal>
-        <Modal.Backdrop isOpen={!!form} onOpenChange={(o) => !o && setForm(null)}>
-          <Modal.Container size="md">
-            <Modal.Dialog>
-              <Modal.CloseTrigger aria-label="Cerrar" />
-              <Modal.Header><Modal.Heading>Nuevo empleado</Modal.Heading></Modal.Header>
+      <Sheet open={!!form} onClose={() => setForm(null)} size="md" busy={saving} icon={UserPlus} title="Nuevo empleado"
+        sub="Verá todo lo de tu consorcio en solo lectura (dashboard, unidades, alertas, reportes). No puede crear cuentas."
+        summary={form?.name.trim() ? <>Entrará como <b className="font-mono text-sb-on-surface">{email}</b></> : null}
+        footer={<>
+          <Button variant="secondary" className="rounded-full" onPress={() => setForm(null)}>Cancelar</Button>
+          <Button variant="primary" className="rounded-full" isDisabled={saving || !form?.name.trim() || (form?.password.length ?? 0) < 8} onPress={create}>{saving ? "Creando…" : "Crear empleado"}</Button>
+        </>}>
               {form && (
-                <Modal.Body className="flex flex-col gap-3 p-1">
-                  <p className="text-xs text-sb-on-surface-variant">Verá todo lo de tu consorcio en solo lectura (dashboard, unidades, alertas, reportes). No puede crear cuentas.</p>
+                <>
                   <label className="flex flex-col gap-1 text-xs"><span className="font-medium">Nombre completo</span>
                     <input className={input} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} autoFocus />
                   </label>
@@ -107,32 +109,14 @@ export function ConsortiumStaff() {
                   <label className="flex flex-col gap-1 text-xs"><span className="font-medium">Contraseña</span>
                     <input className={`${input} font-mono`} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
                   </label>
-                </Modal.Body>
+                </>
               )}
-              <Modal.Footer>
-                <Button variant="secondary" className="rounded-full" onPress={() => setForm(null)}>Cancelar</Button>
-                <Button variant="primary" className="rounded-full" isDisabled={saving || !form?.name.trim() || (form?.password.length ?? 0) < 8} onPress={create}>{saving ? "Creando…" : "Crear empleado"}</Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+      </Sheet>
 
-      <Modal>
-        <Modal.Backdrop isOpen={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-          <Modal.Container size="sm">
-            <Modal.Dialog>
-              <Modal.CloseTrigger aria-label="Cerrar" />
-              <Modal.Header><Modal.Heading>Quitar acceso</Modal.Heading></Modal.Header>
-              <Modal.Body className="p-1 text-sm">¿Quitar el acceso a <b>{toDelete?.name}</b> ({toDelete?.email})?</Modal.Body>
-              <Modal.Footer>
-                <Button variant="secondary" className="rounded-full" onPress={() => setToDelete(null)}>Cancelar</Button>
-                <Button variant="danger" className="rounded-full" onPress={() => toDelete && remove(toDelete)}>Quitar acceso</Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+      <ConfirmDialog open={!!toDelete} title={`¿Quitar el acceso a ${toDelete?.name ?? ""}?`} confirmLabel="Sí, quitar acceso" busyLabel="Quitando…"
+        onCancel={() => setToDelete(null)} onConfirm={() => toDelete && remove(toDelete)}>
+        <b className="text-sb-on-surface">{toDelete?.email}</b> ya no podrá entrar, aunque tenga la sesión abierta.
+      </ConfirmDialog>
     </div>
   );
 }

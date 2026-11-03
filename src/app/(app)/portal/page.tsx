@@ -2,8 +2,9 @@
 import { DATA_EVENT } from "@/components/UploadCenter";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button, Modal, toast } from "@heroui/react";
-import { AlertTriangle, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Copy, Download, MessageCircle, PackageCheck, Search, Truck, X } from "lucide-react";
+import { Button, toast } from "@heroui/react";
+import { Sheet } from "@/components/modal/Sheet";
+import { AlertTriangle, Bike, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Copy, Download, MessageCircle, PackageCheck, Search, Truck, X } from "lucide-react";
 import { Card, PageTitle, Pill } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
 import { ServiceBadge } from "@/components/Service";
@@ -196,18 +197,25 @@ export default function PortalPage() {
       )}
 
       {/* Detalle de una unidad: recorrido con sus fechas */}
-      <Modal>
-        <Modal.Backdrop isOpen={!!open} onOpenChange={(o) => !o && setOpen(null)}>
-          <Modal.Container size="lg">
-            <Modal.Dialog>
-              <Modal.CloseTrigger aria-label="Cerrar" />
+      <Sheet open={!!open} onClose={() => setOpen(null)} size="lg" icon={Bike} title={open?.chassis ?? ""}
+        sub={open ? `${open.material ?? "—"} · motor ${open.motor ?? "—"} · ${SITE_INFO[open.site].title}${open.dealer ? ` · ${open.dealer}` : ""}` : ""}
+        summary={open ? <span className={eta(open).tone}>{eta(open).text}</span> : null}
+        footer={open ? (
+          <>
+            {/* Para responderle al comprador: mensaje listo para pegar o mandar por WhatsApp */}
+            <Button variant="secondary" className="rounded-full" onPress={() => {
+              navigator.clipboard?.writeText(statusText(open)).then(() => toast.success("Estado copiado", { description: "Pégalo en el chat con tu comprador." })).catch(() => toast.danger("No se pudo copiar"));
+            }}><Copy className="h-4 w-4" /> Copiar estado</Button>
+            <a className="inline-flex h-10 items-center gap-1.5 rounded-full bg-sb-surface-container-high px-4 text-sm font-medium hover:bg-sb-surface-container-highest"
+              href={`https://wa.me/?text=${encodeURIComponent(statusText(open))}`} target="_blank" rel="noopener noreferrer">
+              <MessageCircle className="h-4 w-4" /> Enviar por WhatsApp
+            </a>
+            <Button variant="primary" className="rounded-full" onPress={() => setOpen(null)}>Listo</Button>
+          </>
+        ) : null}>
               {open && (
                 <>
-                  <Modal.Header className="flex flex-col gap-1">
-                    <Modal.Heading className="font-mono">{open.chassis}</Modal.Heading>
-                    <p className="text-xs text-sb-on-surface-variant">{open.material ?? "—"} · motor {open.motor ?? "—"} · {SITE_INFO[open.site].title}{open.dealer ? ` · ${open.dealer}` : ""}</p>
-                  </Modal.Header>
-                  <Modal.Body className="flex max-h-[65vh] flex-col gap-4 overflow-y-auto p-1">
+
                     <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
                       {[
                         ["Facturada", fmtDate(open.billing_date) || "—"],
@@ -228,26 +236,9 @@ export default function PortalPage() {
                       dates={open}
                       viaLima={open.site === "PCL" ? !!Number(open.via_lima) || !!open.d_alm_lima || !!open.d_sal_lima : undefined}
                     />
-                  </Modal.Body>
-                  <Modal.Footer className="flex flex-wrap justify-between gap-2">
-                    {/* Para responderle al comprador: mensaje listo para pegar o mandar por WhatsApp */}
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="secondary" className="rounded-full" onPress={() => {
-                        navigator.clipboard?.writeText(statusText(open)).then(() => toast.success("Estado copiado", { description: "Pégalo en el chat con tu comprador." })).catch(() => toast.danger("No se pudo copiar"));
-                      }}><Copy className="h-4 w-4" /> Copiar estado</Button>
-                      <a className="inline-flex h-10 items-center gap-1.5 rounded-full bg-sb-surface-container-high px-4 text-sm font-medium hover:bg-sb-surface-container-highest"
-                        href={`https://wa.me/?text=${encodeURIComponent(statusText(open))}`} target="_blank" rel="noopener noreferrer">
-                        <MessageCircle className="h-4 w-4" /> Enviar por WhatsApp
-                      </a>
-                    </div>
-                    <Button variant="primary" className="rounded-full" onPress={() => setOpen(null)}>Listo</Button>
-                  </Modal.Footer>
                 </>
               )}
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+      </Sheet>
     </div>
   );
 }

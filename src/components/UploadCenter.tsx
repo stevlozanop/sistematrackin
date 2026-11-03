@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Button, Modal, toast } from "@heroui/react";
+import { Button, toast } from "@heroui/react";
+import { Sheet } from "@/components/modal/Sheet";
 import { AnimatePresence, motion } from "framer-motion";
 import { FileSpreadsheet, History, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -257,20 +258,11 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
 
   const hasPreview = !!units || !!stage;
   return (
-    <Modal>
-      <Modal.Backdrop isOpen={open} onOpenChange={(o) => !o && close()}>
-        <Modal.Container size={hasPreview ? "lg" : "md"} scroll="inside">
-          <Modal.Dialog className={cn(hasPreview && "sm:max-w-5xl")}>
-            <Modal.CloseTrigger aria-label="Cerrar" />
-            <Modal.Header className="flex flex-col gap-1">
-              <Modal.Heading>Subir Excel</Modal.Heading>
-              <p className="text-xs text-sb-on-surface-variant">
-                {mode === "stage"
-                  ? "Sube tu plantilla o el archivo completo. El sistema toma solo las fechas de tus etapas y las registra con las reglas de siempre."
-                  : "Sube la facturación o el HSP-OFICIAL. El sistema reconoce el archivo y lo distribuye: ruta por distrito, estado y plazos."}
-              </p>
-            </Modal.Header>
-            <Modal.Body className="flex flex-col gap-3">
+    <Sheet open={open} onClose={close} size={hasPreview ? "xl" : "md"} busy={saving} icon={Upload} title="Subir Excel"
+      sub={mode === "stage"
+        ? "Sube tu plantilla o el archivo completo. El sistema toma solo las fechas de tus etapas y las registra con las reglas de siempre."
+        : "Sube la facturación o el HSP-OFICIAL. El sistema reconoce el archivo y lo distribuye: ruta por distrito, estado y plazos."}
+      bodyClassName="[&>div]:gap-3">
               {/* Subir un Excel · ver las cargas guardadas y eliminar lo que guardó una */}
               <div className="flex w-fit rounded-full bg-sb-surface-container p-1">
                 {([["upload", "Subir", Upload], ["history", "Cargas guardadas", History]] as const).map(([k, t, Icon]) => (
@@ -318,10 +310,6 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
                 <p className="text-[11px] text-sb-on-surface-variant">¿Te equivocaste de archivo? En <button type="button" className="font-semibold underline underline-offset-2" onClick={() => setTab("history")}>Cargas guardadas</button> puedes eliminar lo que se guardó.</p>
               )}
               </>)}
-            </Modal.Body>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
+    </Sheet>
   );
 }

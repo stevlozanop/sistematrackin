@@ -1,9 +1,13 @@
 "use client";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { notFound } from "next/navigation";
-import { Button, Chip, Input, Label, ListBox, Modal, Select, Table, toast, useOverlayState } from "@heroui/react";
+import { Button, Chip, ListBox, Select, Table, toast, useOverlayState } from "@heroui/react";
+import { Sheet, SheetSection } from "@/components/modal/Sheet";
+import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
+import { ChoiceCards } from "@/components/modal/ChoiceCards";
+import { humanDate } from "@/components/modal/Calendar";
 import type { Key, Selection, SortDescriptor } from "@heroui/react";
-import { Check as CheckIcon, ChevronLeft, ChevronRight, History, Lock, MoreHorizontal, Search, SlidersHorizontal, X } from "lucide-react";
+import { Bike, CalendarDays, Check as CheckIcon, Layers, MessageSquareWarning, ChevronLeft, ChevronRight, History, Lock, MoreHorizontal, Search, SlidersHorizontal, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { Check } from "@/components/Check";
 import { DATA_EVENT } from "@/components/UploadCenter";
@@ -42,10 +46,26 @@ const field = "rounded-xl border border-sb-outline-variant bg-sb-surface-contain
  * wait   = todavía no le toca a esta etapa (o no es del usuario).
  */
 type CellMode = "edit" | "next" | "locked" | "wait";
-function DateCell({ value, onSave, label, mode, min }: {
+function DateCell({ value, onSave, label, mode, min, rich = false }: {
   value?: string | null; onSave: (v: string) => void; label: string; mode: CellMode; min?: string | null;
+  /** En el detalle de la unidad: calendario 2D en vez del selector del navegador */
+  rich?: boolean;
 }) {
   const [draft, setDraft] = useState("");
+  if (rich && mode === "next") {
+    return (
+      <div className="flex items-start gap-1.5">
+        <DatePicker id={`d-${label}`} className="flex-1" label={label} value={draft} onChange={setDraft} min={min} max={today()} quick={pastQuick(min, today())} placeholder="Elegir fecha" />
+        <button type="button" aria-label={`Guardar ${label}`} title="Guardar (queda bloqueada)" disabled={!draft} onClick={() => onSave(draft)}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sb-primary text-sb-on-primary transition-opacity disabled:opacity-25">
+          <CheckIcon className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+  if (rich && mode === "edit") {
+    return <DatePicker id={`d-${label}`} label={label} value={value ?? ""} onChange={(v) => v !== (value ?? "") && onSave(v)} clearable placeholder="Sin fecha" />;
+  }
   if (mode === "locked") {
     return (
       <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs" title="Registrada · bloqueada">
@@ -555,62 +575,42 @@ export default function SitePage({ params, searchParams }: {
       </Card>
 
       {/* Cambio masivo: una fecha o el motivo de demora para las unidades seleccionadas */}
-      <Modal>
-        <Modal.Backdrop isOpen={bulk.isOpen} onOpenChange={bulk.setOpen}>
-          <Modal.Container>
-            <Modal.Dialog>
-              {({ close }) => (
-                <>
-                  <Modal.CloseTrigger aria-label="Cerrar" /><Modal.Header><Modal.Heading>Cambio masivo · {selIds.length} unidades</Modal.Heading></Modal.Header>
-                  <Modal.Body className="flex flex-col gap-4 p-1">
-                    <Select className="w-full" value={bulkField} onChange={(v) => { setBulkField(v as Key | null); setBulkValue(""); }}>
-                      <Label>Campo</Label>
-                      <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
-                      <Select.Popover>
-                        <ListBox>
-                          {[...info.dates.filter((d) => sup || myFields.has(d.key)).map((d) => ({ id: d.key as string, label: stageLabel(site, d.key) })), { id: "delay_reason", label: "Motivo de demora" }].map((o) => (
-                            <ListBox.Item key={o.id} id={o.id} textValue={o.label}>{o.label}<ListBox.ItemIndicator /></ListBox.Item>
-                          ))}
-                        </ListBox>
-                      </Select.Popover>
-                    </Select>
-                    {bulkIsReason ? (
-                      <div className="flex flex-col gap-1.5">
-                        <Label>Motivo (vacío = quitar)</Label>
-                        <select value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} className={`h-10 w-full ${field}`}>
-                          <option value="">— Sin motivo —</option>
-                          {reasons.map((r) => <option key={r} value={r}>{r}</option>)}
-                        </select>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-1.5">
-                        <Label>{sup ? "Fecha (vacío = borrar)" : "Fecha (se aplica solo a las unidades que esperan esta etapa)"}</Label>
-                        <Input type="date" max={sup ? undefined : today()} value={bulkValue} onChange={(e) => setBulkValue(e.target.value)} />
-                      </div>
-                    )}
-                  </Modal.Body>
-                  <Modal.Footer>
-                    <Button variant="secondary" className="rounded-full" onPress={close}>Cancelar</Button>
-                    <Button variant="primary" className="rounded-full" onPress={async () => {
-                      if (await patch(selIds, { [String(bulkField)]: bulkValue || null })) { setSelected(new Set()); close(); }
-                    }}>Aplicar</Button>
-                  </Modal.Footer>
-                </>
-              )}
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+      <Sheet open={bulk.isOpen} onClose={bulk.close} size="lg" icon={Layers} title="Cambio masivo"
+        sub={`${selIds.length.toLocaleString()} ${selIds.length === 1 ? "unidad seleccionada" : "unidades seleccionadas"} de ${info.title}`}
+        summary={bulkField ? <>Se aplicará <b className="text-sb-on-surface">{bulkIsReason ? "Motivo de demora" : stageLabel(site, String(bulkField))}</b> = <b className="text-sb-on-surface">{bulkValue ? (bulkIsReason ? bulkValue : humanDate(bulkValue)) : bulkIsReason ? "sin motivo" : "borrar fecha"}</b> a {selIds.length.toLocaleString()} {selIds.length === 1 ? "unidad" : "unidades"}</> : null}
+        footer={<>
+          <Button variant="secondary" className="rounded-full" onPress={bulk.close}>Cancelar</Button>
+          <Button variant="primary" className="rounded-full" isDisabled={!sup && !bulkIsReason && !bulkValue} onPress={async () => {
+            if (await patch(selIds, { [String(bulkField)]: bulkValue || null })) { setSelected(new Set()); bulk.close(); }
+          }}>Aplicar a {selIds.length.toLocaleString()}</Button>
+        </>}>
+        <SheetSection title="¿Qué vas a cambiar?">
+          <ChoiceCards id="bulk-field" columns={3} value={String(bulkField ?? "")} onChange={(v) => { setBulkField(v as Key); setBulkValue(""); }}
+            options={[...info.dates.filter((d) => sup || myFields.has(d.key)).map((d) => ({ key: d.key as string, label: stageLabel(site, d.key), icon: CalendarDays })), { key: "delay_reason", label: "Motivo de demora", icon: MessageSquareWarning }]} />
+        </SheetSection>
+        {bulkIsReason ? (
+          <SheetSection title="Motivo" hint="Elige «Sin motivo» para quitarlo.">
+            <div className="flex flex-wrap gap-1.5">
+              {["", ...reasons].map((r) => (
+                <button key={r || "none"} type="button" onClick={() => setBulkValue(r)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${bulkValue === r ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant hover:bg-sb-surface-container-high"}`}>{r || "Sin motivo"}</button>
+              ))}
+            </div>
+          </SheetSection>
+        ) : (
+          <SheetSection title="Fecha" hint={sup ? "Vacía = borrar esa fecha en las unidades elegidas." : "Se aplica solo a las unidades que esperan esta etapa."}>
+            <DatePicker id="bulk-date" value={bulkValue} onChange={setBulkValue} max={sup ? undefined : today()} quick={pastQuick(null, today())} clearable={sup} />
+          </SheetSection>
+        )}
+      </Sheet>
 
       {/* Detalle / edición de una unidad */}
-      <Modal>
-        <Modal.Backdrop isOpen={!!editing} onOpenChange={(o) => !o && setEditId(null)}>
-          <Modal.Container size="lg">
-            <Modal.Dialog>
-              {({ close }) => editing && (
+      <Sheet open={!!editing} onClose={() => setEditId(null)} size="xl" icon={Bike} title={editing ? `Unidad ${editing.chassis}` : ""}
+        sub={editing ? `${editing.material ?? "—"} · ${editing.dealer ?? "sin dealer"}${editing.district ? ` · ${editing.district}` : ""}` : ""}
+        summary={editing ? <>{STATUS_LABEL[editing.status]} · estimada {fmtDate(editing.est_date) || "—"}{editing.lead_time != null ? ` (${editing.lead_time} días)` : ""}</> : null}
+        footer={<Button variant="primary" className="rounded-full" onPress={() => setEditId(null)}>Listo</Button>}>
+              {editing && (
                 <>
-                  <Modal.CloseTrigger aria-label="Cerrar" /><Modal.Header><Modal.Heading>Unidad {editing.chassis}</Modal.Heading></Modal.Header>
-                  <Modal.Body className="flex flex-col gap-4 p-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <Chip size="sm" variant="soft">{STATUS_LABEL[editing.status]}</Chip>
                       <ServiceChip s={editing.service} />
@@ -630,12 +630,12 @@ export default function SitePage({ params, searchParams }: {
                         <div key={k as string}><dt className="text-[10px] uppercase tracking-wider text-muted">{k}</dt><dd className="truncate">{v || "—"}</dd></div>
                       ))}
                     </dl>
-                    <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       {info.dates.map((d) => (
-                        <label key={d.key} className="flex items-center justify-between gap-3 text-sm">
-                          <span>{stageLabel(site, d.key)}</span>
-                          <DateCell key={`${editing.id}-${d.key}`} label={stageLabel(site, d.key)} value={editing[d.key]} mode={modeOf(editing, d.key)} min={previousDate(site, editing, d.key)} onSave={(v) => patch([editing.id], { [d.key]: v || null })} />
-                        </label>
+                        <div key={d.key} className="flex flex-col gap-1.5 text-xs">
+                          <span className="font-medium">{stageLabel(site, d.key)}</span>
+                          <DateCell rich key={`${editing.id}-${d.key}`} label={stageLabel(site, d.key)} value={editing[d.key]} mode={modeOf(editing, d.key)} min={previousDate(site, editing, d.key)} onSave={(v) => patch([editing.id], { [d.key]: v || null })} />
+                        </div>
                       ))}
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -673,14 +673,9 @@ export default function SitePage({ params, searchParams }: {
                         />
                       </label>
                     </div>
-                  </Modal.Body>
-                  <Modal.Footer><Button variant="primary" className="rounded-full" onPress={close}>Listo</Button></Modal.Footer>
                 </>
               )}
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+      </Sheet>
     </div>
   );
 }

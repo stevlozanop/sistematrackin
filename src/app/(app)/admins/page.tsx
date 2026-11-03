@@ -1,8 +1,11 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Avatar, Button, Chip, Description, Input, Label, Modal, Switch, Table, TextField, toast, useOverlayState } from "@heroui/react";
+import { Avatar, Button, Chip, Description, Input, Label, Switch, Table, TextField, toast, useOverlayState } from "@heroui/react";
+import { Sheet } from "@/components/modal/Sheet";
+import { ChoiceCards } from "@/components/modal/ChoiceCards";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { Selection, SortDescriptor } from "@heroui/react";
-import { Copy, Eye, KeyRound, Store, ListChecks, Plus, Radio, Search, ShieldCheck, Trash2, Users, X } from "lucide-react";
+import { Copy, Eye, KeyRound, Store, ListChecks, UserPlus, Plus, Radio, Search, ShieldCheck, Trash2, Users, X } from "lucide-react";
 import { Card, CodeTag, PageTitle } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
 import { Check } from "@/components/Check";
@@ -268,22 +271,19 @@ export default function AdminsPage() {
       </Card>
 
       {/* Crear */}
-      <Modal>
-        <Modal.Backdrop isOpen={create.isOpen} onOpenChange={create.setOpen}>
-          <Modal.Container size="lg">
-            <Modal.Dialog>
-              <form onSubmit={submit} className="contents">
-                <Modal.CloseTrigger aria-label="Cerrar" /><Modal.Header>
-                  <Modal.Heading>{ROLE_TITLE[role]}</Modal.Heading>
-                </Modal.Header>
-                <Modal.Body className="flex flex-col gap-4 p-1">
-                  <div className="flex flex-wrap gap-1.5">
-                    <button type="button" className={`sbf-chip ${role === "operator" ? "active" : ""}`} onClick={() => setRole("operator")}>Encargado de etapa</button>
-                    <button type="button" className={`sbf-chip ${role === "dealer" ? "active" : ""}`} onClick={() => setRole("dealer")}>Cliente de Honda</button>
-                    <button type="button" className={`sbf-chip ${role === "viewer" ? "active" : ""}`} onClick={() => setRole("viewer")}>Solo lectura (Honda)</button>
-                    <button type="button" className={`sbf-chip ${role === "admin" ? "active" : ""}`} onClick={() => setRole("admin")}>Supervisor</button>
-                  </div>
-                  <p className="-mt-2 text-xs text-muted">{ROLE_HELP[role]}</p>
+      <Sheet open={create.isOpen} onClose={create.close} size="lg" icon={UserPlus} title={ROLE_TITLE[role]} onSubmit={submit} busy={saving}
+        sub="Elige el tipo de cuenta, su nombre y su área. El usuario y la contraseña se arman solos."
+        summary={name.trim() ? <>Se creará <b className="text-sb-on-surface">{name.trim()}</b> · {ROLE_LABEL[role]} · usuario <b className="font-mono text-sb-on-surface">{shownEmail || "…"}</b></> : "Escribe el nombre para ver cómo quedará la cuenta."}
+        footer={<>
+          <Button variant="secondary" className="rounded-full" onPress={create.close}>Cancelar</Button>
+          <Button type="submit" variant="primary" className="rounded-full" isDisabled={saving}>{saving ? "Creando…" : "Crear cuenta"}</Button>
+        </>}>
+                  <ChoiceCards id="new-role" columns={2} value={role} onChange={(v) => setRole(v as NewRole)} options={[
+                    { key: "operator", label: "Encargado de etapa", desc: ROLE_HELP.operator, icon: ListChecks },
+                    { key: "admin", label: "Supervisor", desc: ROLE_HELP.admin, icon: ShieldCheck },
+                    { key: "viewer", label: "Solo lectura (Honda)", desc: ROLE_HELP.viewer, icon: Eye },
+                    { key: "dealer", label: "Cliente de Honda", desc: ROLE_HELP.dealer, icon: Store },
+                  ]} />
                   {role === "dealer" && (
                     <label className="flex flex-col gap-1.5 text-sm">
                       <Label>Cliente</Label>
@@ -327,53 +327,24 @@ export default function AdminsPage() {
                       <AreaPicker value={asg} onChange={setAsg} carriers={carriers} />
                     </div>
                   )}
-                </Modal.Body>
-                <Modal.Footer>
-                  <Button variant="secondary" className="rounded-full" onPress={create.close}>Cancelar</Button>
-                  <Button type="submit" variant="primary" className="rounded-full" isDisabled={saving}>{saving ? "Creando…" : "Crear cuenta"}</Button>
-                </Modal.Footer>
-              </form>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+      </Sheet>
 
       {/* Etapas de un encargado */}
-      <Modal>
-        <Modal.Backdrop isOpen={!!editStages} onOpenChange={(o) => !o && setEditStages(null)}>
-          <Modal.Container size="lg">
-            <Modal.Dialog>
-              <Modal.CloseTrigger aria-label="Cerrar" /><Modal.Header><Modal.Heading>Área de {editStages?.name}</Modal.Heading></Modal.Header>
-              <Modal.Body className="flex flex-col gap-3 p-1">
-                <p className="text-xs text-muted">El cambio aplica al instante en su pantalla «Mi trabajo».</p>
-                <AreaPicker key={editStages?.id ?? 0} value={draftAsg} onChange={setDraftAsg} carriers={carriers} />
-              </Modal.Body>
-              <Modal.Footer>
-                <Button variant="secondary" className="rounded-full" onPress={() => setEditStages(null)}>Cancelar</Button>
-                <Button variant="primary" className="rounded-full" onPress={saveStages}>Guardar</Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+      <Sheet open={!!editStages} onClose={() => setEditStages(null)} size="lg" icon={ListChecks} title={`Área de ${editStages?.name ?? ""}`}
+        sub="El cambio aplica al instante en su pantalla «Mi trabajo»."
+        summary={draftAsg.area ? <>Quedará en <b className="text-sb-on-surface">{areaOf(draftAsg.area)?.label ?? "Personalizado"}</b>{draftAsg.stages.length ? ` · ${draftAsg.stages.length} etapas` : ""}</> : null}
+        footer={<>
+          <Button variant="secondary" className="rounded-full" onPress={() => setEditStages(null)}>Cancelar</Button>
+          <Button variant="primary" className="rounded-full" onPress={saveStages}>Guardar</Button>
+        </>}>
+        <AreaPicker key={editStages?.id ?? 0} value={draftAsg} onChange={setDraftAsg} carriers={carriers} />
+      </Sheet>
 
       {/* Eliminar */}
-      <Modal>
-        <Modal.Backdrop isOpen={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-          <Modal.Container size="sm">
-            <Modal.Dialog>
-              <Modal.CloseTrigger aria-label="Cerrar" /><Modal.Header><Modal.Heading>Eliminar usuario</Modal.Heading></Modal.Header>
-              <Modal.Body className="p-1 text-sm">
-                ¿Seguro que quieres eliminar a <b>{toDelete?.name}</b> ({toDelete?.email})? Perderá el acceso de inmediato.
-              </Modal.Body>
-              <Modal.Footer>
-                <Button variant="secondary" className="rounded-full" onPress={() => setToDelete(null)}>Cancelar</Button>
-                <Button variant="danger" className="rounded-full" onPress={() => toDelete && remove(toDelete)}>Eliminar</Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+      <ConfirmDialog open={!!toDelete} title={`¿Eliminar a ${toDelete?.name ?? ""}?`} confirmLabel="Sí, eliminar"
+        onCancel={() => setToDelete(null)} onConfirm={() => toDelete && remove(toDelete)}>
+        <b className="text-sb-on-surface">{toDelete?.email}</b> perderá el acceso de inmediato, aunque tenga la sesión abierta.
+      </ConfirmDialog>
     </div>
   );
 }

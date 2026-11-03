@@ -1,7 +1,10 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Button, Modal, toast } from "@heroui/react";
+import { Button, toast } from "@heroui/react";
+import { Sheet } from "@/components/modal/Sheet";
+import { ChoiceCards } from "@/components/modal/ChoiceCards";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Building2, Copy, Eye, Globe, LogIn, MapPin, Pencil, Phone, Plus, ShieldCheck, Trash2, Truck, UserPlus } from "lucide-react";
 import { Card, CodeTag, PageTitle, Pill } from "@/components/ui";
 import { ROLE_LABEL, companyCode, suggestEmail, type Role } from "@/lib/workflow";
@@ -311,14 +314,19 @@ export default function CompaniesPage() {
       )}
 
       {/* Crear / editar empresa */}
-      <Modal>
-        <Modal.Backdrop isOpen={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
-          <Modal.Container size="lg">
-            <Modal.Dialog>
-              <Modal.CloseTrigger aria-label="Cerrar" />
-              <Modal.Header><Modal.Heading>{edit?.id ? "Editar datos" : dev ? "Nueva empresa" : "Nuevo consorcio"}</Modal.Heading></Modal.Header>
+      <Sheet open={!!edit} onClose={() => setEdit(null)} size="xl" busy={saving}
+        icon={edit?.form.kind === "client" ? Eye : Building2}
+        title={edit?.id ? `Editar ${edit.form.name || "datos"}` : dev ? "Nueva empresa" : "Nuevo consorcio"}
+        sub={edit?.form.kind === "client" ? "Consorcio cliente: sus cuentas solo consultan." : "Transportista dueña del sistema: sus cuentas supervisan y corrigen."}
+        summary={edit?.form.name.trim() ? <><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full align-middle" style={{ background: edit.form.color || DEFAULT_COLOR }} /><b className="text-sb-on-surface">{edit.form.name.trim()}</b> · {edit.form.kind === "client" ? "consorcio" : "empresa"}{edit.form.kind === "client" && edit.form.slug ? <> · entra por <b className="font-mono text-sb-on-surface">/{edit.form.slug}</b></> : null}</> : "Escribe el nombre para ver el resumen."}
+        footer={<>
+          <Button variant="secondary" className="rounded-full" onPress={() => setEdit(null)}>Cancelar</Button>
+          <Button variant="primary" className="rounded-full" isDisabled={saving || !edit?.form.name.trim()} onPress={save}>
+            {saving ? "Guardando…" : edit?.id ? "Guardar cambios" : dev ? "Registrar empresa" : "Crear consorcio"}
+          </Button>
+        </>}>
               {edit && (
-                <Modal.Body className="flex max-h-[65vh] flex-col gap-4 overflow-y-auto p-1">
+                <>
                   {edit.id ? (
                     <div className="flex flex-col gap-2">
                       <span className="text-xs font-medium">Foto de perfil</span>
@@ -331,12 +339,8 @@ export default function CompaniesPage() {
                   )}
                   {dev ? <div className="flex flex-col gap-2">
                     <span className="text-xs font-medium">Tipo</span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(Object.keys(KIND) as (keyof typeof KIND)[]).map((k) => (
-                        <button key={k} type="button" className={`sbf-chip ${edit.form.kind === k ? "active" : ""}`} onClick={() => setF("kind", k)}>{KIND[k].label}</button>
-                      ))}
-                    </div>
-                    <p className="text-[11px] text-sb-on-surface-variant/70">{KIND[edit.form.kind as keyof typeof KIND].desc}</p>
+                    <ChoiceCards id="co-kind" value={edit.form.kind} onChange={(k) => setF("kind", k)}
+                      options={(Object.keys(KIND) as (keyof typeof KIND)[]).map((k) => ({ key: k, label: KIND[k].label, desc: KIND[k].desc, icon: k === "transport" ? Truck : Eye }))} />
                     {edit.form.kind === "client" && transports.length > 0 && (
                       <label className="flex flex-col gap-1 text-xs">
                         <span className="font-medium">Consorcio de</span>
@@ -392,28 +396,22 @@ export default function CompaniesPage() {
                     )}
                     <Field label="Notas" wide><textarea className={`${input} h-auto py-2`} rows={2} value={edit.form.notes} onChange={(e) => setF("notes", e.target.value)} /></Field>
                   </div>
-                </Modal.Body>
+                </>
               )}
-              <Modal.Footer>
-                <Button variant="secondary" className="rounded-full" onPress={() => setEdit(null)}>Cancelar</Button>
-                <Button variant="primary" className="rounded-full" isDisabled={saving || !edit?.form.name.trim()} onPress={save}>
-                  {saving ? "Guardando…" : edit?.id ? "Guardar cambios" : dev ? "Registrar empresa" : "Crear consorcio"}
-                </Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+      </Sheet>
 
       {/* Cuenta nueva de una empresa */}
-      <Modal>
-        <Modal.Backdrop isOpen={!!acc} onOpenChange={(o) => !o && setAcc(null)}>
-          <Modal.Container size="md">
-            <Modal.Dialog>
-              <Modal.CloseTrigger aria-label="Cerrar" />
-              <Modal.Header><Modal.Heading>Cuenta para {acc?.company.name}</Modal.Heading></Modal.Header>
+      <Sheet open={!!acc} onClose={() => setAcc(null)} size="md" busy={saving} icon={UserPlus} title={`Cuenta para ${acc?.company.name ?? ""}`}
+        sub={acc ? `${ROLE_LABEL[accRole]} · ${KIND[acc.company.kind].desc}` : ""}
+        summary={acc?.name.trim() ? <>Usuario <b className="font-mono text-sb-on-surface">{accEmail}</b> · contraseña de {acc.password.length} caracteres</> : null}
+        footer={<>
+          <Button variant="secondary" className="rounded-full" onPress={() => setAcc(null)}>Cancelar</Button>
+          <Button variant="primary" className="rounded-full" isDisabled={saving || !acc?.name.trim() || (acc?.password.length ?? 0) < 8} onPress={createAccount}>
+            {saving ? "Creando…" : "Crear cuenta"}
+          </Button>
+        </>}>
               {acc && (
-                <Modal.Body className="flex flex-col gap-3 p-1">
+                <>
                   <div className="flex items-start gap-2 rounded-xl bg-sb-surface-container-low px-3 py-2 text-[12px] text-sb-on-surface-variant">
                     {accRole === "admin" ? <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /> : <Eye className="mt-0.5 h-4 w-4 shrink-0" />}
                     <span><b className="text-sb-on-surface">{ROLE_LABEL[accRole]}.</b> {KIND[acc.company.kind].desc}</span>
@@ -428,37 +426,15 @@ export default function CompaniesPage() {
                       <Button isIconOnly variant="secondary" className="rounded-full" aria-label="Copiar contraseña" onPress={() => navigator.clipboard?.writeText(acc.password)}><Copy className="h-4 w-4" /></Button>
                     </div>
                   </Field>
-                </Modal.Body>
+                </>
               )}
-              <Modal.Footer>
-                <Button variant="secondary" className="rounded-full" onPress={() => setAcc(null)}>Cancelar</Button>
-                <Button variant="primary" className="rounded-full" isDisabled={saving || !acc?.name.trim() || (acc?.password.length ?? 0) < 8} onPress={createAccount}>
-                  {saving ? "Creando…" : "Crear cuenta"}
-                </Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+      </Sheet>
 
       {/* Eliminar empresa */}
-      <Modal>
-        <Modal.Backdrop isOpen={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-          <Modal.Container size="sm">
-            <Modal.Dialog>
-              <Modal.CloseTrigger aria-label="Cerrar" />
-              <Modal.Header><Modal.Heading>Eliminar empresa</Modal.Heading></Modal.Header>
-              <Modal.Body className="p-1 text-sm">
-                ¿Eliminar <b>{toDelete?.name}</b>? Sus {toDelete?.users.length ?? 0} cuentas siguen activas, pero sin empresa. Para quitarles el acceso, elimínalas en Usuarios.
-              </Modal.Body>
-              <Modal.Footer>
-                <Button variant="secondary" className="rounded-full" onPress={() => setToDelete(null)}>Cancelar</Button>
-                <Button variant="danger" className="rounded-full" onPress={() => toDelete && remove(toDelete)}>Eliminar</Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+      <ConfirmDialog open={!!toDelete} title={`¿Eliminar ${toDelete?.name ?? ""}?`} confirmLabel="Sí, eliminar" requireText="ELIMINAR"
+        onCancel={() => setToDelete(null)} onConfirm={() => toDelete && remove(toDelete)}>
+        Sus <b className="text-sb-on-surface">{toDelete?.users.length ?? 0} cuentas</b> siguen activas, pero sin empresa. Para quitarles el acceso, elimínalas en Usuarios.
+      </ConfirmDialog>
     </div>
   );
 }

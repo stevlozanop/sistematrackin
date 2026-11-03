@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
-import { Button, Modal, toast } from "@heroui/react";
+import { Button, toast } from "@heroui/react";
+import { Sheet } from "@/components/modal/Sheet";
 import { CheckCircle2, Download, Search, Store, X } from "lucide-react";
 import { Checkbox, Pill } from "@/components/ui";
 
@@ -60,21 +61,24 @@ export function DealerAccounts({ open, onClose, onCreated }: { open: boolean; on
   const close = () => { setCreated(null); setQ(""); onClose(); };
 
   return (
-    <Modal>
-      <Modal.Backdrop isOpen={open} onOpenChange={(o) => !o && close()}>
-        <Modal.Container size="lg">
-          <Modal.Dialog className="sm:max-w-3xl">
-            <Modal.CloseTrigger aria-label="Cerrar" />
-            <Modal.Header className="flex flex-col gap-1">
-              <Modal.Heading>{created ? "Clientes creados" : "Crear clientes"}</Modal.Heading>
-              <p className="text-xs text-sb-on-surface-variant">
-                {created
-                  ? "Guarda el Excel: las contraseñas no se vuelven a mostrar. Si alguien la pierde, restablécela en Usuarios."
-                  : "Crea la cuenta de cada cliente (SORSA, CREDIVARGAS…): entra a «Mi resumen» y ve los pedidos de todas sus tiendas, nada de otros clientes."}
-              </p>
-            </Modal.Header>
-
-            <Modal.Body className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto p-1">
+    <Sheet open={open} onClose={close} size="lg" busy={saving} icon={created ? CheckCircle2 : Store} title={created ? "Clientes creados" : "Crear clientes"}
+      sub={created
+        ? "Guarda el Excel: las contraseñas no se vuelven a mostrar. Si alguien la pierde, restablécela en Usuarios."
+        : "Crea la cuenta de cada cliente (SORSA, CREDIVARGAS…): entra a «Mi resumen» y ve los pedidos de todas sus tiendas, nada de otros clientes."}
+      summary={created ? <>{created.length} {created.length === 1 ? "cuenta lista" : "cuentas listas"} · el Excel ya se descargó</> : picked.size ? <><b className="text-sb-on-surface">{picked.size}</b> {picked.size === 1 ? "cliente elegido" : "clientes elegidos"}</> : "Marca los clientes que tendrán cuenta."}
+      footer={created ? (
+        <>
+          <Button variant="secondary" className="rounded-full" onPress={() => download(created)}><Download className="h-4 w-4" /> Descargar Excel otra vez</Button>
+          <Button variant="primary" className="rounded-full" onPress={close}>Listo</Button>
+        </>
+      ) : (
+        <>
+          <Button variant="secondary" className="rounded-full" onPress={close}>Cancelar</Button>
+          <Button variant="primary" className="rounded-full" isDisabled={saving || !picked.size} onPress={create}>
+            {saving ? "Creando…" : `Crear ${picked.size} ${picked.size === 1 ? "cliente" : "clientes"}`}
+          </Button>
+        </>
+      )}>
               {created ? (
                 <>
                   <div className="flex items-center gap-2 rounded-xl bg-sb-surface-container-low px-3 py-2 text-sm">
@@ -126,26 +130,6 @@ export function DealerAccounts({ open, onClose, onCreated }: { open: boolean; on
                   </div>
                 </>
               )}
-            </Modal.Body>
-
-            <Modal.Footer>
-              {created ? (
-                <>
-                  <Button variant="secondary" className="rounded-full" onPress={() => download(created)}><Download className="h-4 w-4" /> Descargar Excel otra vez</Button>
-                  <Button variant="primary" className="rounded-full" onPress={close}>Listo</Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="secondary" className="rounded-full" onPress={close}>Cancelar</Button>
-                  <Button variant="primary" className="rounded-full" isDisabled={saving || !picked.size} onPress={create}>
-                    {saving ? "Creando…" : `Crear ${picked.size} ${picked.size === 1 ? "cliente" : "clientes"}`}
-                  </Button>
-                </>
-              )}
-            </Modal.Footer>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
+    </Sheet>
   );
 }

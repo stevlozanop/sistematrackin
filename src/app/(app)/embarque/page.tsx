@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Button, Modal, toast } from "@heroui/react";
+import { Button, toast } from "@heroui/react";
+import { Sheet } from "@/components/modal/Sheet";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { ArrowDown, Box, Eye, Plus, Ship, Trash2, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
@@ -78,20 +79,14 @@ function NaveDetail({ site, nave, canUndo, onClose, onChanged }: { site: Site; n
   }
   return (
     <>
-    <Modal>
-      <Modal.Backdrop isOpen={!!nave} onOpenChange={(o) => !o && onClose()}>
-        <Modal.Container size="lg">
-          <Modal.Dialog>
-            <Modal.CloseTrigger aria-label="Cerrar" />
-            <Modal.Header className="flex flex-wrap items-center justify-between gap-2 pr-12">
-              <Modal.Heading>Nave {nave}{rows ? ` — ${containers.length} contenedor(es) · ${n(rows.length)} unidades` : ""}</Modal.Heading>
-              {nave && (
-                <Link href={`/units/${site.toLowerCase()}?${new URLSearchParams({ nave })}`} className="rounded-full bg-sb-surface-container-high px-3 py-1 text-xs font-medium hover:bg-sb-primary hover:text-sb-on-primary">
-                  Ver sus unidades en {SITE_INFO[site].short} →
-                </Link>
-              )}
-            </Modal.Header>
-            <Modal.Body>
+    <Sheet open={!!nave} onClose={onClose} size="lg" icon={Ship} title={`Nave ${nave ?? ""}`}
+      sub={rows ? `${containers.length} ${containers.length === 1 ? "contenedor" : "contenedores"} · ${n(rows.length)} unidades` : "Cargando…"}
+      summary={rows ? <>Contenedores y unidades a bordo de <b className="text-sb-on-surface">{nave}</b></> : null}
+      footer={nave ? (
+        <Link href={`/units/${site.toLowerCase()}?${new URLSearchParams({ nave })}`} className="rounded-full bg-sb-surface-container-high px-4 py-2 text-xs font-medium transition-colors hover:bg-sb-primary hover:text-sb-on-primary">
+          Ver sus unidades en {SITE_INFO[site].short} →
+        </Link>
+      ) : null}>
               {!rows ? <p className="py-8 text-center text-sm text-sb-on-surface-variant">Cargando…</p> : (
                 <div className="flex max-h-[62vh] flex-col gap-3 overflow-y-auto pr-1">
                   {containers.map(([cid, c]) => {
@@ -118,11 +113,7 @@ function NaveDetail({ site, nave, canUndo, onClose, onChanged }: { site: Site; n
                   {!containers.length && <p className="py-6 text-center text-xs text-sb-on-surface-variant">Esta nave ya no tiene contenedores pendientes.</p>}
                 </div>
               )}
-            </Modal.Body>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
+    </Sheet>
       <ConfirmDialog open={!!ask} title={`¿Quitar el contenedor ${ask?.code ?? ""}?`} confirmLabel="Sí, quitar contenedor" busy={undoing}
         onCancel={() => setAsk(null)} onConfirm={() => ask && undo(ask.id, ask.code)}>
         Sus unidades salen de la nave <b className="text-sb-on-surface">{nave}</b> y <b className="text-sb-on-surface">vuelven a IQT-Port</b>, listas para embarcarse de nuevo.

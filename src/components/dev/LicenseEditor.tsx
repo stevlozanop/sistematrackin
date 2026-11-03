@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "framer-motion";
 import { Button, Modal } from "@heroui/react";
-import { AlertTriangle, CalendarDays, Check, ChevronLeft, ChevronRight, Infinity as InfinityIcon, Minus, Plus, Sparkles, Users } from "lucide-react";
+import { AlertTriangle, CalendarDays, Check, Infinity as InfinityIcon, Minus, Plus, Sparkles, Users } from "lucide-react";
+import { Calendar, addMonths, daysBetween, fmtISO, humanDate, parseISO, todayLima } from "@/components/modal/Calendar";
 import { cn } from "@/lib/cn";
 
 /** Lo que se guarda */
@@ -14,85 +15,17 @@ const PLANS = [
   { key: "Profesional", desc: "Más cuentas y consorcios" },
   { key: "Empresarial", desc: "Grupo grande, sin límites" },
 ];
-const MONTHS = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-const WEEK = ["L", "M", "M", "J", "V", "S", "D"];
 const WARN_DAYS = 15;
-
-/** Fechas como texto YYYY-MM-DD en hora de Perú (sin saltos por zona horaria) */
 const pad = (n: number) => String(n).padStart(2, "0");
-const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const parse = (s: string) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
-const todayLima = () => { const n = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Lima" })); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
-const addMonths = (d: Date, n: number) => { const r = new Date(d.getFullYear(), d.getMonth() + n, d.getDate()); if (r.getDate() !== d.getDate()) r.setDate(0); return r; };
-const daysBetween = (a: Date, b: Date) => Math.round((b.getTime() - a.getTime()) / 864e5);
-const human = (s: string) => { const d = parse(s); return `${d.getDate()} de ${MONTHS[d.getMonth()].toLowerCase()} de ${d.getFullYear()}`; };
+const fmt = fmtISO;
+const parse = parseISO;
+const human = (v: string) => humanDate(v);
 
 function Count({ value }: { value: number }) {
   const mv = useMotionValue(value);
   const text = useTransform(mv, (v) => Math.round(v).toLocaleString("es-PE"));
   useEffect(() => { const c = animate(mv, value, { duration: 0.5, ease: [0.32, 0.72, 0, 1] }); return () => c.stop(); }, [mv, value]);
   return <motion.span>{text}</motion.span>;
-}
-
-/** Calendario de un mes: hoy marcado, periodo de la licencia sombreado y los 15 días de aviso en ámbar */
-function Calendar({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const today = todayLima();
-  const sel = value ? parse(value) : null;
-  const [view, setView] = useState(() => { const b = sel ?? today; return { y: b.getFullYear(), m: b.getMonth(), dir: 0 }; });
-  const go = (n: number) => setView((v) => { const d = new Date(v.y, v.m + n, 1); return { y: d.getFullYear(), m: d.getMonth(), dir: n }; });
-  const first = new Date(view.y, view.m, 1);
-  const lead = (first.getDay() + 6) % 7; // semana desde el lunes
-  const days = new Date(view.y, view.m + 1, 0).getDate();
-  const cells = [...Array(lead).fill(null), ...Array.from({ length: days }, (_, i) => new Date(view.y, view.m, i + 1))];
-  const warnFrom = sel ? new Date(sel.getFullYear(), sel.getMonth(), sel.getDate() - WARN_DAYS) : null;
-
-  return (
-    <div className="rounded-2xl border border-sb-outline-variant/60 p-3">
-      <div className="mb-2 flex items-center justify-between">
-        <button type="button" aria-label="Mes anterior" onClick={() => go(-1)} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-sb-surface-container-high"><ChevronLeft className="h-4 w-4" /></button>
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.span key={`${view.y}-${view.m}`} initial={{ opacity: 0, y: view.dir >= 0 ? 8 : -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: view.dir >= 0 ? -8 : 8 }} transition={{ duration: 0.2 }} className="text-sm font-semibold">
-            {MONTHS[view.m]} {view.y}
-          </motion.span>
-        </AnimatePresence>
-        <button type="button" aria-label="Mes siguiente" onClick={() => go(1)} className="grid h-8 w-8 place-items-center rounded-full transition-colors hover:bg-sb-surface-container-high"><ChevronRight className="h-4 w-4" /></button>
-      </div>
-      <div className="grid grid-cols-7 gap-y-1 text-center text-[10px] font-semibold text-sb-on-surface-variant/70">
-        {WEEK.map((w, i) => <span key={i}>{w}</span>)}
-      </div>
-      <div className="relative overflow-hidden">
-        <AnimatePresence mode="popLayout" initial={false} custom={view.dir}>
-          <motion.div key={`${view.y}-${view.m}`} custom={view.dir}
-            initial={{ x: view.dir > 0 ? 40 : view.dir < 0 ? -40 : 0, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: view.dir > 0 ? -40 : 40, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }} className="mt-1 grid grid-cols-7 gap-y-1">
-            {cells.map((d, i) => {
-              if (!d) return <span key={`e${i}`} />;
-              const s = fmt(d);
-              const past = d < today;
-              const isToday = s === fmt(today);
-              const picked = sel && s === fmt(sel);
-              const inPeriod = sel && d >= today && d < sel;
-              const inWarn = sel && warnFrom && d >= warnFrom && d < sel && d >= today;
-              return (
-                <button key={s} type="button" disabled={past} onClick={() => onChange(s)} aria-label={human(s)} aria-pressed={!!picked}
-                  className={cn("relative mx-auto grid h-8 w-full place-items-center text-xs transition-colors",
-                    inPeriod && !inWarn && "bg-sb-primary-soft", inWarn && "bg-amber-500/15",
-                    past ? "cursor-not-allowed text-sb-on-surface-variant/30" : "hover:font-semibold")}>
-                  {picked && <motion.span layoutId="lic-day" className="absolute inset-0.5 rounded-full bg-sb-primary" transition={{ type: "spring", stiffness: 420, damping: 32 }} />}
-                  <span className={cn("relative z-10", picked && "font-bold text-sb-on-primary", isToday && !picked && "font-bold underline decoration-2 underline-offset-4")}>{d.getDate()}</span>
-                </button>
-              );
-            })}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-      <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-sb-on-surface-variant">
-        <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-sb-primary-soft" /> Vigente</span>
-        <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-amber-500/25" /> Aviso de {WARN_DAYS} días</span>
-        <span className="flex items-center gap-1"><span className="font-bold underline decoration-2 underline-offset-2">Subrayado</span> = hoy</span>
-      </div>
-    </div>
-  );
 }
 
 /** Línea de tiempo: hoy → aviso → vencimiento */
@@ -201,7 +134,7 @@ export function LicenseEditor({ open, company, used, initial, busy, onCancel, on
         <Modal.Container size="lg">
           <Modal.Dialog className="w-full sm:max-w-[920px]">
             <Modal.CloseTrigger aria-label="Cerrar" />
-            <Modal.Header className="flex items-center gap-3">
+            <Modal.Header className="flex flex-row items-center gap-3 pr-10">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-sb-primary text-sb-on-primary"><CalendarDays className="h-4 w-4" /></span>
               <div>
                 <Modal.Heading>Licencia de {company}</Modal.Heading>
@@ -253,7 +186,13 @@ export function LicenseEditor({ open, company, used, initial, busy, onCancel, on
                     <InfinityIcon className="h-3 w-3" /> Sin vencimiento
                   </button>
                 </div>
-                <Calendar key={f.expiresAt ? f.expiresAt.slice(0, 7) : "none"} value={f.expiresAt} onChange={(v) => setF((x) => ({ ...x, expiresAt: v }))} />
+                <Calendar id="lic" key={f.expiresAt ? f.expiresAt.slice(0, 7) : "none"} value={f.expiresAt} onChange={(v) => setF((x) => ({ ...x, expiresAt: v }))}
+                  min={fmt(today)} period={fmt(today)} warnDays={WARN_DAYS} />
+                <div className="-mt-1 flex flex-wrap gap-3 text-[10px] text-sb-on-surface-variant">
+                  <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-sb-primary-soft" /> Vigente</span>
+                  <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-amber-500/25" /> Aviso de {WARN_DAYS} días</span>
+                  <span className="flex items-center gap-1"><span className="font-bold underline decoration-2 underline-offset-2">Subrayado</span> = hoy</span>
+                </div>
                 <Timeline value={f.expiresAt} />
               </div>
             </Modal.Body>

@@ -1,7 +1,8 @@
 "use client";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { ListBox, Modal, Select } from "@heroui/react";
-import { ChevronRight } from "lucide-react";
+import { ListBox, Select } from "@heroui/react";
+import { ChevronRight, MapPinned } from "lucide-react";
+import { Sheet } from "@/components/modal/Sheet";
 import { DATA_EVENT } from "@/components/UploadCenter";
 import { Card, PageTitle } from "@/components/ui";
 import { cn } from "@/lib/cn";
@@ -357,15 +358,9 @@ function DetailModal({ ask, year, onClose }: { ask: Ask | null; year: number; on
     fetch(`/api/board/detail?${q}`).then((r) => r.json()).then(setData).catch(() => setData({ districts: [], totals: { w2: 0, w3: 0, total: 0 } }));
   }, [ask, year]);
   return (
-    <Modal>
-      <Modal.Backdrop isOpen={!!ask} onOpenChange={(o) => !o && onClose()}>
-        <Modal.Container size="lg">
-          <Modal.Dialog>
-            <Modal.CloseTrigger aria-label="Cerrar" />
-            <Modal.Header>
-              <Modal.Heading>{ask?.title}{data ? ` — ${n(data.totals.total)} unidad(es)` : ""}</Modal.Heading>
-            </Modal.Header>
-            <Modal.Body>
+    <Sheet open={!!ask} onClose={onClose} size="lg" icon={MapPinned} title={ask?.title ?? ""}
+      sub="Unidades por distrito, separadas en motos (2W) y motokares (3W)."
+      summary={data ? <><b className="text-sb-on-surface">{n(data.totals.total)}</b> {data.totals.total === 1 ? "unidad" : "unidades"} · {n(data.totals.w2)} 2W · {n(data.totals.w3)} 3W · {data.districts.length} distritos</> : "Cargando…"}>
               {!data ? <p className="py-8 text-center text-sm text-sb-on-surface-variant">Cargando…</p> : (
                 <div className="max-h-[60vh] overflow-y-auto rounded-xl border border-sb-outline-variant/40">
                   <table className="w-full text-sm">
@@ -423,11 +418,7 @@ function DetailModal({ ask, year, onClose }: { ask: Ask | null; year: number; on
                   </table>
                 </div>
               )}
-            </Modal.Body>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
+    </Sheet>
   );
 }
 

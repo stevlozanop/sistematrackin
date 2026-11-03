@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Modal, toast } from "@heroui/react";
+import { Button, toast } from "@heroui/react";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Copy, KeyRound, Search, Store, Trash2, UserPlus, Users, X } from "lucide-react";
 import { Card, PageTitle, Pill } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
@@ -141,23 +142,10 @@ export default function ClientsPage() {
 
       <DealerAccounts open={bulk} onClose={() => setBulk(false)} onCreated={load} />
 
-      <Modal>
-        <Modal.Backdrop isOpen={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-          <Modal.Container size="sm">
-            <Modal.Dialog>
-              <Modal.CloseTrigger aria-label="Cerrar" />
-              <Modal.Header><Modal.Heading>Quitar acceso</Modal.Heading></Modal.Header>
-              <Modal.Body className="p-1 text-sm">
-                ¿Quitar el acceso a <b>{toDelete?.client ?? toDelete?.name}</b> ({toDelete?.email})? Ya no podrá ver sus pedidos hasta que le des acceso otra vez.
-              </Modal.Body>
-              <Modal.Footer>
-                <Button variant="secondary" className="rounded-full" onPress={() => setToDelete(null)}>Cancelar</Button>
-                <Button variant="danger" className="rounded-full" onPress={() => toDelete && remove(toDelete)}>Quitar acceso</Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
+      <ConfirmDialog open={!!toDelete} title={`¿Quitar el acceso a ${toDelete?.client ?? toDelete?.name ?? ""}?`} confirmLabel="Sí, quitar acceso" busyLabel="Quitando…"
+        onCancel={() => setToDelete(null)} onConfirm={() => toDelete && remove(toDelete)}>
+        <b className="text-sb-on-surface">{toDelete?.email}</b> ya no podrá ver sus pedidos hasta que le des acceso otra vez.
+      </ConfirmDialog>
     </div>
   );
 }

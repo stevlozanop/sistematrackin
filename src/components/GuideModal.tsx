@@ -501,7 +501,7 @@ export function GuideModal({ open, onClose }: { open: boolean; onClose: () => vo
     <Modal>
       <Modal.Backdrop isOpen={open} onOpenChange={(o) => !o && close()}>
         <Modal.Container size="lg">
-          <Modal.Dialog className="sm:max-w-2xl">
+          <Modal.Dialog className="w-full sm:max-w-[800px]">
             <Modal.CloseTrigger aria-label="Cerrar guía" />
             {!step ? (
               <Modal.Body className="p-6 text-sm text-sb-on-surface-variant">Cargando guía…</Modal.Body>
