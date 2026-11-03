@@ -1,7 +1,6 @@
 "use client";
-import { motion } from "framer-motion";
 import { Modal } from "@heroui/react";
-import { Sparkles, type LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 /**
@@ -26,26 +25,21 @@ export function Sheet({
     <>
       <Modal.CloseTrigger aria-label="Cerrar" />
       <Modal.Header className="flex flex-row items-center gap-3 pr-10">
-        <motion.span initial={{ scale: 0.6, rotate: -10, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 320, damping: 18 }}
-          className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl", tone === "danger" ? "bg-sb-late-soft text-sb-late" : "bg-sb-primary text-sb-on-primary")}>
+        <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl", tone === "danger" ? "bg-sb-late-soft text-sb-late" : "bg-sb-primary-soft text-sb-primary")}>
           <Icon className="h-[18px] w-[18px]" />
-        </motion.span>
+        </span>
         <div className="min-w-0 text-left">
           <Modal.Heading className="truncate text-base font-semibold tracking-tight">{title}</Modal.Heading>
           {sub && <p className="mt-0.5 text-[11px] leading-snug text-sb-on-surface-variant">{sub}</p>}
         </div>
       </Modal.Header>
       <Modal.Body className={cn("p-1", bodyClassName)}>
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05, ease: [0.32, 0.72, 0, 1] }} className="flex flex-col gap-4">
-          {children}
-        </motion.div>
+        <div className="flex flex-col gap-4">{children}</div>
       </Modal.Body>
       {(footer || summary) && (
         <Modal.Footer className="flex flex-wrap items-center gap-3">
           {summary ? (
-            <p className="mr-auto flex min-w-0 items-center gap-1.5 text-[11px] text-sb-on-surface-variant">
-              <Sparkles className="h-3.5 w-3.5 shrink-0" /><span className="min-w-0">{summary}</span>
-            </p>
+            <p className="mr-auto min-w-0 text-xs text-sb-on-surface-variant">{summary}</p>
           ) : <span className="mr-auto" />}
           {footer}
         </Modal.Footer>

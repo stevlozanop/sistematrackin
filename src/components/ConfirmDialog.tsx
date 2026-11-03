@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { Button, Modal } from "@heroui/react";
-import { motion } from "framer-motion";
 import { AlertTriangle, Trash2 } from "lucide-react";
 
 /**
@@ -29,8 +28,7 @@ export function ConfirmDialog({
           <Modal.Dialog>
             <Modal.CloseTrigger aria-label="Cerrar" />
             <Modal.Header className="flex flex-row items-center gap-3 pr-10">
-              <motion.span initial={{ scale: 0.6, rotate: -10, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 320, damping: 18 }}
-                className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${tone === "danger" ? "bg-sb-late-soft text-sb-late" : "bg-sb-primary text-sb-on-primary"}`}><AlertTriangle className="h-[18px] w-[18px]" /></motion.span>
+              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${tone === "danger" ? "bg-sb-late-soft text-sb-late" : "bg-sb-primary-soft text-sb-primary"}`}><AlertTriangle className="h-[18px] w-[18px]" /></span>
               <Modal.Heading className="text-base font-semibold tracking-tight">{title}</Modal.Heading>
             </Modal.Header>
             <Modal.Body className="flex flex-col gap-3 p-1 text-sm text-sb-on-surface-variant">

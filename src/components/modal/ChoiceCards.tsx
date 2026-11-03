@@ -1,32 +1,32 @@
 "use client";
-import { motion } from "framer-motion";
-import { Check, type LucideIcon } from "lucide-react";
+import { Description, Radio, RadioGroup } from "@heroui/react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-/** Tarjetas para elegir una opción: la elegida se marca con un fondo que se desliza de una a otra */
-export function ChoiceCards<T extends string>({ value, onChange, options, columns = 2, id = "choice" }: {
-  value: T; onChange: (v: T) => void; columns?: 1 | 2 | 3 | 4; id?: string;
+/** Elegir una opción con el RadioGroup de HeroUI, en forma de tarjetas (título, descripción e ícono). */
+export function ChoiceCards<T extends string>({ value, onChange, options, columns = 2, label }: {
+  value: T; onChange: (v: T) => void; columns?: 1 | 2 | 3 | 4; label?: string;
   options: { key: T; label: string; desc?: string; icon?: LucideIcon; disabled?: boolean }[];
+  /** Se acepta por compatibilidad */
+  id?: string;
 }) {
   return (
-    <div className={cn("grid gap-2", columns === 1 ? "grid-cols-1" : columns === 3 ? "grid-cols-2 sm:grid-cols-3" : columns === 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-1 sm:grid-cols-2")} role="radiogroup">
+    <RadioGroup aria-label={label ?? "Opciones"} value={value} onChange={(v) => onChange(v as T)}
+      className={cn("grid gap-2 **:data-[slot=radio]:mt-0", columns === 1 ? "grid-cols-1" : columns === 3 ? "grid-cols-1 sm:grid-cols-3" : columns === 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-1 sm:grid-cols-2")}>
       {options.map((o) => {
-        const on = value === o.key;
         const Icon = o.icon;
         return (
-          <motion.button key={o.key} type="button" role="radio" aria-checked={on} disabled={o.disabled}
-            whileHover={o.disabled ? undefined : { y: -2 }} whileTap={o.disabled ? undefined : { scale: 0.97 }} onClick={() => onChange(o.key)}
-            className={cn("relative rounded-2xl border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40", on ? "border-sb-primary" : "border-sb-outline-variant/60 hover:border-sb-outline")}>
-            {on && <motion.span layoutId={`${id}-on`} className="absolute inset-0 rounded-2xl bg-sb-primary-soft" transition={{ type: "spring", stiffness: 380, damping: 30 }} />}
-            <span className="relative z-10 flex items-center gap-2 text-sm font-semibold">
-              {Icon && <Icon className={cn("h-4 w-4 shrink-0", on ? "text-sb-primary" : "text-sb-on-surface-variant")} />}
-              <span className="line-clamp-2 min-w-0 flex-1 leading-snug">{o.label}</span>
-              {on && <Check className="h-4 w-4 shrink-0 text-sb-primary" />}
-            </span>
-            {o.desc && <span className="relative z-10 mt-0.5 block text-[11px] leading-snug text-sb-on-surface-variant">{o.desc}</span>}
-          </motion.button>
+          <Radio key={o.key} value={o.key} isDisabled={o.disabled} className="h-full w-full">
+            <Radio.Content className="flex h-full w-full cursor-pointer items-start gap-3 rounded-2xl border border-sb-outline-variant/70 p-3 transition-colors hover:border-sb-outline data-[selected=true]:border-sb-primary data-[selected=true]:bg-sb-primary-soft">
+              <Radio.Control className="mt-0.5 shrink-0"><Radio.Indicator /></Radio.Control>
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <span className="flex items-center gap-1.5 text-sm font-medium">{Icon && <Icon className="h-4 w-4 shrink-0 text-sb-on-surface-variant" />}{o.label}</span>
+                {o.desc && <Description className="text-xs">{o.desc}</Description>}
+              </div>
+            </Radio.Content>
+          </Radio>
         );
       })}
-    </div>
+    </RadioGroup>
   );
 }

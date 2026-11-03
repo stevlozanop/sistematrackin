@@ -1,11 +1,11 @@
 "use client";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { notFound } from "next/navigation";
-import { Button, Chip, ListBox, Select, Table, toast, useOverlayState } from "@heroui/react";
+import { Button, Chip, ListBox, Select, Table, ToggleButton, ToggleButtonGroup, toast, useOverlayState } from "@heroui/react";
 import { Sheet, SheetSection } from "@/components/modal/Sheet";
 import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
 import { ChoiceCards } from "@/components/modal/ChoiceCards";
-import { humanDate } from "@/components/modal/Calendar";
+import { humanDate } from "@/lib/dates";
 import type { Key, Selection, SortDescriptor } from "@heroui/react";
 import { Bike, CalendarDays, Check as CheckIcon, Layers, MessageSquareWarning, ChevronLeft, ChevronRight, History, Lock, MoreHorizontal, Search, SlidersHorizontal, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
@@ -55,16 +55,13 @@ function DateCell({ value, onSave, label, mode, min, rich = false }: {
   if (rich && mode === "next") {
     return (
       <div className="flex items-start gap-1.5">
-        <DatePicker id={`d-${label}`} className="flex-1" label={label} value={draft} onChange={setDraft} min={min} max={today()} quick={pastQuick(min, today())} placeholder="Elegir fecha" />
-        <button type="button" aria-label={`Guardar ${label}`} title="Guardar (queda bloqueada)" disabled={!draft} onClick={() => onSave(draft)}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sb-primary text-sb-on-primary transition-opacity disabled:opacity-25">
-          <CheckIcon className="h-4 w-4" />
-        </button>
+        <DatePicker className="flex-1" label={label} value={draft} onChange={setDraft} min={min} max={today()} quick={pastQuick(min, today())} placeholder="Elegir fecha" />
+        <Button isIconOnly aria-label={`Guardar ${label} (queda bloqueada)`} isDisabled={!draft} onPress={() => onSave(draft)}><CheckIcon className="h-4 w-4" /></Button>
       </div>
     );
   }
   if (rich && mode === "edit") {
-    return <DatePicker id={`d-${label}`} label={label} value={value ?? ""} onChange={(v) => v !== (value ?? "") && onSave(v)} clearable placeholder="Sin fecha" />;
+    return <DatePicker label={label} value={value ?? ""} onChange={(v) => v !== (value ?? "") && onSave(v)} clearable placeholder="Sin fecha" />;
   }
   if (mode === "locked") {
     return (
@@ -590,12 +587,10 @@ export default function SitePage({ params, searchParams }: {
         </SheetSection>
         {bulkIsReason ? (
           <SheetSection title="Motivo" hint="Elige «Sin motivo» para quitarlo.">
-            <div className="flex flex-wrap gap-1.5">
-              {["", ...reasons].map((r) => (
-                <button key={r || "none"} type="button" onClick={() => setBulkValue(r)}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${bulkValue === r ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant hover:bg-sb-surface-container-high"}`}>{r || "Sin motivo"}</button>
-              ))}
-            </div>
+            <ToggleButtonGroup aria-label="Motivo" size="sm" isDetached className="flex-wrap" disallowEmptySelection selectedKeys={new Set<Key>([bulkValue || "__none"])}
+              onSelectionChange={(k) => { const v = String([...k][0] ?? ""); setBulkValue(v === "__none" ? "" : v); }}>
+              {["__none", ...reasons].map((r) => <ToggleButton key={r} id={r}>{r === "__none" ? "Sin motivo" : r}</ToggleButton>)}
+            </ToggleButtonGroup>
           </SheetSection>
         ) : (
           <SheetSection title="Fecha" hint={sup ? "Vacía = borrar esa fecha en las unidades elegidas." : "Se aplica solo a las unidades que esperan esta etapa."}>
