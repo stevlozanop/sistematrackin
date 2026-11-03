@@ -11,6 +11,7 @@ import { cn } from "@/lib/cn";
 import { DATA_EVENT } from "@/components/UploadCenter";
 import { DELAY_REASONS, SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
+import { DockScene } from "@/components/figures/dock/DockScene";
 
 /**
  * Embarque y zarpe (Iquitos):
@@ -148,6 +149,7 @@ export default function EmbarquePage() {
   const [sailReason, setSailReason] = useState("");
   const [sailing, setSailing] = useState(false);
   const [view, setView] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState<Set<string>>(new Set());
 
   useEffect(() => { fetch("/api/me").then((r) => r.json()).then(setMe); }, []);
   const sites = useMemo<Site[]>(() => {
@@ -216,7 +218,9 @@ export default function EmbarquePage() {
     if (!r.ok) return toast.danger(j.error);
     toast.success(`Zarpe registrado: ${checkedNaves.map((x) => x.nave).join(", ")}`, { description: `${n(j.units)} unidades → Tránsito fluvial`, timeout: 7000 });
     setChecked(new Set()); setSailReason("");
-    setReload((x) => x + 1);
+    // La chata se va río abajo en el muelle y luego se recarga la lista
+    setLeaving(new Set(checkedNaves.map((x) => x.nave)));
+    setTimeout(() => { setReload((x) => x + 1); setLeaving(new Set()); }, 1700);
   }
 
   if (!me) return <div className="p-6 text-sm text-sb-on-surface-variant">Cargando…</div>;
@@ -238,6 +242,14 @@ export default function EmbarquePage() {
             </div>
           )}
         </PageTitle>
+
+        {/* Muelle en vivo */}
+        <Card className="overflow-hidden p-2 sm:p-3">
+          <DockScene naves={data?.naves ?? []} checked={checked} leaving={leaving} canSail={!!data?.canSail}
+            building={{ guias: guias.length, units: tot.total, container, nave }}
+            onOpen={setView}
+            onToggle={(v) => setChecked((st) => { const y = new Set(st); if (y.has(v)) y.delete(v); else y.add(v); return y; })} />
+        </Card>
 
         {/* 1. Embarque de un contenedor */}
         <Card className="overflow-hidden">

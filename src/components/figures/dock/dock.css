@@ -1,0 +1,12 @@
+/* Muelle en vivo (Embarque y zarpe) */
+.dk .dk-trolley{animation:dk-trolley 7s ease-in-out infinite}
+@keyframes dk-trolley{0%,12%{transform:translate(0,0)}45%,60%{transform:translate(calc(var(--dk-dx) * -0.06),calc(var(--dk-dy) * 0.35))}100%{transform:translate(0,0)}}
+.dk .dk-barge{transition:transform 1.6s cubic-bezier(.55,0,.8,.2),opacity 1.6s ease}
+.dk .dk-barge:not(.is-leaving){animation:rf-bob 3.6s ease-in-out infinite}
+/* Al registrar el zarpe, la chata se va río abajo */
+.dk .dk-barge.is-leaving{transform:translate(var(--dk-dx),var(--dk-dy));opacity:0}
+.dk .dk-nave{transition:opacity .8s ease,transform .8s ease}
+.dk .dk-nave.is-leaving{opacity:0}
+.dk .dk-tag{cursor:default}
+.dk .dk-tag button{cursor:pointer}
+@media (prefers-reduced-motion:reduce){.dk .dk-trolley,.dk .dk-barge{animation:none!important;transition:none}}
