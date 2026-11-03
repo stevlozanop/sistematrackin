@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { seatsError } from "@/lib/license";
 import bcrypt from "bcryptjs";
 import { query, queryList, run, tx } from "@/lib/db";
 import { guard, SUPER } from "@/lib/guard";
@@ -110,6 +111,8 @@ export async function POST(req: Request) {
   }
   if (!asg) return NextResponse.json({ error: "Área o etapas inválidas" }, { status: 400 });
   if (role === "operator" && !asg.stages.length) return NextResponse.json({ error: "Elige el área o al menos una etapa" }, { status: 400 });
+  const full = await seatsError(companyId);
+  if (full) return NextResponse.json({ error: full }, { status: 409 });
   try {
     await tx(async (c) => {
       const [r] = await c.query("INSERT INTO users(name,email,password_hash,role,area,carrier,can_import,company_id,dealer_id,client,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)", [

@@ -8,12 +8,15 @@ import { AlertTriangle, Trash2 } from "lucide-react";
  * Para acciones que borran o deshacen algo: título, explicación, Cancelar y el botón de confirmar en rojo.
  */
 export function ConfirmDialog({
-  open, title, children, confirmLabel = "Sí, eliminar", busy = false, onConfirm, onCancel, requireText,
+  open, title, children, confirmLabel = "Sí, eliminar", busy = false, onConfirm, onCancel, requireText, busyLabel = "Eliminando…", tone = "danger",
 }: {
   open: boolean; title: string; children: React.ReactNode; confirmLabel?: string; busy?: boolean;
   onConfirm: () => void; onCancel: () => void;
   /** Palabra que hay que escribir para poder confirmar (para lo que no se puede deshacer, ej. «ELIMINAR») */
   requireText?: string;
+  /** Texto mientras trabaja y color del botón (danger = rojo con papelera; primary = color de la empresa, sin papelera) */
+  busyLabel?: string;
+  tone?: "danger" | "primary";
 }) {
   const [typed, setTyped] = useState("");
   const ready = !requireText || typed.trim().toUpperCase() === requireText.toUpperCase();
@@ -40,8 +43,8 @@ export function ConfirmDialog({
             </Modal.Body>
             <Modal.Footer>
               <Button variant="secondary" className="rounded-full" isDisabled={busy} onPress={cancel}>Cancelar</Button>
-              <Button variant="danger" className="rounded-full" isDisabled={busy || !ready} onPress={() => { onConfirm(); setTyped(""); }}>
-                <Trash2 className="h-3.5 w-3.5" /> {busy ? "Eliminando…" : confirmLabel}
+              <Button variant={tone === "danger" ? "danger" : "primary"} className="rounded-full" isDisabled={busy || !ready} onPress={() => { onConfirm(); setTyped(""); }}>
+                {tone === "danger" && <Trash2 className="h-3.5 w-3.5" />} {busy ? busyLabel : confirmLabel}
               </Button>
             </Modal.Footer>
           </Modal.Dialog>

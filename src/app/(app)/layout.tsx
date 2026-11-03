@@ -5,10 +5,17 @@ import { query } from "@/lib/db";
 import { brandCompany, ownCompany } from "@/lib/companies";
 import { themeCss } from "@/lib/theme";
 import { AppShell } from "@/components/AppShell";
+import { LicenseWall } from "@/components/LicenseWall";
+import { licenseMessage, licenseOfUser } from "@/lib/license";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const s = await getSession();
   if (!s) redirect("/login");
+  // Licencia de su empresa: si está suspendida o vencida, no ve nada del sistema (The Iceberg Labs siempre entra)
+  const lic = s.role === "dev" ? null : await licenseOfUser(s.id);
+  if (lic && lic.status !== "active") return <LicenseWall company={lic.company} message={licenseMessage(lic)} status={lic.status} />;
+  // Aviso a la empresa cuando faltan 15 días o menos para que venza
+  const notice = lic && lic.daysLeft !== null && lic.daysLeft <= 15 && (s.role === "admin" || s.role === "viewer") ? { company: lic.company ?? "", days: lic.daysLeft, date: lic.expiresAt ?? "" } : null;
   // El encargado solo ve los módulos (PCL / YUR) donde tiene etapas asignadas
   const stages = s.role === "operator" ? await getStages(s.id) : [];
   const sites = s.role === "operator" ? [...new Set(stages.map((st) => st.site))] : ["PCL", "YUR"];
@@ -28,7 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <>
     <style dangerouslySetInnerHTML={{ __html: themeCss(brand?.color ?? null, swm) }} />
-    <AppShell name={s.name} role={s.role} sites={sites} fields={fields} firstGuide={!!u && !Number(u.guide_seen)} brand={brand} own={own} swm={swm} isOwner={isOwner} upload={upload}>
+    <AppShell name={s.name} role={s.role} sites={sites} fields={fields} firstGuide={!!u && !Number(u.guide_seen)} brand={brand} own={own} swm={swm} isOwner={isOwner} upload={upload} licenseNotice={notice}>
       {children}
     </AppShell>
     </>

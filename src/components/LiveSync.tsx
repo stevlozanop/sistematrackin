@@ -17,6 +17,11 @@ export function LiveSync() {
       busy = true;
       try {
         const r = await fetch("/api/data-version", { cache: "no-store" });
+        // Licencia suspendida o vencida mientras usaba el sistema: recargar para mostrar la pantalla de bloqueo
+        if (r.status === 403) {
+          const e = await r.json().catch(() => null);
+          if (e?.license) { window.location.reload(); return; }
+        }
         const j = r.ok ? await r.json() : null;
         if (alive && j) {
           if (!silent && last !== null && j.v !== last) window.dispatchEvent(new CustomEvent(DATA_EVENT, { detail: "remote" }));

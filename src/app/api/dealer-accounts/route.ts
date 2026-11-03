@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { seatsError } from "@/lib/license";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { query, queryList, tx } from "@/lib/db";
@@ -85,6 +86,8 @@ export async function POST(req: Request) {
     return { client: c.client, stores: Number(c.stores), departments: c.departments, name: title(c.client), email, password: password() };
   });
 
+  const full = await seatsError(companyId, created.length);
+  if (full) return NextResponse.json({ error: full }, { status: 409 });
   await tx(async (c) => {
     await c.query(
       "INSERT INTO users(name, email, password_hash, role, company_id, client, created_by) VALUES ?",

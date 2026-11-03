@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, Database, FileSpreadsheet, Gauge, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
+import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
@@ -123,7 +123,10 @@ const DEV_SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
   },
   {
     title: "Clientes de la plataforma",
-    items: [{ title: "Empresas", href: "/companies", icon: Building2 }],
+    items: [
+      { title: "Empresas", href: "/companies", icon: Building2 },
+      { title: "Licencias", href: "/dev/licenses", icon: KeyRound, badge: "licenses" },
+    ],
   },
 ];
 
@@ -144,6 +147,7 @@ function useDevBadges(on: boolean) {
           fails: j.fails ? { text: `${j.fails} fallidos`, tone: "alert" } : { text: "0", tone: "muted" },
           health: { text: H[j.health as keyof typeof H] ?? "—", tone: j.health === "crit" ? "alert" : j.health === "warn" ? "warn" : "muted" },
           db: { text: `${j.dbPct}%`, tone: j.dbPct >= 85 ? "alert" : j.dbPct >= 70 ? "warn" : "muted" },
+          licenses: j.blocked ? { text: `${j.blocked} bloqueada${j.blocked === 1 ? "" : "s"}`, tone: "alert" } : j.soon ? { text: `${j.soon} por vencer`, tone: "warn" } : { text: "Al día", tone: "muted" },
         });
       }).catch(() => {});
     };
@@ -232,8 +236,8 @@ const Heading = ({ children }: { children: React.ReactNode }) => (
   <h3 className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/50">{children}</h3>
 );
 
-export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firstGuide = false, brand = null, own = null, swm = false, isOwner = false, upload = null, children }: {
-  name: string; role: Role; sites?: string[]; fields?: string[]; firstGuide?: boolean; brand?: Co; own?: Co; swm?: boolean; isOwner?: boolean; upload?: UploadMode | null; children: React.ReactNode;
+export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firstGuide = false, brand = null, own = null, swm = false, isOwner = false, upload = null, licenseNotice = null, children }: {
+  name: string; role: Role; sites?: string[]; fields?: string[]; firstGuide?: boolean; brand?: Co; own?: Co; swm?: boolean; isOwner?: boolean; upload?: UploadMode | null; licenseNotice?: { company: string; days: number; date: string } | null; children: React.ReactNode;
 }) {
   const [uploadOpen, setUploadOpen] = useState(false);
   const path = usePathname();
@@ -394,6 +398,15 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
         </header>
 
         <main className="scroll-hidden flex-1 overflow-auto px-4 pb-28 sm:px-6 md:pb-6">
+          {licenseNotice && (
+            <div role="status" className="mb-4 flex items-center gap-2.5 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-xs">
+              <CalendarClock className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>
+                <b>Licencia por vencer:</b> la licencia de {licenseNotice.company} {licenseNotice.days === 0 ? "vence hoy" : `vence en ${licenseNotice.days} ${licenseNotice.days === 1 ? "día" : "días"}`} ({licenseNotice.date}).
+                Al vencer, nadie de la empresa podrá entrar. Comunícate con The Iceberg Labs para renovarla.
+              </span>
+            </div>
+          )}
           <AnimatePresence mode="wait">
             <motion.div key={path} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: [0.37, 0.35, 0, 1] }}>
               {children}

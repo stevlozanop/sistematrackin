@@ -5,6 +5,7 @@ import { createSession } from "@/lib/auth";
 import { portalBySlug } from "@/lib/companies";
 import type { Role } from "@/lib/workflow";
 import { authEvent } from "@/lib/activity";
+import { licenseMessage, licenseOfUser } from "@/lib/license";
 
 /** Entrada que le corresponde a una cuenta: la de su consorcio (/honda o /honda/clientes) o la principal (/login). */
 function entryFor(u: { role: Role; slug: string | null }) {
@@ -53,6 +54,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Los clientes ingresan por la entrada de su consorcio", entry: entryFor(u) }, { status: 403 });
     }
 
+    // Sin licencia activa de su empresa no entra (The Iceberg Labs siempre entra)
+    if (u.role !== "dev") {
+      const lic = await licenseOfUser(u.id);
+      if (lic.status !== "active") return NextResponse.json({ error: licenseMessage(lic), license: lic.status }, { status: 403 });
+    }
     await createSession({ id: u.id, name: u.name, email: u.email, role: u.role });
     await authEvent("login", u.id, typed);
     return NextResponse.json({ ok: true });

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { seatsError } from "@/lib/license";
 import bcrypt from "bcryptjs";
 import { query, run } from "@/lib/db";
 import { guard } from "@/lib/guard";
@@ -45,6 +46,8 @@ export async function POST(req: Request) {
   if (!name || !/^\S+@\S+\.\S+$/.test(email) || password.length < 8) {
     return NextResponse.json({ error: "Nombre, usuario válido y contraseña (mín. 8) son obligatorios" }, { status: 400 });
   }
+  const full = await seatsError(c.company);
+  if (full) return NextResponse.json({ error: full }, { status: 409 });
   try {
     await run("INSERT INTO users(name,email,password_hash,role,company_id,created_by) VALUES (?,?,?,?,?,?)",
       [name, email, bcrypt.hashSync(password, 10), "viewer", c.company, s.id]);

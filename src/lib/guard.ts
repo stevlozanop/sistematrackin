@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession, type Session } from "./auth";
 import { query, run } from "./db";
 import { countApi } from "./activity";
+import { cachedLicense, licenseMessage } from "./license";
 import type { Stage } from "./workflow";
 
 type R = Session["role"][];
@@ -23,6 +24,11 @@ export async function guard(roles: R = STAFF) {
   const s = await getSession();
   if (!s || !roles.includes(s.role)) {
     return { s: null as never, err: NextResponse.json({ error: s ? "No tienes permiso para esta acción" : "No autorizado" }, { status: s ? 403 : 401 }) };
+  }
+  // Licencia de su empresa (The Iceberg Labs nunca se bloquea): suspendida o vencida = no puede usar nada
+  if (s.role !== "dev") {
+    const lic = await cachedLicense(s.id);
+    if (lic.status !== "active") return { s: null as never, err: NextResponse.json({ error: licenseMessage(lic), license: lic.status }, { status: 403 }) };
   }
   // Como mucho una escritura cada 20 s por usuario
   run("UPDATE users SET last_seen=NOW() WHERE id=? AND (last_seen IS NULL OR last_seen < NOW() - INTERVAL 20 SECOND)", [s.id]).catch(() => {});
