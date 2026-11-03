@@ -40,7 +40,7 @@ const PAGES: [RegExp, string][] = [
   [/^\/admins/, "Usuarios"], [/^\/dealers/, "Dealers"], [/^\/settings/, "Plazos y meta"], [/^\/companies/, "Empresas"],
   [/^\/clients/, "Clientes"], [/^\/portal\/resumen/, "Portal · resumen"], [/^\/portal/, "Portal · unidades"], [/^\/profile/, "Mi perfil"],
   [/^\/dev\/users/, "Consola · usuarios"], [/^\/dev\/activity/, "Consola · interacciones"], [/^\/dev\/usage/, "Consola · consumo"],
-  [/^\/dev\/database/, "Consola · base de datos"], [/^\/dev\/sql/, "Consola · SQL"], [/^\/dev\/live/, "Consola · en vivo"], [/^\/dev/, "Consola · dashboard"],
+  [/^\/dev\/database/, "Consola · base de datos"], [/^\/dev\/sql/, "Consola · SQL"], [/^\/dev\/live/, "Consola · en vivo"], [/^\/dev\/adoption/, "Consola · adopción"], [/^\/dev\/security/, "Consola · seguridad"], [/^\/dev\/health/, "Consola · salud de la base"], [/^\/dev/, "Consola · dashboard"],
 ];
 export const pageLabel = (path: string | null) => (path ? PAGES.find(([re]) => re.test(path))?.[1] ?? path : "—");
 

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, Database, FileSpreadsheet, Gauge, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
+import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, Database, FileSpreadsheet, Gauge, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
@@ -17,7 +17,9 @@ import { UploadCenter, type UploadMode } from "@/components/UploadCenter";
 import { CodeTag } from "@/components/ui";
 import { LiveSync } from "@/components/LiveSync";
 
-type Item = { title: string; href: string; icon: LucideIcon; roles?: Role[]; fields?: string[] };
+type Item = { title: string; href: string; icon: LucideIcon; roles?: Role[]; fields?: string[]; badge?: string };
+/** Indicador en vivo junto a una opción del menú: texto y tono (alert = rojo, warn = ámbar, live = punto que late) */
+type Badge = { text: string; tone?: "alert" | "warn" | "live" | "muted" };
 const SUPER: Role[] = ["admin"];
 const READ: Role[] = ["admin", "viewer"]; // ven la operación (viewer = solo lectura, Honda). The Iceberg Labs tiene su propio menú
 
@@ -98,15 +100,23 @@ const DEV_SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
     title: "Plataforma en vivo",
     items: [
       { title: "Dashboard general", href: "/dev", icon: LayoutDashboard },
-      { title: "En vivo", href: "/dev/live", icon: Activity },
+      { title: "En vivo", href: "/dev/live", icon: Activity, badge: "online" },
       { title: "Usuarios", href: "/dev/users", icon: Users },
       { title: "Interacciones", href: "/dev/activity", icon: MousePointerClick },
-      { title: "Consumo", href: "/dev/usage", icon: Gauge },
+    ],
+  },
+  {
+    title: "Producto y seguridad",
+    items: [
+      { title: "Adopción", href: "/dev/adoption", icon: TrendingUp, badge: "dau" },
+      { title: "Seguridad", href: "/dev/security", icon: ShieldCheck, badge: "fails" },
     ],
   },
   {
     title: "Infraestructura",
     items: [
+      { title: "Salud de la base", href: "/dev/health", icon: HeartPulse, badge: "health" },
+      { title: "Consumo", href: "/dev/usage", icon: Gauge, badge: "db" },
       { title: "Base de datos", href: "/dev/database", icon: Database },
       { title: "Consola SQL", href: "/dev/sql", icon: SquareTerminal },
     ],
@@ -117,11 +127,39 @@ const DEV_SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
   },
 ];
 
+/** Indicadores en vivo del menú del dev (cada 15 s, solo con la pestaña a la vista) */
+function useDevBadges(on: boolean) {
+  const [b, setB] = useState<Record<string, Badge>>({});
+  useEffect(() => {
+    if (!on) return;
+    let alive = true;
+    const load = () => {
+      if (document.hidden) return;
+      fetch("/api/dev/badges", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => {
+        if (!alive || !j) return;
+        const H = { good: "Bien", warn: "Atención", crit: "Crítico" } as const;
+        setB({
+          online: { text: String(j.online), tone: j.online ? "live" : "muted" },
+          dau: { text: `${j.dau} hoy`, tone: "muted" },
+          fails: j.fails ? { text: `${j.fails} fallidos`, tone: "alert" } : { text: "0", tone: "muted" },
+          health: { text: H[j.health as keyof typeof H] ?? "—", tone: j.health === "crit" ? "alert" : j.health === "warn" ? "warn" : "muted" },
+          db: { text: `${j.dbPct}%`, tone: j.dbPct >= 85 ? "alert" : j.dbPct >= 70 ? "warn" : "muted" },
+        });
+      }).catch(() => {});
+    };
+    load();
+    const t = setInterval(load, 15000);
+    document.addEventListener("visibilitychange", load);
+    return () => { alive = false; clearInterval(t); document.removeEventListener("visibilitychange", load); };
+  }, [on]);
+  return b;
+}
+
 const PROFILE: Item = { title: "Mi perfil", href: "/profile", icon: CircleUser };
 
 const SPRING ={ type: "spring", stiffness: 400, damping: 32, mass: 0.7 } as const;
 
-function NavLink({ item, active, open }: { item: Item; active: boolean; open: boolean }) {
+function NavLink({ item, active, open, badge }: { item: Item; active: boolean; open: boolean; badge?: Badge }) {
   return (
     <Link
       href={item.href}
@@ -155,6 +193,19 @@ function NavLink({ item, active, open }: { item: Item; active: boolean; open: bo
         <span className={cn("truncate text-[13px] transition-all duration-300 ease-out group-hover:translate-x-1 group-hover:tracking-[0.02em]", active ? "font-medium" : "font-normal")}>
           {item.title}
         </span>
+      )}
+      {open && badge && (
+        <span className={cn("ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-px text-[10px] font-semibold tabular-nums",
+          active ? "bg-sb-on-primary/20 text-sb-on-primary"
+            : badge.tone === "alert" ? "bg-sb-late-soft text-sb-late"
+            : badge.tone === "warn" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+            : "bg-sb-surface-container-high text-sb-on-surface-variant")}>
+          {badge.tone === "live" && <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-60" /><span className="relative h-1.5 w-1.5 rounded-full bg-current" /></span>}
+          {badge.text}
+        </span>
+      )}
+      {!open && badge && (badge.tone === "alert" || badge.tone === "warn") && (
+        <span className={cn("absolute right-0.5 top-0.5 z-20 h-2 w-2 rounded-full ring-2 ring-sb-surface", badge.tone === "alert" ? "bg-sb-late" : "bg-amber-500")} />
       )}
     </Link>
   );
@@ -222,6 +273,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
     router.replace("/login");
   };
 
+  const badges = useDevBadges(role === "dev");
   const sections = (role === "dev" ? DEV_SECTIONS : SECTIONS).filter((s) => !s.roles || s.roles.includes(role))
     .map((s) => ({
       ...s,
@@ -278,7 +330,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
           {sections.map((s) => (
             <div key={s.title} className="flex flex-col gap-px">
               {open && <Heading>{s.title}</Heading>}
-              {s.items.map((i) => <NavLink key={i.title} item={i} active={i.href === activeHref} open={open} />)}
+              {s.items.map((i) => <NavLink key={i.title} item={i} active={i.href === activeHref} open={open} badge={i.badge ? badges[i.badge] : undefined} />)}
             </div>
           ))}
         </nav>
