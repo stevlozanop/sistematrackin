@@ -1,5 +1,5 @@
 "use client";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, toast } from "@heroui/react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { AlertTriangle, ChevronRight, FileStack, Search, Ship, X } from "lucide-react";
@@ -114,7 +114,28 @@ export default function GuiasPage() {
   const minDate = chosen.reduce<string>((m, g) => (g.prev && g.prev > m ? g.prev : m), "");
   const activeStage = data?.stage ?? stage;
   const readOnly = me?.role === "dev";
-  const allSelected = groups.length > 0 && groups.every((g) => sel.has(g.guia));
+
+  const [groupBy, setGroupBy] = useState<"dia" | "dealer">("dia");
+  const [openBlocks, setOpenBlocks] = useState<Set<string>>(new Set());
+  const toggleBlock = (k: string) => setOpenBlocks((s) => { const x = new Set(s); if (x.has(k)) x.delete(k); else x.add(k); return x; });
+  // Bloques: guías del mismo día de facturación (o del mismo dealer)
+  const blocks = useMemo(() => {
+    const m = new Map<string, Group[]>();
+    for (const g of groups) {
+      const k = groupBy === "dia" ? (g.billing ?? "") : (g.dealers ?? "—");
+      m.set(k, [...(m.get(k) ?? []), g]);
+    }
+    const list = [...m.entries()].map(([key, gs]) => {
+      const units = gs.reduce((t, g) => t + Number(g.n), 0);
+      const dealers = new Set(gs.map((g) => g.dealers)).size;
+      return {
+        key, guias: gs, units,
+        title: groupBy === "dia" ? (key ? `Facturadas el ${fmtDate(key)}` : "Sin fecha de factura") : key,
+        sub: groupBy === "dia" ? `${dealers} ${dealers === 1 ? "dealer" : "dealers"}` : "",
+      };
+    });
+    return groupBy === "dealer" ? list.sort((a, b) => b.units - a.units) : list;
+  }, [groups, groupBy]);
 
   const toggle = (g: string) => setSel((s) => { const x = new Set(s); if (x.has(g)) x.delete(g); else x.add(g); return x; });
   const resetSelection = () => { setSel(new Set()); setOpen(null); };
@@ -169,27 +190,29 @@ export default function GuiasPage() {
         </PageTitle>
 
         {/* Etapa a registrar */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {stages.map((st) => (
             <button key={st} type="button" onClick={() => { setStage(st); resetSelection(); }}
-              className={cn("rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-200",
+              className={cn("shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-200",
                 activeStage === st ? "border-sb-primary bg-sb-primary-soft text-sb-on-surface" : "border-sb-outline-variant text-sb-on-surface-variant hover:text-sb-on-surface")}>
               {stageLabel(current!, st)}
             </button>
           ))}
-          <div className="ml-auto flex flex-wrap items-center gap-2 text-[11px] text-sb-on-surface-variant">
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-sb-on-surface-variant">
             <span>Facturadas del</span>
-            <input type="date" aria-label="Facturadas desde" className={cn(field, "h-9 px-2")} value={from} max={to || undefined}
+            <input type="date" aria-label="Facturadas desde" className={cn(field, "h-9 w-[8.5rem] px-2 text-xs sm:w-auto sm:text-sm")} value={from} max={to || undefined}
               onChange={(e) => { setFrom(e.target.value); resetSelection(); }} />
             <span>al</span>
-            <input type="date" aria-label="Facturadas hasta" className={cn(field, "h-9 px-2")} value={to} min={from || undefined}
+            <input type="date" aria-label="Facturadas hasta" className={cn(field, "h-9 w-[8.5rem] px-2 text-xs sm:w-auto sm:text-sm")} value={to} min={from || undefined}
               onChange={(e) => { setTo(e.target.value); resetSelection(); }} />
             {(from || to) && (
               <button type="button" onClick={() => { setFrom(""); setTo(""); resetSelection(); }} aria-label="Quitar filtro de fechas"
                 className="rounded-full p-1 hover:bg-sb-surface-container hover:text-sb-on-surface"><X className="h-3.5 w-3.5" /></button>
             )}
           </div>
-          <label className="relative w-full sm:w-72">
+          <label className="relative w-full sm:ml-auto sm:w-72">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sb-on-surface-variant" />
             <input className={cn(field, "w-full pl-9")} placeholder="Buscar guías (separa con coma)" value={qInput} onChange={(e) => setQInput(e.target.value)} aria-label="Buscar guías" />
           </label>
@@ -197,123 +220,94 @@ export default function GuiasPage() {
 
         <Card className="overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sb-outline-variant/40 px-4 py-3">
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-2 text-sm">
               <FileStack className="h-4 w-4 text-sb-on-surface-variant" />
-              <b>{n(groups.length)} guías</b>
-              <span className="text-sb-on-surface-variant">· {n(groups.reduce((t, g) => t + Number(g.n), 0))} unidades esperan «{activeStage ? stageLabel(current!, activeStage) : "—"}»</span>
+              <b className="whitespace-nowrap">{n(groups.length)} guías</b>
+              <span className="text-sb-on-surface-variant">· {n(groups.reduce((t, g) => t + Number(g.n), 0))} unidades por registrar</span>
             </div>
-            {!!data?.withoutGuia && <span className="text-[11px] text-sb-on-surface-variant">{n(data.withoutGuia)} unidades sin guía: regístralas en «Mi trabajo» o en el módulo</span>}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-sb-on-surface-variant">Agrupar por</span>
+              <div className="flex rounded-full bg-sb-surface-container p-0.5">
+                {([["dia", "Día de factura"], ["dealer", "Dealer"]] as const).map(([k, l]) => (
+                  <button key={k} type="button" onClick={() => { setGroupBy(k); setOpenBlocks(new Set()); }}
+                    className={cn("rounded-full px-3 py-1 text-[11px] font-semibold transition-colors", groupBy === k ? "bg-sb-surface text-sb-on-surface shadow-sm" : "text-sb-on-surface-variant")}>{l}</button>
+                ))}
+              </div>
+            </div>
+            {!!data?.withoutGuia && <span className="w-full text-[11px] text-sb-on-surface-variant">{n(data.withoutGuia)} unidades sin guía: regístralas en «Mi trabajo» o en el módulo</span>}
           </div>
 
-          {/* Celular: una tarjeta por guía */}
-          <div className="flex flex-col md:hidden">
-            {loading && !groups.length && <p className="py-10 text-center text-xs text-sb-on-surface-variant">Cargando guías…</p>}
-            {!loading && !groups.length && <p className="px-4 py-10 text-center text-xs text-sb-on-surface-variant">{q ? "Ninguna guía coincide con la búsqueda." : "No hay guías pendientes de esta etapa."}</p>}
-            {groups.map((g) => {
-              const on = sel.has(g.guia), isOpen = open === g.guia;
+          {loading && !groups.length && <p className="py-10 text-center text-xs text-sb-on-surface-variant">Cargando guías…</p>}
+          {!loading && !groups.length && <p className="px-4 py-10 text-center text-xs text-sb-on-surface-variant">{q ? "Ninguna guía coincide con la búsqueda." : "No hay guías pendientes de esta etapa."}</p>}
+
+          {/* Guías en bloques (por día de facturación o por dealer), cerrados hasta que los abres */}
+          <div className="flex flex-col">
+            {blocks.map((b) => {
+              const isOpen = !!q || openBlocks.has(b.key) || blocks.length === 1;
+              const marked = b.guias.filter((g) => sel.has(g.guia)).length;
+              const all = marked === b.guias.length, some = marked > 0 && !all;
+              const late = b.guias.reduce((t, g) => t + g.need_reason, 0);
               return (
-                <div key={g.guia} className={cn("border-b border-sb-outline-variant/25 transition-colors", on && "bg-sb-primary-soft")}>
-                  <div className="flex items-start gap-3 px-4 py-3" onClick={() => !readOnly && toggle(g.guia)}>
-                    <input type="checkbox" aria-label={`Marcar guía ${g.guia}`} checked={on} disabled={readOnly} onClick={(e) => e.stopPropagation()} onChange={() => toggle(g.guia)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--sb-primary)]" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="truncate font-mono text-sm font-semibold">{g.guia}</span>
-                        <span className="shrink-0 text-sm font-semibold tabular-nums">{n(g.n)} <span className="text-[11px] font-normal text-sb-on-surface-variant">unid.</span></span>
-                      </div>
-                      <p className="truncate text-xs text-sb-on-surface-variant">{g.dealers}</p>
-                      <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-sb-on-surface-variant">
-                        <span>2W {n(g.w2)} · 3W {n(g.w3)}</span>
-                        <span>Fact. {fmtDate(g.billing) || "—"}</span>
-                        <span>Est. {fmtDate(g.est) || "—"}</span>
-                        {g.need_reason > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-sb-late-soft px-1.5 py-0.5 font-semibold text-sb-late"><AlertTriangle className="h-2.5 w-2.5" />{g.need_reason} sin motivo</span>}
-                        {g.naves && <span>· {g.naves}</span>}
-                      </p>
-                    </div>
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setOpen(isOpen ? null : g.guia); }} aria-expanded={isOpen} aria-label={`Ver unidades de ${g.guia}`}
-                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sb-on-surface-variant hover:bg-sb-surface-container">
-                      <motion.span animate={{ rotate: isOpen ? 90 : 0 }} transition={{ duration: 0.25, ease: EASE }} className="inline-flex"><ChevronRight className="h-4 w-4" /></motion.span>
+                <div key={b.key} className="border-b border-sb-outline-variant/30 last:border-0">
+                  <div className={cn("flex items-center gap-3 px-4 py-3 transition-colors", marked ? "bg-sb-primary-soft/60" : "hover:bg-sb-surface-container-low")}>
+                    <input type="checkbox" aria-label={`Marcar todas las guías de ${b.title}`} checked={all} disabled={readOnly}
+                      ref={(el) => { if (el) el.indeterminate = some; }}
+                      onChange={() => setSel((s) => { const x = new Set(s); for (const g of b.guias) { if (all) x.delete(g.guia); else x.add(g.guia); } return x; })}
+                      className="h-5 w-5 shrink-0 accent-[var(--sb-primary)]" />
+                    <button type="button" onClick={() => toggleBlock(b.key)} aria-expanded={isOpen} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold">{b.title}</span>
+                        <span className="block text-[11px] text-sb-on-surface-variant">
+                          {n(b.guias.length)} guías{marked ? <b className="text-sb-on-surface"> · {marked} marcadas</b> : null}
+                          {b.sub ? ` · ${b.sub}` : ""}
+                        </span>
+                      </span>
+                      {late > 0 && <span className="hidden items-center gap-1 rounded-full bg-sb-late-soft px-2 py-0.5 text-[10px] font-semibold text-sb-late sm:inline-flex"><AlertTriangle className="h-3 w-3" />{late} sin motivo</span>}
+                      <span className="text-right"><b className="block text-base leading-none tabular-nums">{n(b.units)}</b><span className="text-[10px] text-sb-on-surface-variant">unid.</span></span>
+                      <motion.span animate={{ rotate: isOpen ? 90 : 0 }} transition={{ duration: 0.25, ease: EASE }} className="inline-flex text-sb-on-surface-variant"><ChevronRight className="h-4 w-4" /></motion.span>
                     </button>
                   </div>
                   <AnimatePresence initial={false}>
                     {isOpen && (
-                      <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} transition={{ duration: 0.3, ease: EASE }} className="overflow-hidden bg-sb-surface-container-low">
-                        <GuiaUnits site={current!} stage={activeStage!} guia={g.guia} />
+                      <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} transition={{ duration: 0.3, ease: EASE }} className="overflow-hidden">
+                        <ul className="border-t border-sb-outline-variant/30 bg-sb-surface-container-low/40 pl-4 sm:pl-8">
+                          {b.guias.map((g) => {
+                            const on = sel.has(g.guia), unitsOpen = open === g.guia;
+                            return (
+                              <li key={g.guia} className="border-b border-sb-outline-variant/20 last:border-0">
+                                <div onClick={() => !readOnly && toggle(g.guia)}
+                                  className={cn("flex cursor-pointer items-center gap-3 py-2 pr-4 transition-colors", on ? "bg-sb-primary-soft" : "hover:bg-sb-surface-container-low")}>
+                                  <input type="checkbox" aria-label={`Marcar guía ${g.guia}`} checked={on} disabled={readOnly} onClick={(e) => e.stopPropagation()} onChange={() => toggle(g.guia)} className="ml-1 h-4 w-4 shrink-0 accent-[var(--sb-primary)]" />
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block font-mono text-xs font-semibold">{g.guia}</span>
+                                    <span className="block truncate text-[11px] text-sb-on-surface-variant">{groupBy === "dia" ? g.dealers : `Facturada ${fmtDate(g.billing) || "—"}`}{g.naves ? ` · ${g.naves}` : ""}</span>
+                                  </span>
+                                  <span className="hidden text-[11px] text-sb-on-surface-variant sm:block">Llega {fmtDate(g.est) || "—"}</span>
+                                  {g.need_reason > 0 && <span className="inline-flex items-center gap-0.5 rounded-full bg-sb-late-soft px-1.5 py-0.5 text-[10px] font-semibold text-sb-late" title="Fuera de tiempo sin motivo"><AlertTriangle className="h-2.5 w-2.5" />{g.need_reason}</span>}
+                                  <span className="w-14 text-right"><b className="text-sm tabular-nums">{n(g.n)}</b> <span className="text-[10px] text-sb-on-surface-variant">{g.w2 && g.w3 ? "mix" : g.w2 ? "2W" : "3W"}</span></span>
+                                  <button type="button" onClick={(e) => { e.stopPropagation(); setOpen(unitsOpen ? null : g.guia); }} aria-expanded={unitsOpen} aria-label={`Ver unidades de ${g.guia}`}
+                                    className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-sb-on-surface-variant hover:bg-sb-surface-container">
+                                    <motion.span animate={{ rotate: unitsOpen ? 90 : 0 }} transition={{ duration: 0.25, ease: EASE }} className="inline-flex"><ChevronRight className="h-3.5 w-3.5" /></motion.span>
+                                  </button>
+                                </div>
+                                <AnimatePresence initial={false}>
+                                  {unitsOpen && (
+                                    <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} transition={{ duration: 0.3, ease: EASE }} className="overflow-hidden bg-sb-surface-container-low">
+                                      <p className="px-4 pt-2 text-[11px] text-sb-on-surface-variant">Factura <span className="font-mono">{g.invoices ?? "—"}</span> · facturada {fmtDate(g.billing) || "—"} · llega {fmtDate(g.est) || "—"} · 2W {n(g.w2)} · 3W {n(g.w3)}</p>
+                                      <GuiaUnits site={current!} stage={activeStage!} guia={g.guia} />
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </li>
+                            );
+                          })}
+                        </ul>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
               );
             })}
-          </div>
-
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[820px] text-left text-xs">
-              <thead>
-                <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
-                  <th className="w-10 px-3 py-2">
-                    <input type="checkbox" aria-label="Marcar todas" checked={allSelected} disabled={readOnly || !groups.length}
-                      onChange={() => setSel(allSelected ? new Set() : new Set(groups.map((g) => g.guia)))} className="h-4 w-4 accent-[var(--sb-primary)]" />
-                  </th>
-                  <th className="px-2 py-2 font-semibold">Guía de remisión</th>
-                  <th className="px-2 py-2 text-right font-semibold">Unidades</th>
-                  <th className="px-2 py-2 text-right font-semibold">2W · 3W</th>
-                  <th className="px-2 py-2 font-semibold">Dealer</th>
-                  <th className="px-2 py-2 font-semibold">Factura</th>
-                  <th className="px-2 py-2 font-semibold">Facturación</th>
-                  <th className="px-2 py-2 font-semibold">F. estimada</th>
-                  <th className="px-3 py-2 font-semibold"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading && !groups.length && <tr><td colSpan={9} className="py-10 text-center text-sb-on-surface-variant">Cargando guías…</td></tr>}
-                {!loading && !groups.length && <tr><td colSpan={9} className="py-10 text-center text-sb-on-surface-variant">{q ? "Ninguna guía coincide con la búsqueda." : "No hay guías pendientes de esta etapa."}</td></tr>}
-                {groups.map((g, i) => {
-                  const on = sel.has(g.guia), isOpen = open === g.guia;
-                  return (
-                    <Fragment key={g.guia}>
-                      <motion.tr initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: Math.min(i, 15) * 0.02, ease: EASE }}
-                        onClick={() => !readOnly && toggle(g.guia)}
-                        className={cn("cursor-pointer border-b border-sb-outline-variant/20 transition-colors duration-200", on ? "bg-sb-primary-soft" : "hover:bg-sb-surface-container-low")}>
-                        <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
-                          <input type="checkbox" aria-label={`Marcar guía ${g.guia}`} checked={on} disabled={readOnly} onChange={() => toggle(g.guia)} className="h-4 w-4 accent-[var(--sb-primary)]" />
-                        </td>
-                        <td className="px-2 py-2 font-mono font-semibold">{g.guia}{g.naves && <span className="ml-2 font-sans text-[10px] font-normal text-sb-on-surface-variant">· {g.naves}</span>}</td>
-                        <td className="px-2 py-2 text-right font-semibold tabular-nums">{n(g.n)}</td>
-                        <td className="px-2 py-2 text-right tabular-nums text-sb-on-surface-variant">{n(g.w2)} · {n(g.w3)}</td>
-                        <td className="max-w-[16rem] truncate px-2 py-2" title={g.dealers ?? ""}>{g.dealers}</td>
-                        <td className="px-2 py-2 font-mono text-[11px] text-sb-on-surface-variant">{g.invoices}</td>
-                        <td className="px-2 py-2">{fmtDate(g.billing) || "—"}</td>
-                        <td className="px-2 py-2">
-                          {fmtDate(g.est) || "—"}
-                          {g.need_reason > 0 && (
-                            <span className="ml-1.5 inline-flex items-center gap-1 rounded-full bg-sb-late-soft px-1.5 py-0.5 text-[10px] font-semibold text-sb-late" title="Unidades fuera de tiempo sin motivo de demora">
-                              <AlertTriangle className="h-2.5 w-2.5" />{g.need_reason}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
-                          <button type="button" onClick={() => setOpen(isOpen ? null : g.guia)} aria-expanded={isOpen} aria-label={`Ver unidades de ${g.guia}`}
-                            className="rounded-full p-1 text-sb-on-surface-variant hover:bg-sb-surface-container hover:text-sb-on-surface">
-                            <motion.span animate={{ rotate: isOpen ? 90 : 0 }} transition={{ duration: 0.25, ease: EASE }} className="inline-flex"><ChevronRight className="h-4 w-4" /></motion.span>
-                          </button>
-                        </td>
-                      </motion.tr>
-                      <AnimatePresence initial={false}>
-                        {isOpen && (
-                          <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.15 } }} transition={{ duration: 0.25, ease: EASE }}>
-                            <td colSpan={9} className="bg-sb-surface-container-low">
-                              <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} transition={{ duration: 0.3, ease: EASE }} className="overflow-hidden">
-                                <GuiaUnits site={current!} stage={activeStage!} guia={g.guia} />
-                              </motion.div>
-                            </td>
-                          </motion.tr>
-                        )}
-                      </AnimatePresence>
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
           </div>
         </Card>
 
