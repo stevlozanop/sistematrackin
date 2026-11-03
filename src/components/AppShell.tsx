@@ -16,6 +16,7 @@ import { companyCode, roleLabel, type Role } from "@/lib/workflow";
 import { UploadCenter, type UploadMode } from "@/components/UploadCenter";
 import { CodeTag } from "@/components/ui";
 import { LiveSync } from "@/components/LiveSync";
+import { DATA_EVENT } from "@/components/UploadCenter";
 
 type Item = { title: string; href: string; icon: LucideIcon; roles?: Role[]; fields?: string[]; badge?: string };
 /** Indicador en vivo junto a una opción del menú: texto y tono (alert = rojo, warn = ámbar, live = punto que late) */
@@ -26,11 +27,12 @@ const READ: Role[] = ["admin", "viewer"]; // ven la operación (viewer = solo le
 /**
  * Menú ordenado por lo que hace cada rol:
  * - Encargado: marca su paso (Mi trabajo, embarque y zarpe si es de Iquitos, carga por guía) y ve su módulo.
- * - Empresa (Leyva) y The Iceberg Labs: supervisan el flujo en tiempo real (Dashboard general, En vivo, Tablero, Alertas),
- *   siguen las unidades por ruta y configuran. Las pantallas de marcación quedan al final, para verificar o corregir.
- * - Honda: Tablero y Reportes. Cliente: su resumen y sus unidades.
+ * - Empresa (Leyva): cada sección responde una pregunta — Cómo vamos, Dónde está cada moto, Mi equipo,
+ *   Para el cliente — con contadores en vivo que dicen dónde mirar. Configuración va plegada.
+ * - Honda: Dashboard general, Tablero mensual y Reportes. Cliente: su resumen y sus unidades.
  */
-const SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
+type Section = { title: string; items: Item[]; roles?: Role[]; fold?: boolean };
+const SECTIONS: Section[] = [
   {
     title: "Mi trabajo",
     roles: ["operator"],
@@ -51,37 +53,45 @@ const SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
       { title: "Mis unidades", href: "/portal", icon: PackageSearch },
     ],
   },
+  // Leyva y Honda: cada sección responde una pregunta; los contadores dicen dónde mirar
   {
-    title: "Supervisión",
+    title: "Cómo vamos",
     roles: READ,
     items: [
-      { title: "Dashboard general", href: "/dashboard", icon: LayoutDashboard, roles: SUPER },
-      { title: "En vivo", href: "/live", icon: Activity, roles: SUPER },
-      { title: "Tablero", href: "/board", icon: ChartColumn },
-      { title: "Alertas", href: "/alerts", icon: Bell, roles: SUPER },
+      { title: "Dashboard general", href: "/dashboard", icon: LayoutDashboard },
+      { title: "Alertas", href: "/alerts", icon: Bell, roles: SUPER, badge: "alerts" },
     ],
   },
   {
-    title: "Seguimiento por ruta",
-    roles: READ,
-    items: [
-      { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship, roles: SUPER },
-      { title: "YUR · Yurimaguas", href: "/units/yur", icon: Truck, roles: SUPER },
-      { title: "Reportes", href: "/reports", icon: FileSpreadsheet },
-    ],
-  },
-  {
-    // Lo marcan los encargados; la empresa entra para verificar o corregir
-    title: "Marcación de encargados",
+    title: "Dónde está cada moto",
     roles: SUPER,
     items: [
+      { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship, badge: "pcl" },
+      { title: "YUR · Yurimaguas", href: "/units/yur", icon: Truck, badge: "yur" },
+    ],
+  },
+  {
+    // Lo marcan los encargados; la empresa ve quién está conectado y entra para verificar o corregir
+    title: "Mi equipo",
+    roles: SUPER,
+    items: [
+      { title: "Encargados en vivo", href: "/live", icon: Activity, badge: "online" },
       { title: "Embarque y zarpe", href: "/embarque", icon: Container },
       { title: "Carga por guía", href: "/guias", icon: FileStack },
     ],
   },
   {
+    title: "Para el cliente",
+    roles: READ,
+    items: [
+      { title: "Tablero mensual", href: "/board", icon: ChartColumn },
+      { title: "Reportes", href: "/reports", icon: FileSpreadsheet },
+    ],
+  },
+  {
     title: "Configuración",
     roles: SUPER,
+    fold: true,
     items: [
       { title: "Usuarios", href: "/admins", icon: Users },
       { title: "Dealers", href: "/dealers", icon: Store },
@@ -95,7 +105,7 @@ const SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
  * The Iceberg Labs (dev) no ve la operación de Leyva: su menú es la plataforma con datos reales y en tiempo real
  * (conectados, usuarios, interacciones, consumo de la base) y la infraestructura.
  */
-const DEV_SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
+const DEV_SECTIONS: Section[] = [
   {
     title: "Plataforma en vivo",
     items: [
@@ -129,6 +139,34 @@ const DEV_SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
     ],
   },
 ];
+
+/** Contadores en vivo del menú de Leyva y Honda: cada 15 s y cada vez que cambian los datos */
+function useOpsBadges(on: boolean) {
+  const [b, setB] = useState<Record<string, Badge>>({});
+  useEffect(() => {
+    if (!on) return;
+    let alive = true;
+    const load = () => {
+      if (document.hidden) return;
+      fetch("/api/badges", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => {
+        if (!alive || !j) return;
+        const late = (v: number): Badge => (v ? { text: `${v.toLocaleString("es-PE")} tarde`, tone: "alert" } : { text: "Al día", tone: "muted" });
+        const due = j.pcl + j.yur;
+        setB({
+          pcl: late(j.pcl), yur: late(j.yur),
+          alerts: due ? { text: due.toLocaleString("es-PE"), tone: "alert" } : j.soon ? { text: `${j.soon} por vencer`, tone: "warn" } : { text: "0", tone: "muted" },
+          online: { text: String(j.online), tone: j.online ? "live" : "muted" },
+        });
+      }).catch(() => {});
+    };
+    load();
+    const t = setInterval(load, 15000);
+    document.addEventListener("visibilitychange", load);
+    window.addEventListener(DATA_EVENT, load);
+    return () => { alive = false; clearInterval(t); document.removeEventListener("visibilitychange", load); window.removeEventListener(DATA_EVENT, load); };
+  }, [on]);
+  return b;
+}
 
 /** Indicadores en vivo del menú del dev (cada 15 s, solo con la pestaña a la vista) */
 function useDevBadges(on: boolean) {
@@ -277,7 +315,11 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
     router.replace("/login");
   };
 
-  const badges = useDevBadges(role === "dev");
+  const devBadges = useDevBadges(role === "dev");
+  const opsBadges = useOpsBadges(role === "admin" || role === "viewer");
+  const badges = role === "dev" ? devBadges : opsBadges;
+  // Secciones plegables (Configuración): cerradas salvo que estés dentro
+  const [unfold, setUnfold] = useState<Set<string>>(new Set());
   const sections = (role === "dev" ? DEV_SECTIONS : SECTIONS).filter((s) => !s.roles || s.roles.includes(role))
     .map((s) => ({
       ...s,
@@ -333,8 +375,15 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
         <nav className={cn("flex flex-1 flex-col overflow-y-auto overflow-x-hidden px-2 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", open ? "gap-4" : "gap-2")}>
           {sections.map((s) => (
             <div key={s.title} className="flex flex-col gap-px">
-              {open && <Heading>{s.title}</Heading>}
-              {s.items.map((i) => <NavLink key={i.title} item={i} active={i.href === activeHref} open={open} badge={i.badge ? badges[i.badge] : undefined} />)}
+              {open && (s.fold ? (
+                <button type="button" onClick={() => setUnfold((u) => { const x = new Set(u); if (x.has(s.title)) x.delete(s.title); else x.add(s.title); return x; })}
+                  aria-expanded={unfold.has(s.title) || s.items.some((i) => i.href === activeHref)} className="flex items-center justify-between pr-2 text-left">
+                  <Heading>{s.title}</Heading>
+                  <ChevronLeft className={cn("h-3 w-3 text-sb-on-surface-variant transition-transform", unfold.has(s.title) || s.items.some((i) => i.href === activeHref) ? "rotate-90" : "-rotate-90")} />
+                </button>
+              ) : <Heading>{s.title}</Heading>)}
+              {(!open || !s.fold || unfold.has(s.title) || s.items.some((i) => i.href === activeHref)) &&
+                s.items.map((i) => <NavLink key={i.title} item={i} active={i.href === activeHref} open={open} badge={i.badge && badges[i.badge]?.text ? badges[i.badge] : undefined} />)}
             </div>
           ))}
         </nav>

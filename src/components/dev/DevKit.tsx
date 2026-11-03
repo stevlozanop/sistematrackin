@@ -34,7 +34,7 @@ export function useLive<T>(url: string, ms = 5000) {
 
 /** Nombre de la pantalla a partir de su dirección */
 const PAGES: [RegExp, string][] = [
-  [/^\/dashboard/, "Dashboard general"], [/^\/live/, "En vivo"], [/^\/board/, "Tablero"], [/^\/alerts/, "Alertas"],
+  [/^\/dashboard/, "Dashboard general"], [/^\/live/, "Encargados en vivo"], [/^\/board/, "Tablero mensual"], [/^\/alerts/, "Alertas"],
   [/^\/units\/pcl/i, "PCL · Pucallpa"], [/^\/units\/yur/i, "YUR · Yurimaguas"], [/^\/reports/, "Reportes"],
   [/^\/embarque/, "Embarque y zarpe"], [/^\/guias/, "Carga por guía"], [/^\/my/, "Mi trabajo"],
   [/^\/admins/, "Usuarios"], [/^\/dealers/, "Dealers"], [/^\/settings/, "Plazos y meta"], [/^\/companies/, "Empresas"],

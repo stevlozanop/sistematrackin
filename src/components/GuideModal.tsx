@@ -235,7 +235,7 @@ function superSteps(role: Role): Step[] {
     },
     {
       icon: Activity,
-      title: "En vivo",
+      title: "Encargados en vivo",
       body: (
         <>
           <P>Tu centro de control. Se actualiza cada 5 segundos:</P>
@@ -295,7 +295,7 @@ function superSteps(role: Role): Step[] {
       body: (
         <List items={[
           <><b>Mañana:</b> carga el PCL-FACT del día → aparecen las unidades nuevas en IQT-PORT.</>,
-          <><b>Durante el día:</b> cada encargado registra su etapa desde Mi trabajo. Tú lo ves en <b>En vivo</b>.</>,
+          <><b>Durante el día:</b> cada encargado registra su etapa desde Mi trabajo. Tú lo ves en <b>Encargados en vivo</b>.</>,
           <><b>Revisa Alertas:</b> llama a quien tenga unidades detenidas o por vencer.</>,
           <><b>Corrige</b> en los módulos si alguien se equivocó.</>,
           <><b>Fin de mes:</b> el Dashboard te da el % a tiempo frente a la meta, igual que la hoja TABLA.</>,
@@ -423,7 +423,7 @@ function viewerSteps(me: Me): Step[] {
           <Term k="Dashboard">% a tiempo de PCL, YUR y HSP por mes, frente a la meta del 85 %, como la hoja TABLA.</Term>
           <Term k="Alertas">Unidades vencidas o por vencer y en qué etapa están detenidas.</Term>
           <Term k="PCL y YUR">Todas las unidades con sus fechas, estado y nivel de servicio. Busca por chasis, motor, guía…</Term>
-          <Term k="En vivo">Quién está registrando y cada fecha que se guarda, al instante.</Term>
+          <Term k="Encargados en vivo">Quién está registrando y cada fecha que se guarda, al instante.</Term>
           <Term k="Equipo y clientes">Creas a tus clientes (SORSA, CREDIVARGAS…) para que vean sus pedidos, y a tus empleados. Puedes ponerles contraseña nueva o quitarles el acceso.</Term>
           <Term k="Reportes">Eliges período, módulo y cliente, y lo descargas en Excel o lo imprimes / guardas en PDF para tu supervisor.</Term>
         </div>
