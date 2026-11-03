@@ -9,12 +9,13 @@ import { Building2, Copy, Eye, Globe, LogIn, MapPin, Pencil, Phone, Plus, Shield
 import { Card, CodeTag, PageTitle, Pill } from "@/components/ui";
 import { ROLE_LABEL, companyCode, suggestEmail, type Role } from "@/lib/workflow";
 import { LogoBadge, LogoPicker } from "@/components/CompanyLogo";
+import { ConsortiumCard } from "@/components/ConsortiumCard";
 import { DEFAULT_COLOR, PRESETS, onColor } from "@/lib/theme";
 import { useRouter } from "next/navigation";
 
 
 type Stats = { units: number; delivered: number; onTime: number; open: number } | null;
-type User = { id: number; name: string; email: string; role: Role; online: number };
+type User = { id: number; name: string; email: string; role: Role; online: number; last_seen?: string | null };
 type Company = {
   id: number; name: string; kind: "transport" | "client"; code: string | null; slug: string | null; parent_id: number | null; parent: string | null; logo_v: string | null; color: string | null; owner_id: number | null; ruc: string | null; members: string | null; address: string | null;
   phone: string | null; email: string | null; website: string | null; notes: string | null; created_at: string; stats: Stats; users: User[];
@@ -133,7 +134,12 @@ export default function CompaniesPage() {
 
   const orphans = rows.filter((c) => c.kind === "client" && !transports.some((t) => t.id === c.parent_id));
   /** Tarjeta de una empresa o consorcio. */
-  const card = (c: Company) => (
+  const editOf = (c: Company) => setEdit({ id: c.id, form: Object.fromEntries(Object.keys(EMPTY).map((k) => [k, (c[k as keyof Company] as string | null) ?? ""])) as Form });
+  const card = (c: Company) => c.kind === "client" ? (
+      // Consorcio: tarjeta interactiva con su color, entradas, cuentas y cómo ve el sistema
+      <ConsortiumCard key={c.id} c={{ ...c, code: companyCode(c.id, c.kind, c.code) }} onEdit={() => editOf(c)}
+        onDelete={canDelete(c) ? () => setToDelete(c) : undefined} onAddAccount={canAddAccount(c) ? () => openAccount(c) : undefined} />
+    ) : (
       <Card key={c.id} className="flex flex-col gap-4 p-5">
         <div className="flex items-start gap-3">
           {c.logo_v ? <LogoBadge id={c.id} name={c.name} v={c.logo_v} className="h-11 w-11 rounded-xl border border-sb-outline-variant/40" /> : (
@@ -172,7 +178,7 @@ export default function CompaniesPage() {
           {c.website && <span className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" />{c.website}</span>}
           {c.notes && <span className="mt-1 text-sb-on-surface/70">{c.notes}</span>}
           {/* Entradas propias del consorcio: para su equipo y para sus clientes */}
-          {c.kind === "client" && c.slug && (
+          {(c.kind as string) === "client" && c.slug && (
             <span className="mt-2 flex flex-col gap-1">
               {[["Equipo", `/${c.slug}`], ["Clientes", `/${c.slug}/clientes`]].map(([who, path]) => (
                 <span key={path} className="flex items-center gap-1.5">

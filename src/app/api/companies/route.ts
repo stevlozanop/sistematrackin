@@ -54,8 +54,9 @@ export async function GET() {
     // The Iceberg Labs ve todas (empresas y los consorcios que cada una creó); una empresa, solo los consorcios que ella creó
     s.role === "dev" ? [] : [mine],
   );
-  const users = await query<{ id: number; name: string; email: string; role: string; company_id: number; online: number }>(
-    "SELECT id, name, email, role, company_id, (last_seen > NOW() - INTERVAL 60 SECOND) online FROM users WHERE company_id IS NOT NULL ORDER BY array_position(ARRAY['dev','admin','operator','viewer','dealer'], role::text), name",
+  const users = await query<{ id: number; name: string; email: string; role: string; company_id: number; online: number; last_seen: string | null }>(
+    `SELECT id, name, email, role, company_id, (last_seen > NOW() - INTERVAL 60 SECOND) online, to_char(last_seen, 'YYYY-MM-DD"T"HH24:MI:SS"-05:00"') last_seen
+     FROM users WHERE company_id IS NOT NULL ORDER BY array_position(ARRAY['dev','admin','operator','viewer','dealer'], role::text), name`,
   );
   // Transportistas: cuántas unidades llevaron y cuántas llegaron a tiempo (según el nombre en «Tramo final»)
   const stats = await Promise.all(companies.map(async (c) => {
