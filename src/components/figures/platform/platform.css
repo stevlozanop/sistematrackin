@@ -1,0 +1,31 @@
+/* Sala de la plataforma (Dashboard general de The Iceberg Labs) */
+.pf{--pf-glow:color-mix(in oklab,var(--anatomy-lit) 30%,var(--anatomy-paper))}
+.pf .iso-plate{border-radius:1rem;padding:46px 20px 50px;box-shadow:0 0 0 1px var(--anatomy-faint)}
+.pf [data-part]{cursor:pointer;outline:none}
+.pf [data-part] .iso-edge{transition:stroke .25s ease}
+.pf [data-part][data-hot] .iso-edge{stroke:var(--anatomy-hi)}
+.pf [data-part]:focus-visible .iso-edge{stroke:var(--anatomy-lit)}
+/* Pantallas: se encienden según las personas conectadas */
+.pf .pf-screen{fill:var(--anatomy-paper);stroke:none;transition:fill .6s ease}
+.pf .pf-monitor[data-on] .pf-screen{fill:var(--pf-glow);animation:pf-flicker 4.8s ease-in-out infinite}
+.pf .pf-monitor[data-on] .iso-solid>.iso-edge{stroke:var(--anatomy-hi)}
+@keyframes pf-flicker{0%,100%{opacity:1}50%{opacity:.82}}
+/* Luces del rack: una por conexión abierta */
+.pf .pf-led{fill:var(--anatomy-faint);transition:fill .4s ease}
+.pf .pf-led[data-on]{fill:var(--anatomy-lit);animation:pf-blink 2.4s steps(1,end) infinite}
+.pf .pf-led[data-on]:nth-child(3n){animation-delay:.7s}
+.pf .pf-led[data-on]:nth-child(3n+1){animation-delay:1.5s}
+@keyframes pf-blink{0%,100%{opacity:1}8%{opacity:.35}}
+/* Líquido del tanque: tinta propia de la figura (no un color nuevo) */
+.pf .pf-liquid>.iso-fill{fill:color-mix(in oklab,var(--anatomy-lit) 8%,var(--anatomy-paper))}
+.pf .pf-liquid>.iso-shade[data-shade="0"]{fill:color-mix(in oklab,var(--anatomy-lit) 7%,var(--anatomy-paper))}
+.pf .pf-liquid>.iso-shade[data-shade="1"]{fill:color-mix(in oklab,var(--anatomy-lit) 9%,var(--anatomy-paper))}
+.pf .pf-liquid>.iso-shade[data-shade="2"]{fill:color-mix(in oklab,var(--anatomy-lit) 11%,var(--anatomy-paper))}
+.pf .pf-liquid>.iso-shade[data-shade="3"]{fill:color-mix(in oklab,var(--anatomy-lit) 13%,var(--anatomy-paper))}
+.pf .pf-liquid>.iso-top{fill:color-mix(in oklab,var(--anatomy-lit) 16%,var(--anatomy-paper))}
+/* Tráfico de la API por los cables: la velocidad sale de las llamadas por minuto */
+.pf .pf-hit{stroke:transparent;stroke-width:10;fill:none}
+.pf .pf-traffic{animation-duration:var(--pf-flow,1.6s)!important;stroke-width:1.1}
+.pf .pf-api[data-idle] .pf-traffic{animation:none!important;opacity:.25}
+@media (prefers-reduced-motion:reduce){.pf .pf-led[data-on],.pf .pf-monitor[data-on] .pf-screen{animation:none}}
+.pf .pf-glass{fill:transparent;stroke:none}

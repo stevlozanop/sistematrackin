@@ -97,7 +97,8 @@ const DEV_SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
   {
     title: "Plataforma en vivo",
     items: [
-      { title: "En vivo", href: "/dev", icon: Activity },
+      { title: "Dashboard general", href: "/dev", icon: LayoutDashboard },
+      { title: "En vivo", href: "/dev/live", icon: Activity },
       { title: "Usuarios", href: "/dev/users", icon: Users },
       { title: "Interacciones", href: "/dev/activity", icon: MousePointerClick },
       { title: "Consumo", href: "/dev/usage", icon: Gauge },

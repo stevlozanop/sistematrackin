@@ -1,5 +1,6 @@
 "use client";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { Card, Empty, PageTitle, Table, Td, Th, Thead, Tr } from "@/components/ui";
@@ -21,10 +22,15 @@ const ROLES = [
 type RoleKey = (typeof ROLES)[number]["key"];
 
 /** Consola The Iceberg Labs · Usuarios reales: quién entra, cuánto usa el sistema y desde dónde. */
-export default function DevUsers() {
+export default function DevUsersPage() {
+  return <Suspense><DevUsers /></Suspense>;
+}
+
+function DevUsers() {
+  const sp = useSearchParams();
   const { data, at } = useLive<{ users: U[] }>("/api/dev/users", 8000);
   const [role, setRole] = useState<RoleKey>("all");
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(sp.get("q") ?? "");
   const users = useMemo(() => {
     const t = q.trim().toLowerCase();
     return (data?.users ?? []).filter((u) => (role === "all" || u.role === role) && (!t || `${u.name} ${u.email} ${u.company ?? ""}`.toLowerCase().includes(t)));
