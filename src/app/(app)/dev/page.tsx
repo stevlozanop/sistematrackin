@@ -1,168 +1,97 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import {
-  Activity, Building2, ChevronRight, Database, Eye, HardDrive, Server, ShieldCheck, Store, Terminal, Truck, Users,
-} from "lucide-react";
-import { Card, PageTitle, Pill } from "@/components/ui";
+import { Activity, AlertTriangle, Database, LogIn, MousePointerClick, PenLine, Server, Users } from "lucide-react";
+import { Card, PageTitle } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
-import { cn } from "@/lib/cn";
-import { ROLE_LABEL, stageLabel, type Role } from "@/lib/workflow";
-import { isSite } from "@/lib/hsp";
+import { Bars, Chips, Feed, LiveDot, pageLabel, roleLabel, useFresh, useLive, type FeedRow } from "@/components/dev/DevKit";
+import { Checkbox } from "@/components/ui";
 
-type Company = { id: number; name: string; kind: "transport" | "client"; parent_id: number | null; created_at: string; users: number; dealers: number; last_seen: string | null };
-type Data = {
-  counts: Record<string, number>;
-  roles: Partial<Record<Role, number>>;
-  companies: Company[];
-  recentUsers: { name: string; email: string; role: Role; company: string | null; last_seen: string; online: number }[];
-  events: { at: string; field: string; new_value: string | null; site: string; chassis: string; user: string | null }[];
-  db: { tables: number; sizeMb: number; version: string };
+type Live = {
+  kpis: Record<string, number>;
+  hours: { h: string; views: number; api: number; events: number; logins: number }[];
+  online: { id: number; name: string; role: string; company: string | null; last_seen: string; path: string | null; since: string | null }[];
+  recent: FeedRow[];
 };
 
-const LINKS = [
-  { title: "Gestión", icon: Building2, items: [
-    { label: "Empresas y consorcios", href: "/companies", icon: Building2 },
-    { label: "Usuarios", href: "/admins", icon: Users },
-    { label: "En vivo", href: "/live", icon: Activity },
-  ] },
-  { title: "Base de datos", icon: Database, items: [
-    { label: "Tablas y conexión", href: "/dev/database", icon: Server },
-    { label: "Consola SQL", href: "/dev/sql", icon: Terminal },
-  ] },
-  { title: "Operación", icon: Truck, items: [
-    { label: "Dashboard HSP", href: "/dashboard", icon: Activity },
-    { label: "PCL · Pucallpa", href: "/units/pcl", icon: Truck },
-    { label: "YUR · Yurimaguas", href: "/units/yur", icon: Truck },
-  ] },
-];
+const METRICS = [
+  { key: "api", label: "Llamadas a la API" },
+  { key: "views", label: "Pantallas abiertas" },
+  { key: "events", label: "Fechas registradas" },
+  { key: "logins", label: "Ingresos" },
+] as const;
+type Metric = (typeof METRICS)[number]["key"];
 
-/** Árbol de empresas: The Iceberg Labs → transportista → sus consorcios. */
-function Tree({ companies }: { companies: Company[] }) {
-  const roots = companies.filter((c) => !c.parent_id);
-  const kids = (id: number) => companies.filter((c) => c.parent_id === id);
-  const Row = ({ c, depth }: { c: Company; depth: number }) => (
-    <div className={cn("flex items-center gap-2 border-b border-sb-outline-variant/25 py-2.5 text-xs last:border-0", depth > 0 && "pl-7")}>
-      <span className={cn("grid h-7 w-7 shrink-0 place-items-center rounded-lg", c.kind === "transport" ? "bg-sb-primary text-sb-on-primary" : "bg-sb-surface-container-high")}>
-        {c.kind === "transport" ? <Truck className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate font-medium">{c.name}</span>
-        <span className="block truncate text-[11px] text-sb-on-surface-variant">
-          {c.kind === "transport" ? "Transportista · administra el sistema" : "Consorcio · solo lectura"} · desde {c.created_at}
-          {c.last_seen ? ` · última conexión ${c.last_seen}` : ""}
-        </span>
-      </span>
-      <Pill>{c.users} {c.users === 1 ? "cuenta" : "cuentas"}{c.dealers ? ` · ${c.dealers} dealers` : ""}</Pill>
-    </div>
-  );
-  return (
-    <div className="flex flex-col">
-      <div className="flex items-center gap-2 border-b border-sb-outline-variant/25 pb-2.5 text-xs">
-        <span className="grid h-7 w-7 place-items-center rounded-lg bg-sb-on-surface text-[9px] font-bold text-sb-surface">TIL</span>
-        <span className="flex-1"><b className="font-medium">The Iceberg Labs</b> <span className="text-sb-on-surface-variant">· desarrolla y supervisa la plataforma</span></span>
-      </div>
-      {roots.map((r) => (
-        <div key={r.id} className="pl-4">
-          <Row c={r} depth={0} />
-          {kids(r.id).map((k) => <Row key={k.id} c={k} depth={1} />)}
-        </div>
-      ))}
-      {!roots.length && <p className="py-6 text-center text-xs text-sb-on-surface-variant">Todavía no hay empresas. Regístralas en Empresas.</p>}
-    </div>
-  );
-}
-
-export default function DevConsole() {
-  const [d, setD] = useState<Data | null>(null);
-  useEffect(() => {
-    // Si la sesión venció o no es The Iceberg Labs, la API responde error: no reemplazar los datos con él
-    const load = () => fetch("/api/dev/overview").then((r) => (r.ok ? r.json() : null)).then((x) => x && setD(x)).catch(() => {});
-    load();
-    const t = setInterval(load, 15_000);
-    return () => clearInterval(t);
-  }, []);
-  if (!d) return <div className="p-6 text-sm text-sb-on-surface-variant">Cargando consola…</div>;
-  const c = d.counts;
+/** Consola The Iceberg Labs · En vivo: lo que pasa ahora mismo en la plataforma, con datos reales. */
+export default function DevLive() {
+  const [withDev, setWithDev] = useState(false);
+  const [metric, setMetric] = useState<Metric>("api");
+  const { data: d, at } = useLive<Live>(`/api/dev/live${withDev ? "?dev=1" : ""}`, 5000);
+  const fresh = useFresh(d?.recent);
+  if (!d) return <div className="p-6 text-sm text-sb-on-surface-variant">Cargando la plataforma en vivo…</div>;
+  const k = d.kpis;
+  const label = METRICS.find((m) => m.key === metric)!.label;
+  const total = d.hours.reduce((t, h) => t + h[metric], 0);
 
   return (
     <div className="flex flex-col gap-5">
-      <PageTitle title="Consola The Iceberg Labs" sub="Lo que pasa en la plataforma: empresas y consorcios creados, cuentas, datos y base de datos. Se actualiza cada 15 segundos." />
+      <PageTitle title="En vivo" sub={`Lo que pasa ahora en la plataforma, con datos reales de la base. Se actualiza cada 5 segundos${withDev ? "" : " · sin contar a The Iceberg Labs"}.`}>
+        <label className="flex items-center gap-2 text-[11px] text-sb-on-surface-variant">
+          <Checkbox checked={withDev} onChange={setWithDev} label="Incluir a The Iceberg Labs" /> Incluir The Iceberg Labs
+        </label>
+        <LiveDot at={at} />
+      </PageTitle>
 
       <StatGrid
-        className="grid-cols-2 lg:grid-cols-5"
+        className="grid-cols-2 md:grid-cols-4 xl:grid-cols-7"
         items={[
-          { label: "Empresas y consorcios", value: c.companies, icon: Building2 },
-          { label: "Cuentas", value: `${c.users} · ${c.online} en línea`, icon: Users },
-          { label: "Dealers con cuenta", value: `${c.dealers_with_account} de ${c.dealers}`, icon: Store },
-          { label: "Unidades", value: c.units.toLocaleString(), icon: Truck },
-          { label: "Base de datos", value: `${d.db.sizeMb} MB · ${d.db.tables} tablas`, icon: HardDrive },
+          { label: "Conectados ahora", value: k.online, icon: Activity },
+          { label: "Activos hoy", value: `${k.active_today} de ${k.accounts}`, icon: Users },
+          { label: "Activos 7 días", value: k.active_7d, icon: Users },
+          { label: "Pantallas hoy", value: k.views_today.toLocaleString(), icon: MousePointerClick },
+          { label: "API hoy", value: k.api_today.toLocaleString(), icon: Server },
+          { label: "Ingresos hoy", value: <>{k.logins_today}{k.fails_today ? <span className="ml-1.5 text-sm font-semibold text-sb-late">· {k.fails_today} fallidos</span> : null}</>, icon: k.fails_today ? AlertTriangle : LogIn },
+          { label: "Base de datos", value: `${k.db_mb} MB`, icon: Database },
         ]}
       />
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {LINKS.map((g, i) => (
-          <motion.div key={g.title} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * i }}>
-            <Card className="overflow-hidden">
-              <div className="flex items-center gap-2.5 border-b border-sb-outline-variant/30 px-4 py-3">
-                <span className="grid h-8 w-8 place-items-center rounded-lg bg-sb-primary-soft text-sb-primary"><g.icon className="h-4 w-4" /></span>
-                <span className="text-[13px] font-semibold">{g.title}</span>
-              </div>
-              {g.items.map((it) => (
-                <Link key={it.href} href={it.href} className="group flex items-center gap-2.5 border-b border-sb-outline-variant/20 px-4 py-2.5 text-xs last:border-0 hover:bg-sb-surface-container-low">
-                  <it.icon className="h-3.5 w-3.5 text-sb-on-surface-variant/60" />
-                  <span className="flex-1 font-medium">{it.label}</span>
-                  <ChevronRight className="h-3 w-3 text-sb-on-surface-variant/40 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-              ))}
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="p-5">
-          <h3 className="mb-3 text-sm font-semibold">Empresas y consorcios</h3>
-          <Tree companies={d.companies} />
-        </Card>
-        <Card className="p-5">
-          <h3 className="mb-3 text-sm font-semibold">Cuentas por tipo</h3>
-          <div className="flex flex-col">
-            {(["dev", "admin", "operator", "viewer", "dealer"] as Role[]).map((r) => (
-              <div key={r} className="flex items-center gap-2 border-b border-sb-outline-variant/25 py-2 text-xs last:border-0">
-                {r === "dev" || r === "admin" ? <ShieldCheck className="h-3.5 w-3.5 text-sb-on-surface-variant" /> : r === "dealer" ? <Store className="h-3.5 w-3.5 text-sb-on-surface-variant" /> : r === "viewer" ? <Eye className="h-3.5 w-3.5 text-sb-on-surface-variant" /> : <Users className="h-3.5 w-3.5 text-sb-on-surface-variant" />}
-                <span className="flex-1">{ROLE_LABEL[r]}</span>
-                <b>{d.roles[r] ?? 0}</b>
-              </div>
-            ))}
+      <Card className="p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold">{label} · últimas 24 horas</h3>
+            <p className="text-[11px] text-sb-on-surface-variant">{total.toLocaleString()} en total · hora por hora (hora de Perú) · fechas registradas hoy: {k.events_today.toLocaleString()} · Excel subidos hoy: {k.imports_today}</p>
           </div>
-          <p className="mt-3 text-[11px] text-sb-on-surface-variant">PostgreSQL {d.db.version} · {c.events.toLocaleString()} registros de fechas ({c.events_today} hoy)</p>
-        </Card>
-      </div>
+          <Chips value={metric} onChange={setMetric} options={METRICS.map((m) => ({ key: m.key, label: m.label }))} />
+        </div>
+        <Bars
+          data={d.hours.map((h) => ({ label: h.h, value: h[metric], title: `${h.h.slice(11, 16)} a ${String((Number(h.h.slice(11, 13)) + 1) % 24).padStart(2, "0")}:00` }))}
+          tick={(l, i) => (i % 3 === 0 || i === 23 ? l.slice(11, 16) : null)}
+        />
+      </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
         <Card className="p-5">
-          <h3 className="mb-3 text-sm font-semibold">Últimas conexiones</h3>
-          {d.recentUsers.map((u) => (
-            <div key={u.email} className="flex items-center gap-2 border-b border-sb-outline-variant/25 py-2 text-xs last:border-0">
-              <span className={cn("h-2 w-2 shrink-0 rounded-full", Number(u.online) ? "bg-sb-primary" : "bg-sb-surface-container-highest")} />
-              <span className="min-w-0 flex-1 truncate"><b className="font-medium">{u.name}</b> <span className="text-sb-on-surface-variant">· {ROLE_LABEL[u.role]}{u.company ? ` · ${u.company}` : ""}</span></span>
-              <span className="shrink-0 text-sb-on-surface-variant">{u.last_seen}</span>
-            </div>
-          ))}
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Conectados ahora · {d.online.length}</h3>
+            <Link href="/dev/users" className="text-[11px] text-sb-on-surface-variant hover:underline">Todos los usuarios</Link>
+          </div>
+          {d.online.length ? d.online.map((u) => (
+            <Link key={u.id} href={`/dev/activity?user=${u.id}`} className="flex items-center gap-2.5 border-b border-sb-outline-variant/20 py-2 text-xs last:border-0 hover:bg-sb-surface-container-low">
+              <span className="relative flex h-2 w-2 shrink-0"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sb-primary opacity-50" /><span className="relative h-2 w-2 rounded-full bg-sb-primary" /></span>
+              <span className="min-w-0 flex-1">
+                <b className="block truncate font-semibold">{u.name}</b>
+                <span className="block truncate text-[11px] text-sb-on-surface-variant">{roleLabel(u.role)}{u.company ? ` · ${u.company}` : ""} · en {pageLabel(u.path)}</span>
+              </span>
+              <span className="shrink-0 text-right text-[10px] text-sb-on-surface-variant">{u.since ? `desde ${u.since}` : ""}<br />visto {u.last_seen}</span>
+            </Link>
+          )) : <p className="py-8 text-center text-xs text-sb-on-surface-variant">Nadie conectado en este momento.</p>}
         </Card>
         <Card className="p-5">
-          <h3 className="mb-3 text-sm font-semibold">Últimas fechas registradas</h3>
-          {d.events.length ? d.events.map((e, i) => (
-            <div key={i} className="flex items-center gap-2 border-b border-sb-outline-variant/25 py-2 text-xs last:border-0">
-              <span className="min-w-0 flex-1 truncate">
-                <b className="font-mono font-medium">{e.chassis}</b>{" "}
-                <span className="text-sb-on-surface-variant">· {isSite(e.site) ? stageLabel(e.site, e.field) : e.field}: {e.new_value ?? "borrada"} · {e.user ?? "—"}</span>
-              </span>
-              <span className="shrink-0 text-sb-on-surface-variant">{e.at}</span>
-            </div>
-          )) : <p className="text-xs text-sb-on-surface-variant">Sin registros todavía.</p>}
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="flex items-center gap-2 text-sm font-semibold"><PenLine className="h-3.5 w-3.5" /> Últimas interacciones</h3>
+            <Link href="/dev/activity" className="text-[11px] text-sb-on-surface-variant hover:underline">Ver todas</Link>
+          </div>
+          <Feed rows={d.recent} compact fresh={fresh} />
         </Card>
       </div>
     </div>

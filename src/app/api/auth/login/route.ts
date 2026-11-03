@@ -4,6 +4,7 @@ import { query } from "@/lib/db";
 import { createSession } from "@/lib/auth";
 import { portalBySlug } from "@/lib/companies";
 import type { Role } from "@/lib/workflow";
+import { authEvent } from "@/lib/activity";
 
 /** Entrada que le corresponde a una cuenta: la de su consorcio (/honda o /honda/clientes) o la principal (/login). */
 function entryFor(u: { role: Role; slug: string | null }) {
@@ -20,6 +21,7 @@ function entryFor(u: { role: Role; slug: string | null }) {
  */
 export async function POST(req: Request) {
   const { email, password, portal } = await req.json().catch(() => ({}));
+  const typed = String(email ?? "").trim().toLowerCase().slice(0, 160) || null;
   try {
     const [u] = await query<{
       id: number; name: string; email: string; password_hash: string; role: Role; company_id: number | null; slug: string | null;
@@ -29,6 +31,7 @@ export async function POST(req: Request) {
       [String(email ?? "").trim().toLowerCase()],
     );
     if (!u || !bcrypt.compareSync(String(password ?? ""), u.password_hash)) {
+      await authEvent("fail", u?.id ?? null, typed);
       return NextResponse.json({ error: "Correo o contraseña incorrectos" }, { status: 401 });
     }
 
@@ -38,6 +41,7 @@ export async function POST(req: Request) {
       const clients = portal.audience === "clients";
       const ok = u.company_id === c.id && (clients ? u.role === "dealer" : u.role === "viewer");
       if (!ok) {
+        await authEvent("fail", u.id, typed);
         return NextResponse.json({
           error: clients ? `Esta entrada es solo para los clientes de ${c.name}` : `Esta entrada es solo para el equipo de ${c.name}`,
           entry: entryFor(u),
@@ -45,10 +49,12 @@ export async function POST(req: Request) {
       }
     } else if (u.role === "dealer" && u.slug) {
       // Los clientes de un consorcio entran solo por la entrada de su consorcio (/honda/clientes)
+      await authEvent("fail", u.id, typed);
       return NextResponse.json({ error: "Los clientes ingresan por la entrada de su consorcio", entry: entryFor(u) }, { status: 403 });
     }
 
     await createSession({ id: u.id, name: u.name, email: u.email, role: u.role });
+    await authEvent("login", u.id, typed);
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("[login]", e);

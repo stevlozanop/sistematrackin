@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession, type Session } from "./auth";
 import { query, run } from "./db";
+import { countApi } from "./activity";
 import type { Stage } from "./workflow";
 
 type R = Session["role"][];
@@ -25,6 +26,7 @@ export async function guard(roles: R = STAFF) {
   }
   // Como mucho una escritura cada 20 s por usuario
   run("UPDATE users SET last_seen=NOW() WHERE id=? AND (last_seen IS NULL OR last_seen < NOW() - INTERVAL 20 SECOND)", [s.id]).catch(() => {});
+  countApi(s.role); // consumo de la API para la consola The Iceberg Labs
   return { s, err: null };
 }
 

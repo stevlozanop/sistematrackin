@@ -9,6 +9,8 @@ import { verifySession } from "@/lib/auth";
 const DEALER_PAGES = ["/portal", "/profile"];
 const VIEWER_BLOCKED = ["/admins", "/companies", "/settings", "/dealers", "/my", "/portal"];
 const STAFF_BLOCKED = ["/portal"];
+/** The Iceberg Labs (dev): solo la consola de la plataforma, las empresas y su perfil. La operación es de Leyva. */
+const DEV_PAGES = ["/dev", "/companies", "/profile"];
 
 const starts = (path: string, list: string[]) => list.some((p) => path === p || path.startsWith(p + "/"));
 
@@ -18,10 +20,11 @@ export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
   const go = (to: string) => NextResponse.redirect(new URL(to, req.url));
   if (s.role === "dealer") return starts(path, DEALER_PAGES) ? NextResponse.next() : go("/portal/resumen");
+  if (s.role === "dev") return starts(path, DEV_PAGES) ? NextResponse.next() : go("/dev");
   if (s.role === "viewer") return starts(path, VIEWER_BLOCKED) ? go("/board") : NextResponse.next();
   if (starts(path, STAFF_BLOCKED)) return go("/");
   if (s.role === "operator" && starts(path, ["/companies", "/clients", "/reports"])) return go("/"); // Empresas / consorcios: The Iceberg Labs y supervisores
-  if (s.role !== "dev" && starts(path, ["/dev"])) return go("/"); // Consola The Iceberg Labs: solo dev
+  if (starts(path, ["/dev"])) return go("/"); // Consola The Iceberg Labs: solo dev
   return NextResponse.next();
 }
 

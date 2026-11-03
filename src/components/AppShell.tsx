@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, Database, FileSpreadsheet, SquareTerminal, Terminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
+import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, Database, FileSpreadsheet, Gauge, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
@@ -18,8 +18,8 @@ import { CodeTag } from "@/components/ui";
 import { LiveSync } from "@/components/LiveSync";
 
 type Item = { title: string; href: string; icon: LucideIcon; roles?: Role[]; fields?: string[] };
-const SUPER: Role[] = ["dev", "admin"];
-const READ: Role[] = ["dev", "admin", "viewer"]; // ven todo (viewer = solo lectura, Honda)
+const SUPER: Role[] = ["admin"];
+const READ: Role[] = ["admin", "viewer"]; // ven la operación (viewer = solo lectura, Honda). The Iceberg Labs tiene su propio menú
 
 /**
  * Menú ordenado por lo que hace cada rol:
@@ -84,19 +84,35 @@ const SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
       { title: "Usuarios", href: "/admins", icon: Users },
       { title: "Dealers", href: "/dealers", icon: Store },
       { title: "Plazos y meta", href: "/settings", icon: SlidersHorizontal },
-      { title: "Empresas", href: "/companies", icon: Building2, roles: ["dev"] },
       { title: "Consorcios", href: "/companies", icon: Building2, roles: ["admin"] },
     ],
   },
+];
+
+/**
+ * The Iceberg Labs (dev) no ve la operación de Leyva: su menú es la plataforma con datos reales y en tiempo real
+ * (conectados, usuarios, interacciones, consumo de la base) y la infraestructura.
+ */
+const DEV_SECTIONS: { title: string; items: Item[]; roles?: Role[] }[] = [
   {
-    // Consola de la plataforma: solo The Iceberg Labs (dev)
-    title: "The Iceberg Labs",
-    roles: ["dev"],
+    title: "Plataforma en vivo",
     items: [
-      { title: "Consola", href: "/dev", icon: Terminal },
+      { title: "En vivo", href: "/dev", icon: Activity },
+      { title: "Usuarios", href: "/dev/users", icon: Users },
+      { title: "Interacciones", href: "/dev/activity", icon: MousePointerClick },
+      { title: "Consumo", href: "/dev/usage", icon: Gauge },
+    ],
+  },
+  {
+    title: "Infraestructura",
+    items: [
       { title: "Base de datos", href: "/dev/database", icon: Database },
       { title: "Consola SQL", href: "/dev/sql", icon: SquareTerminal },
     ],
+  },
+  {
+    title: "Clientes de la plataforma",
+    items: [{ title: "Empresas", href: "/companies", icon: Building2 }],
   },
 ];
 
@@ -169,11 +185,20 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
 }) {
   const [uploadOpen, setUploadOpen] = useState(false);
   const path = usePathname();
+  // Cada pantalla que se abre queda registrada para la consola The Iceberg Labs (sin esperar respuesta)
+  useEffect(() => {
+    const body = JSON.stringify({ path });
+    if (!navigator.sendBeacon?.("/api/track", new Blob([body], { type: "application/json" }))) {
+      fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
+    }
+  }, [path]);
   const router = useRouter();
   const [open, setOpen] = useState(true);
   const [dark, setDark] = useState(false);
   // Guía del sistema: se abre sola la primera vez; al cerrarla queda marcada como vista
-  const [guide, setGuide] = useState(firstGuide);
+  // (The Iceberg Labs no la ve: explica la operación de Leyva, no la plataforma)
+  const hasGuide = role !== "dev";
+  const [guide, setGuide] = useState(firstGuide && hasGuide);
   const closeGuide = () => {
     setGuide(false);
     if (firstGuide) fetch("/api/guide", { method: "POST" }).catch(() => {});
@@ -196,7 +221,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
     router.replace("/login");
   };
 
-  const sections = SECTIONS.filter((s) => !s.roles || s.roles.includes(role))
+  const sections = (role === "dev" ? DEV_SECTIONS : SECTIONS).filter((s) => !s.roles || s.roles.includes(role))
     .map((s) => ({
       ...s,
       items: s.items.filter((i) => (!i.roles || i.roles.includes(role)) &&
@@ -260,9 +285,11 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
         <div className="shrink-0 space-y-3 border-t border-sb-outline-variant/60 px-2 py-2">
           <div className="flex flex-col gap-px">
             {open && <Heading>Herramientas</Heading>}
-            <ToolButton open={open} label="Guía del sistema" onClick={() => setGuide(true)}>
-              <BookOpen className="h-[16px] w-[16px] shrink-0" />
-            </ToolButton>
+            {hasGuide && (
+              <ToolButton open={open} label="Guía del sistema" onClick={() => setGuide(true)}>
+                <BookOpen className="h-[16px] w-[16px] shrink-0" />
+              </ToolButton>
+            )}
             <ToolButton open={open} label="Tema" onClick={toggleTheme}>
               <div className="relative h-[16px] w-[16px] shrink-0">
                 <Sun className={cn("absolute inset-0 h-[16px] w-[16px] transition-all duration-200", dark ? "rotate-90 scale-0 opacity-0" : "opacity-100")} />
@@ -288,11 +315,13 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
         <header className="flex h-14 shrink-0 items-center justify-between gap-2 px-4 sm:px-6">
           <h1 className="truncate text-sm font-medium text-sb-on-surface-variant">{pageName}</h1>
           <div className="flex shrink-0 items-center gap-2">
-            <button type="button" onClick={() => setGuide(true)} title="Cómo funciona el sistema"
-              className="flex h-8 items-center gap-1.5 rounded-full bg-sb-surface-container-high px-3 text-[11px] font-medium text-sb-on-surface-variant transition-colors hover:bg-sb-primary hover:text-sb-on-primary">
-              <BookOpen className="h-3.5 w-3.5" /><span className="hidden sm:inline">Guía</span>
-            </button>
-            <AlertBell href={role === "operator" ? "/my" : role === "dealer" ? "/portal" : "/alerts"} />
+            {hasGuide && (
+              <button type="button" onClick={() => setGuide(true)} title="Cómo funciona el sistema"
+                className="flex h-8 items-center gap-1.5 rounded-full bg-sb-surface-container-high px-3 text-[11px] font-medium text-sb-on-surface-variant transition-colors hover:bg-sb-primary hover:text-sb-on-primary">
+                <BookOpen className="h-3.5 w-3.5" /><span className="hidden sm:inline">Guía</span>
+              </button>
+            )}
+            {role !== "dev" && <AlertBell href={role === "operator" ? "/my" : role === "dealer" ? "/portal" : "/alerts"} />}
             <Link href="/profile" title="Mi perfil" className="flex items-center gap-2 rounded-full bg-sb-surface-container-high px-3 py-1.5 transition-colors hover:bg-sb-surface-container-highest">
               {own?.v ? (
                 <LogoBadge id={own.id} name={own.name} v={own.v} className="h-5 w-5 rounded-full text-[8px]" />
@@ -319,10 +348,10 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
           </AnimatePresence>
         </main>
 
-        <MobileNav items={[...sections.flatMap((x) => x.items), PROFILE]} activeHref={activeHref} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} onGuide={() => setGuide(true)}
+        <MobileNav items={[...sections.flatMap((x) => x.items), PROFILE]} activeHref={activeHref} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} onGuide={hasGuide ? () => setGuide(true) : undefined}
           onUpload={upload ? () => setUploadOpen(true) : undefined} />
         {upload && <UploadCenter open={uploadOpen} onClose={() => setUploadOpen(false)} mode={upload} />}
-        <GuideModal open={guide} onClose={closeGuide} />
+        {hasGuide && <GuideModal open={guide} onClose={closeGuide} />}
       </div>
     </div>
   );
