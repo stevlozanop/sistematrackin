@@ -148,8 +148,8 @@ export default function CompaniesPage() {
             </span>
           )}
           <div className="min-w-0 flex-1">
-            <h3 className="flex min-w-0 items-center gap-2 text-base font-semibold tracking-tight">
-              <span className="truncate">{c.name}</span>
+            <h3 className="flex min-w-0 flex-wrap items-center gap-2 text-base font-semibold tracking-tight">
+              <span className="min-w-0 break-words sm:truncate">{c.name}</span>
               <CodeTag code={companyCode(c.id, c.kind, c.code)} />
             </h3>
             <div className="mt-1 flex flex-wrap gap-1.5">

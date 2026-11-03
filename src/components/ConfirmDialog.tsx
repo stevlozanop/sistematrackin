@@ -24,8 +24,8 @@ export function ConfirmDialog({
   return (
     <Modal>
       <Modal.Backdrop isOpen={open} onOpenChange={(o) => !o && !busy && cancel()}>
-        <Modal.Container>
-          <Modal.Dialog>
+        <Modal.Container className="p-2 sm:p-10">
+          <Modal.Dialog className="w-full p-4 sm:p-6">
             <Modal.CloseTrigger aria-label="Cerrar" />
             <Modal.Header className="flex flex-row items-center gap-3 pr-10">
               <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${tone === "danger" ? "bg-sb-late-soft text-sb-late" : "bg-sb-primary-soft text-sb-primary"}`}><AlertTriangle className="h-[18px] w-[18px]" /></span>
@@ -41,7 +41,7 @@ export function ConfirmDialog({
                 </label>
               )}
             </Modal.Body>
-            <Modal.Footer>
+            <Modal.Footer className="flex gap-2 [&>*]:flex-1 sm:[&>*]:flex-none">
               <Button variant="secondary" className="rounded-full" isDisabled={busy} onPress={cancel}>Cancelar</Button>
               <Button variant={tone === "danger" ? "danger" : "primary"} className="rounded-full" isDisabled={busy || !ready} onPress={() => { onConfirm(); setTyped(""); }}>
                 {tone === "danger" && <Trash2 className="h-3.5 w-3.5" />} {busy ? busyLabel : confirmLabel}

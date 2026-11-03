@@ -37,11 +37,12 @@ export function Sheet({
         <div className="flex flex-col gap-4">{children}</div>
       </Modal.Body>
       {(footer || summary) && (
-        <Modal.Footer className="flex flex-wrap items-center gap-3">
+        <Modal.Footer className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
           {summary ? (
-            <p className="mr-auto min-w-0 text-xs text-sb-on-surface-variant">{summary}</p>
-          ) : <span className="mr-auto" />}
-          {footer}
+            <p className="min-w-0 text-xs text-sb-on-surface-variant sm:mr-auto">{summary}</p>
+          ) : <span className="hidden sm:mr-auto sm:block" />}
+          {/* En el celular los botones ocupan todo el ancho (más fáciles de tocar) */}
+          {footer && <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap [&>*]:flex-1 sm:[&>*]:flex-none">{footer}</div>}
         </Modal.Footer>
       )}
     </>
@@ -49,8 +50,8 @@ export function Sheet({
   return (
     <Modal>
       <Modal.Backdrop isOpen={open} onOpenChange={(o) => !o && !busy && onClose()}>
-        <Modal.Container size="lg" scroll="inside">
-          <Modal.Dialog className={cn("w-full", WIDTH[size])}>
+        <Modal.Container size="lg" scroll="inside" className="p-2 sm:p-10">
+          <Modal.Dialog className={cn("w-full p-4 sm:p-6", WIDTH[size])}>
             {onSubmit ? <form onSubmit={onSubmit} className="contents">{inner}</form> : inner}
           </Modal.Dialog>
         </Modal.Container>

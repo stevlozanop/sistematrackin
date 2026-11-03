@@ -205,7 +205,48 @@ export default function GuiasPage() {
             {!!data?.withoutGuia && <span className="text-[11px] text-sb-on-surface-variant">{n(data.withoutGuia)} unidades sin guía: regístralas en «Mi trabajo» o en el módulo</span>}
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Celular: una tarjeta por guía */}
+          <div className="flex flex-col md:hidden">
+            {loading && !groups.length && <p className="py-10 text-center text-xs text-sb-on-surface-variant">Cargando guías…</p>}
+            {!loading && !groups.length && <p className="px-4 py-10 text-center text-xs text-sb-on-surface-variant">{q ? "Ninguna guía coincide con la búsqueda." : "No hay guías pendientes de esta etapa."}</p>}
+            {groups.map((g) => {
+              const on = sel.has(g.guia), isOpen = open === g.guia;
+              return (
+                <div key={g.guia} className={cn("border-b border-sb-outline-variant/25 transition-colors", on && "bg-sb-primary-soft")}>
+                  <div className="flex items-start gap-3 px-4 py-3" onClick={() => !readOnly && toggle(g.guia)}>
+                    <input type="checkbox" aria-label={`Marcar guía ${g.guia}`} checked={on} disabled={readOnly} onClick={(e) => e.stopPropagation()} onChange={() => toggle(g.guia)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--sb-primary)]" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="truncate font-mono text-sm font-semibold">{g.guia}</span>
+                        <span className="shrink-0 text-sm font-semibold tabular-nums">{n(g.n)} <span className="text-[11px] font-normal text-sb-on-surface-variant">unid.</span></span>
+                      </div>
+                      <p className="truncate text-xs text-sb-on-surface-variant">{g.dealers}</p>
+                      <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-sb-on-surface-variant">
+                        <span>2W {n(g.w2)} · 3W {n(g.w3)}</span>
+                        <span>Fact. {fmtDate(g.billing) || "—"}</span>
+                        <span>Est. {fmtDate(g.est) || "—"}</span>
+                        {g.need_reason > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-sb-late-soft px-1.5 py-0.5 font-semibold text-sb-late"><AlertTriangle className="h-2.5 w-2.5" />{g.need_reason} sin motivo</span>}
+                        {g.naves && <span>· {g.naves}</span>}
+                      </p>
+                    </div>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setOpen(isOpen ? null : g.guia); }} aria-expanded={isOpen} aria-label={`Ver unidades de ${g.guia}`}
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sb-on-surface-variant hover:bg-sb-surface-container">
+                      <motion.span animate={{ rotate: isOpen ? 90 : 0 }} transition={{ duration: 0.25, ease: EASE }} className="inline-flex"><ChevronRight className="h-4 w-4" /></motion.span>
+                    </button>
+                  </div>
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} transition={{ duration: 0.3, ease: EASE }} className="overflow-hidden bg-sb-surface-container-low">
+                        <GuiaUnits site={current!} stage={activeStage!} guia={g.guia} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[820px] text-left text-xs">
               <thead>
                 <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
@@ -280,7 +321,7 @@ export default function GuiasPage() {
         <AnimatePresence>
           {chosen.length > 0 && activeStage && (
             <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }} transition={{ duration: 0.35, ease: EASE }}
-              className="sticky bottom-3 z-40 rounded-2xl border border-sb-outline-variant bg-sb-surface p-3 shadow-2xl">
+              className="sticky bottom-24 z-40 rounded-2xl border border-sb-outline-variant bg-sb-surface p-3 shadow-2xl md:bottom-3">
               <div className="flex flex-wrap items-end gap-3">
                 <div className="min-w-[10rem] flex-1">
                   <p className="text-sm font-semibold">{chosen.length} guía(s) · {n(units)} unidades</p>

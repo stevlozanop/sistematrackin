@@ -100,7 +100,24 @@ export default function ClientsPage() {
       </label>
 
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="flex flex-col md:hidden">
+            {list.map((a) => (
+              <div key={a.id} className="flex items-start gap-3 border-b border-sb-outline-variant/25 px-4 py-3 text-xs last:border-0">
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-2 text-sm font-medium">{a.client ?? a.name}{Number(a.online) ? <Pill active>En línea</Pill> : null}</p>
+                  <p className="truncate font-mono text-[11px]">{a.email}</p>
+                  <p className="text-[11px] text-sb-on-surface-variant">{Number(a.stores)} {Number(a.stores) === 1 ? "tienda" : "tiendas"} · {Number(a.online) ? "conectado ahora" : a.last_seen ? `último ingreso ${a.last_seen}` : "nunca entró"}</p>
+                </div>
+                <div className="flex shrink-0 gap-1">
+                  <Button isIconOnly size="sm" variant="tertiary" aria-label={`Copiar usuario de ${a.client}`} onPress={() => navigator.clipboard?.writeText(a.email).then(() => toast.success("Usuario copiado"))}><Copy className="h-4 w-4" /></Button>
+                  <Button isIconOnly size="sm" variant="tertiary" aria-label={`Nueva contraseña para ${a.client}`} onPress={() => reset(a)}><KeyRound className="h-4 w-4" /></Button>
+                  <Button isIconOnly size="sm" variant="danger-soft" aria-label={`Quitar acceso a ${a.client}`} onPress={() => setToDelete(a)}><Trash2 className="h-4 w-4" /></Button>
+                </div>
+              </div>
+            ))}
+            {!list.length && <p className="px-4 py-10 text-center text-xs text-sb-on-surface-variant">{q ? "Sin resultados." : "Todavía no creaste clientes."}</p>}
+          </div>
+          <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-xs">
             <thead>
               <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">

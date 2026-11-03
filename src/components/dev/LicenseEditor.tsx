@@ -91,9 +91,9 @@ export function LicenseEditor({ open, company, used, initial, busy, onCancel, on
         </div>
 
         <SheetSection title="Vencimiento" hint={days !== null ? `En ${days} días` : "Sin fecha de vencimiento"}>
-          <ToggleButtonGroup aria-label="Atajos de vencimiento" size="sm" className="flex-wrap" selectedKeys={new Set<Key>(quickKey ? [quickKey] : [])}
+          <ToggleButtonGroup aria-label="Atajos de vencimiento" size="sm" isDetached className="flex-wrap" selectedKeys={new Set<Key>(quickKey ? [quickKey] : [])}
             onSelectionChange={(k) => { const id = [...k][0]; const q = quick.find((x) => x.id === id); if (q) set({ expiresAt: q.v }); }}>
-            {quick.map((q, i) => <ToggleButton key={q.id} id={q.id}>{i > 0 && <ToggleButtonGroup.Separator />}{q.label}</ToggleButton>)}
+            {quick.map((q) => <ToggleButton key={q.id} id={q.id}>{q.label}</ToggleButton>)}
           </ToggleButtonGroup>
           <Calendar aria-label="Fecha de vencimiento" className="w-full" firstDayOfWeek="mon" minValue={parseDate(fmtISO(today))}
             value={f.expiresAt ? parseDate(f.expiresAt) : null} onChange={(v: DateValue) => set({ expiresAt: v.toString() })}>

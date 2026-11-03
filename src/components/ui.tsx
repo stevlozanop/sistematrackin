@@ -57,7 +57,7 @@ export const CodeTag = ({ code, size = "sm", className }: { code: string; size?:
   <span
     title="Código de empresa"
     className={cn(
-      "inline-flex items-center rounded-md border border-sb-primary/35 bg-sb-primary-soft font-mono font-semibold tracking-wider text-sb-primary",
+      "inline-flex shrink-0 items-center whitespace-nowrap rounded-md border border-sb-primary/35 bg-sb-primary-soft font-mono font-semibold tracking-wider text-sb-primary",
       size === "xs" ? "px-1.5 py-px text-[9px]" : "px-2 py-0.5 text-[11px]",
       className,
     )}

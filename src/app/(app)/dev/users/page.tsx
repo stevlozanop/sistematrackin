@@ -59,7 +59,27 @@ function DevUsers() {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar nombre, correo o empresa" className="w-56 bg-transparent outline-none" />
         </label>
       </div>
-      <Card className="overflow-hidden">
+      {/* Celular: una tarjeta por cuenta */}
+      <Card className="flex flex-col md:hidden">
+        {!data ? <p className="py-8 text-center text-xs text-sb-on-surface-variant">Cargando…</p> : !users.length ? <p className="py-8 text-center text-xs text-sb-on-surface-variant">Sin cuentas con ese filtro.</p> : users.map((u) => (
+          <Link key={u.id} href={`/dev/activity?user=${u.id}`} className="flex flex-col gap-1.5 border-b border-sb-outline-variant/25 px-4 py-3 text-xs last:border-0">
+            <div className="flex items-center gap-2">
+              <span className={cn("h-2 w-2 shrink-0 rounded-full", Number(u.online) ? "bg-sb-primary" : "bg-sb-surface-container-highest")} />
+              <b className="min-w-0 flex-1 truncate text-sm font-semibold">{u.name}</b>
+              <span className="shrink-0 text-[11px] text-sb-on-surface-variant">{roleLabel(u.role)}</span>
+            </div>
+            <p className="truncate text-[11px] text-sb-on-surface-variant">{u.email}{u.company ? ` · ${u.company}` : ""}</p>
+            <p className="text-[11px] text-sb-on-surface-variant">Última actividad: {u.last_seen ?? "nunca"}{u.last_path ? ` · ${pageLabel(u.last_path)}` : ""}</p>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              {[["Ingresos", u.logins_30d], ["Pantallas", u.views_7d], ["Días", u.days_30d], ["Fechas", u.events_30d]].map(([k, v]) => (
+                <span key={k as string} className="rounded-lg bg-sb-surface-container-low py-1"><b className="block text-sm">{Number(v).toLocaleString()}</b><span className="text-[10px] text-sb-on-surface-variant">{k}</span></span>
+              ))}
+            </div>
+            {u.fails_30d > 0 && <p className="text-[11px] font-semibold text-sb-late">{u.fails_30d} ingresos fallidos en 30 días</p>}
+          </Link>
+        ))}
+      </Card>
+      <Card className="hidden overflow-hidden md:block">
         <Table>
           <Thead>
             <Th>Cuenta</Th><Th>Tipo · empresa</Th><Th>Última actividad</Th><Th className="text-right">Ingresos 30 d</Th>

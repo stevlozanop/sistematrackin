@@ -253,7 +253,25 @@ export default function EmbarquePage() {
                   <Plus className="h-4 w-4" /> {adding ? "Buscando…" : "Agregar"}
                 </Button>
               </form>
-              <div className="overflow-x-auto rounded-xl border border-sb-outline-variant/40">
+              {/* Celular: una fila compacta por guía */}
+              <div className="flex flex-col rounded-xl border border-sb-outline-variant/40 sm:hidden">
+                {!guias.length && <p className="px-3 py-6 text-center text-xs text-sb-on-surface-variant">Busca una guía y pulsa «Agregar». Se van sumando las unidades del contenedor.</p>}
+                <AnimatePresence initial={false}>
+                  {guias.map((g) => (
+                    <motion.div key={g.guia} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10, transition: { duration: 0.15 } }} transition={{ duration: 0.3, ease: EASE }}
+                      className="flex items-center gap-2 border-b border-sb-outline-variant/20 px-3 py-2.5 text-xs last:border-0">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-mono font-semibold">{g.guia}</p>
+                        <p className="truncate text-[11px] text-sb-on-surface-variant">{g.district} · {g.dealer}</p>
+                      </div>
+                      <span className="shrink-0 text-right tabular-nums"><b>{g.total}</b><span className="block text-[10px] text-sb-on-surface-variant">2W {g.w2 || 0} · 3W {g.w3 || 0}</span></span>
+                      <button type="button" onClick={() => setGuias((x) => x.filter((y) => y.guia !== g.guia))} aria-label={`Quitar ${g.guia}`} className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sb-on-surface-variant hover:bg-sb-surface-container hover:text-sb-late"><X className="h-4 w-4" /></button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                {guias.length > 0 && <p className="flex justify-between border-t border-sb-outline-variant/40 px-3 py-2 text-xs font-bold"><span>{guias.length} guía(s)</span><span>{tot.total} unid. · 2W {tot.w2} · 3W {tot.w3}</span></p>}
+              </div>
+              <div className="hidden overflow-x-auto rounded-xl border border-sb-outline-variant/40 sm:block">
                 <table className="w-full min-w-[560px] text-left text-xs">
                   <thead>
                     <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
@@ -320,7 +338,26 @@ export default function EmbarquePage() {
             <h3 className="flex items-center gap-2 text-sm font-semibold"><Ship className="h-4 w-4" /> 2. Embarcación · detalle (naves cargando, aún sin zarpar)</h3>
           </div>
           <div className="grid gap-4 p-4 lg:grid-cols-[1fr_17rem]">
-            <div className="overflow-x-auto rounded-xl border border-sb-outline-variant/40">
+            {/* Celular: una tarjeta por nave */}
+            <div className="flex flex-col rounded-xl border border-sb-outline-variant/40 sm:hidden">
+              {data && !data.naves.length && <p className="px-3 py-6 text-center text-xs text-sb-on-surface-variant">No hay naves cargando. Registra un embarque arriba.</p>}
+              {(data?.naves ?? []).map((x) => {
+                const on = checked.has(x.nave);
+                return (
+                  <div key={x.nave} className={cn("flex items-center gap-3 border-b border-sb-outline-variant/20 px-3 py-3 text-xs transition-colors last:border-0", on && "bg-sb-primary-soft")}>
+                    <input type="checkbox" className="h-5 w-5 shrink-0 accent-[var(--sb-primary)]" aria-label={`Marcar zarpe de ${x.nave}`} checked={on} disabled={!data?.canSail}
+                      onChange={() => setChecked((st) => { const y = new Set(st); if (y.has(x.nave)) y.delete(x.nave); else y.add(x.nave); return y; })} />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold">{x.nave}</p>
+                      <p className="text-[11px] text-sb-on-surface-variant">{x.containers} contenedor(es) · {n(x.total)} unid. (2W {n(x.w2)} · 3W {n(x.w3)})</p>
+                      <p className="text-[10px] text-sb-on-surface-variant">embarque {fmtDate(x.first)}{x.last !== x.first ? ` – ${fmtDate(x.last)}` : ""}</p>
+                    </div>
+                    <Button size="sm" variant="secondary" isIconOnly aria-label={`Ver ${x.nave}`} onPress={() => setView(x.nave)}><Eye className="h-4 w-4" /></Button>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="hidden overflow-x-auto rounded-xl border border-sb-outline-variant/40 sm:block">
               <table className="w-full min-w-[560px] text-left text-xs">
                 <thead>
                   <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
