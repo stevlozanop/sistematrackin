@@ -3,10 +3,10 @@ import { verifySession } from "@/lib/auth";
 
 /**
  * Pantallas por tipo de cuenta (las APIs además validan el rol con guard()).
- * - dealer: solo su portal y su perfil.
+ * - dealer: su portal, su perfil y la confirmación de recepción.
  * - viewer (solo lectura, Honda): ve todo menos las pantallas de administración y de encargados.
  */
-const DEALER_PAGES = ["/portal", "/profile"];
+const DEALER_PAGES = ["/portal", "/profile", "/recepcion"];
 const VIEWER_BLOCKED = ["/admins", "/companies", "/settings", "/dealers", "/my", "/portal"];
 const STAFF_BLOCKED = ["/portal"];
 /** The Iceberg Labs (dev): solo la consola de la plataforma, las empresas y su perfil. La operación es de Leyva. */

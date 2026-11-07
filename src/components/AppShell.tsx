@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, type LucideIcon } from "lucide-react";
+import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, Forklift, PackageCheck, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
@@ -42,6 +42,8 @@ const SECTIONS: Section[] = [
       { title: "Embarque y zarpe", href: "/embarque", icon: Container, fields: ["d_carga", "d_zarpe"] },
       // Solo quien recibe la nave o la ingresa al almacén en destino
       { title: "Arribo e ingreso", href: "/arribo", icon: Warehouse, fields: ["d_arribo", "d_almacen"] },
+      { title: "Despacho", href: "/despacho", icon: Forklift, fields: ["d_despacho"] },
+      { title: "Entrega · Conductor", href: "/conductor", icon: Truck, fields: ["d_entrega"] },
       { title: "Carga por guía", href: "/guias", icon: FileStack },
       { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship },
       { title: "YUR · Yurimaguas", href: "/units/yur", icon: Truck },
@@ -53,6 +55,7 @@ const SECTIONS: Section[] = [
     items: [
       { title: "Mi resumen", href: "/portal/resumen", icon: LayoutDashboard },
       { title: "Mis unidades", href: "/portal", icon: PackageSearch },
+      { title: "Confirmar recepción", href: "/recepcion", icon: PackageCheck },
     ],
   },
   // Leyva y Honda: cada sección responde una pregunta; los contadores dicen dónde mirar
@@ -80,7 +83,17 @@ const SECTIONS: Section[] = [
       { title: "Encargados en vivo", href: "/live", icon: Activity, badge: "online" },
       { title: "Embarque y zarpe", href: "/embarque", icon: Container },
       { title: "Arribo e ingreso", href: "/arribo", icon: Warehouse },
+      { title: "Despacho", href: "/despacho", icon: Forklift },
       { title: "Carga por guía", href: "/guias", icon: FileStack },
+    ],
+  },
+  {
+    // 6. Entrega: por ahora la empresa prueba aquí el flujo del conductor y del dealer
+    title: "Entrega",
+    roles: SUPER,
+    items: [
+      { title: "Conductor", href: "/conductor", icon: Truck },
+      { title: "Dealer", href: "/recepcion", icon: PackageCheck },
     ],
   },
   {
