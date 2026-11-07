@@ -65,7 +65,6 @@ export default function ConductorPage() {
   async function save() {
     if (!current || !chosen.length) return toast.danger("Marca las guías que entregaste");
     if (min && date < min) return toast.danger(`La entrega no puede ser antes del despacho (${fmtDate(min)})`);
-    if (need && !reason) return toast.danger(`Elige el motivo de demora para ${need} unidades fuera de tiempo`);
     setSaving(true);
     const r = await fetch("/api/entrega", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "deliver", site: current, guias: chosen.map(k), date, lateReason: need ? reason : undefined }) });
@@ -73,6 +72,7 @@ export default function ConductorPage() {
     setSaving(false);
     if (!r.ok) return toast.danger(j.error);
     toast.success(`Entrega registrada: ${chosen.length} guía(s)`, { description: `${n(j.units)} unidades → Entregado`, timeout: 7000 });
+    if (need && !reason) toast.warning(`${need} unidades quedaron sin motivo de demora`, { description: "Puedes justificarlas después desde PCL/YUR o Alertas", timeout: 8000 });
     setSel(new Set()); setReason(""); setReload((x) => x + 1);
   }
 
@@ -154,7 +154,7 @@ export default function ConductorPage() {
               <DatePicker label="Fecha de entrega" value={date} min={min || null} onChange={setDate} disabled={!canDeliver} quick={pastQuick(min || null, today())} />
             </div>
             {need > 0 && (
-              <label className="flex flex-col gap-1 text-[11px] text-sb-late">Motivo de demora ({need} fuera de tiempo)
+              <label className="flex flex-col gap-1 text-[11px] text-sb-late">Motivo de demora ({need} fuera de tiempo · puedes dejarlo para después)
                 <select className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
               </label>
             )}

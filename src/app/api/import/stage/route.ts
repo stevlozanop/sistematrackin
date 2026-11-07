@@ -110,7 +110,6 @@ export async function POST(req: Request) {
       const v = row.dates[key];
       if (!v || !scope.stages.some((st) => st.site === site && st.field === key)) continue;
       why = checkDateEdit(s.role, scope.stages, site, work as never, key, v, scope.carrier);
-      if (!why && needsDelayReason(work as never, v, row.reason)) why = "Está fuera de tiempo: falta el motivo de demora";
       if (!why && needsDelayReason(work as never, v, null)) needReason = true;
       if (!why && site === "PCL" && key === "d_despacho" && !work.carrier && !row.carrier) why = "Falta la empresa de transporte";
       if (why) break;

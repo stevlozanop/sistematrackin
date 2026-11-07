@@ -116,7 +116,6 @@ export default function DespachoPage() {
   async function dispatch() {
     if (!current || !guias.length) return toast.danger("Agrega las guías que lleva el camión");
     if (!driver.trim()) return toast.danger("Indica el chofer");
-    if (tot.need && !reason) return toast.danger(`Elige el motivo de demora para ${tot.need} unidades fuera de tiempo`);
     setSaving(true);
     const r = await fetch("/api/despacho", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -126,6 +125,7 @@ export default function DespachoPage() {
     setSaving(false);
     if (!r.ok) return toast.danger(j.error);
     toast.success(`Despachado con ${j.driver}`, { description: `${n(j.units)} unidades → Tránsito dealer`, timeout: 7000 });
+    if (tot.need && !reason) toast.warning(`${tot.need} unidades quedaron sin motivo de demora`, { description: "Puedes justificarlas después desde PCL/YUR o Alertas", timeout: 8000 });
     setGuias([]); setReason(""); setPlate(""); setReload((x) => x + 1);
   }
 
@@ -208,7 +208,7 @@ export default function DespachoPage() {
               <DatePicker label="Fecha de despacho" value={date} onChange={setDate} disabled={ro} quick={pastQuick(null, today())} />
             </div>
             {tot.need > 0 && (
-              <Label t={`Motivo de demora (${tot.need} fuera de tiempo)`}>
+              <Label t={`Motivo de demora (${tot.need} fuera de tiempo · puedes dejarlo para después)`}>
                 <select className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
               </Label>
             )}

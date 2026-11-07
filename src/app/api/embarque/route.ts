@@ -153,7 +153,6 @@ export async function POST(req: Request) {
     const early = [...stay, ...incoming].find((u) => u.billing_date && date < u.billing_date);
     if (early) return NextResponse.json({ error: `La fecha no puede ser anterior a la facturación (${early.billing_date})` }, { status: 400 });
     const late = incoming.filter((u) => u.est_date && !u.delay_reason && (date > u.est_date || today() > u.est_date));
-    if (late.length && !lateReason) return NextResponse.json({ error: `Hay ${late.length} unidades fuera de tiempo: indica el motivo de demora`, need: late.length }, { status: 400 });
 
     await tx(async (q) => {
       await q.query("UPDATE containers SET code = ?, nave = ?, loaded_on = ? WHERE id = ?", [code, nave, date, c.id]);
@@ -213,7 +212,6 @@ export async function POST(req: Request) {
     const early = units.find((u) => u.billing_date && date < u.billing_date);
     if (early) return NextResponse.json({ error: `La fecha no puede ser anterior a la facturación (${early.billing_date})` }, { status: 400 });
     const late = units.filter((u) => u.est_date && !u.delay_reason && (date > u.est_date || today() > u.est_date));
-    if (late.length && !lateReason) return NextResponse.json({ error: `Hay ${late.length} unidades fuera de tiempo: indica el motivo de demora`, need: late.length }, { status: 400 });
 
     const id = await tx(async (q) => {
       const [c] = await q.query("INSERT INTO containers(site, code, nave, loaded_on, created_by) VALUES (?, ?, ?, ?, ?) RETURNING id", [site, code, nave, date, s.id]);
@@ -249,7 +247,6 @@ export async function POST(req: Request) {
     const loaded = units.reduce((m, u) => (u.d_carga && u.d_carga > m ? u.d_carga : m), "");
     if (loaded && date < loaded) return NextResponse.json({ error: `El zarpe no puede ser antes del último embarque (${loaded})` }, { status: 400 });
     const late = units.filter((u) => u.est_date && !u.delay_reason && (date > u.est_date || today() > u.est_date));
-    if (late.length && !lateReason) return NextResponse.json({ error: `Hay ${late.length} unidades fuera de tiempo: indica el motivo de demora`, need: late.length }, { status: 400 });
 
     await tx(async (q) => {
       const ids = units.map((u) => u.id);

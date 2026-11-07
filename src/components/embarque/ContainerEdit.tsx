@@ -51,7 +51,6 @@ export function ContainerEdit({ site, id, code, nave, loadedOn, guias, naves, on
 
   async function save() {
     if (!c.trim() || !v.trim()) return toast.danger("Indica el número de contenedor y la nave");
-    if (askReason && !reason) return toast.danger("Elige el motivo de demora");
     setSaving(true);
     const r = await fetch("/api/embarque", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -115,7 +114,7 @@ export function ContainerEdit({ site, id, code, nave, loadedOn, guias, naves, on
       </div>
 
       {askReason && (
-        <label className="flex flex-col gap-1 text-[11px] text-sb-late">Motivo de demora ({need || lateNew} fuera de tiempo)
+        <label className="flex flex-col gap-1 text-[11px] text-sb-late">Motivo de demora ({need || lateNew} fuera de tiempo · opcional)
           <select className={field} value={reason} onChange={(e) => setReason(e.target.value)}>
             <option value="">Elegir…</option>
             {DELAY_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}

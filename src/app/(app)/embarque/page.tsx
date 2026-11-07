@@ -169,7 +169,6 @@ export default function EmbarquePage() {
     if (!guias.length) return toast.danger("Agrega al menos una guía");
     if (!container.trim()) return toast.danger("Indica el número de contenedor");
     if (!nave.trim()) return toast.danger("Indica la nave");
-    if (tot.need && !reason) return toast.danger(`Elige el motivo de demora para ${tot.need} unidades fuera de tiempo`);
     setSaving(true);
     const r = await fetch("/api/embarque", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -179,6 +178,7 @@ export default function EmbarquePage() {
     setSaving(false);
     if (!r.ok) return toast.danger(j.error);
     toast.success(`Contenedor ${j.code} embarcado en la nave ${j.nave}`, { description: `${n(j.units)} unidades → Embarque. Sigue con el próximo contenedor.`, timeout: 7000 });
+    if (tot.need && !reason) toast.warning(`${tot.need} unidades quedaron sin motivo de demora`, { description: "Puedes justificarlas después desde PCL/YUR o Alertas", timeout: 8000 });
     setGuias([]); setContainer(""); setReason("");
     setReload((x) => x + 1);
   }
@@ -186,7 +186,6 @@ export default function EmbarquePage() {
   async function sail() {
     if (!current || !checkedNaves.length) return toast.danger("Marca la nave que zarpa");
     if (sailMin && sailDate < sailMin) return toast.danger(`El zarpe no puede ser antes del último embarque (${fmtDate(sailMin)})`);
-    if (sailNeed && !sailReason) return toast.danger(`Elige el motivo de demora para ${sailNeed} unidades fuera de tiempo`);
     setSailing(true);
     const r = await fetch("/api/embarque", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -196,6 +195,7 @@ export default function EmbarquePage() {
     setSailing(false);
     if (!r.ok) return toast.danger(j.error);
     toast.success(`Zarpe registrado: ${checkedNaves.map((x) => x.nave).join(", ")}`, { description: `${n(j.units)} unidades → Tránsito fluvial`, timeout: 7000 });
+    if (sailNeed && !sailReason) toast.warning(`${sailNeed} unidades quedaron sin motivo de demora`, { description: "Puedes justificarlas después desde PCL/YUR o Alertas", timeout: 8000 });
     setChecked(new Set()); setSailReason("");
     // La chata se va río abajo en el muelle y luego se recarga la lista
     setLeaving(new Set(checkedNaves.map((x) => x.nave)));
@@ -312,7 +312,7 @@ export default function EmbarquePage() {
               <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Fecha de embarque
                 <DatePicker label="Fecha de embarque" value={date} onChange={setDate} disabled={!data?.canEmbark} quick={pastQuick(null, today())} /></div>
               {tot.need > 0 && (
-                <Label t={`Motivo de demora (${tot.need} fuera de tiempo)`}>
+                <Label t={`Motivo de demora (${tot.need} fuera de tiempo · puedes dejarlo para después)`}>
                   <select className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
                 </Label>
               )}
@@ -390,7 +390,7 @@ export default function EmbarquePage() {
               <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Fecha de zarpe
                 <DatePicker label="Fecha de zarpe" value={sailDate} min={sailMin || null} onChange={setSailDate} disabled={!data?.canSail} quick={pastQuick(sailMin || null, today())} /></div>
               {sailNeed > 0 && (
-                <Label t={`Motivo de demora (${sailNeed} fuera de tiempo)`}>
+                <Label t={`Motivo de demora (${sailNeed} fuera de tiempo · puedes dejarlo para después)`}>
                   <select className={field} value={sailReason} onChange={(e) => setSailReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
                 </Label>
               )}

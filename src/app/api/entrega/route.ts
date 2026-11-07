@@ -134,9 +134,8 @@ export async function POST(req: Request) {
       `SELECT id, d_despacho, est_date, delay_reason FROM v_units WHERE site = ? AND guia IN (?) AND next_step = 'd_entrega' AND d_despacho IS NOT NULL${perm.carrier ? " AND carrier = ?" : ""}`,
       perm.carrier ? [site, guias, perm.carrier] : [site, guias]);
     if (!units.length) return NextResponse.json({ error: "Esas guías no tienen unidades por entregar" }, { status: 409 });
-    const r = await deliver(units, lateReason, true);
+    const r = await deliver(units, lateReason, false);
     if (typeof r === "string") return NextResponse.json({ error: r }, { status: 400 });
-    if (r?.need) return NextResponse.json({ error: `Hay ${r.need} unidades fuera de tiempo: indica el motivo de demora`, need: r.need }, { status: 400 });
     return NextResponse.json({ ok: true, units: units.length });
   }
 

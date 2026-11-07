@@ -158,8 +158,8 @@ export async function PATCH(req: Request) {
         reason = checkDateEdit(s.role, stages, site, u as never, k as DateField, v, scope?.carrier);
         // Si la unidad está fuera de tiempo y no tiene motivo, se pide antes de registrar la fecha
         if (!reason && needsDelayReason(u as never, v, vals.find(([key]) => key === "delay_reason")?.[1])) {
-          if (lateReason) { if (!late.includes(u.id as number)) late.push(u.id as number); }
-          else reason = "La unidad está fuera de tiempo: indica primero el motivo de demora";
+          // Sin motivo también se registra: queda «sin motivo» y se justifica después
+          if (lateReason && !late.includes(u.id as number)) late.push(u.id as number);
         }
       } else if (!sup && !stages.some((st) => st.site === site)) {
         reason = "No tienes etapas asignadas en este módulo";

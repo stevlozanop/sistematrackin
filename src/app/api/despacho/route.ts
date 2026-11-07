@@ -100,7 +100,6 @@ export async function POST(req: Request) {
   const prev = units.reduce((m, u) => (u.d_almacen && u.d_almacen > m ? u.d_almacen : m), "");
   if (prev && date < prev) return NextResponse.json({ error: `La fecha no puede ser anterior al ingreso a almacén (${prev})` }, { status: 400 });
   const late = units.filter((u) => u.est_date && !u.delay_reason && (date > u.est_date || today() > u.est_date));
-  if (late.length && !lateReason) return NextResponse.json({ error: `Hay ${late.length} unidades fuera de tiempo: indica el motivo de demora`, need: late.length }, { status: 400 });
 
   const id = await tx(async (q) => {
     const [d] = await q.query("INSERT INTO dispatches(site, driver, plate, dispatched_on, created_by) VALUES (?, ?, ?, ?, ?) RETURNING id", [site, driver, plate, date, s.id]);

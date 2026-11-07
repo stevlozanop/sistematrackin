@@ -117,7 +117,6 @@ export async function POST(req: Request) {
   const prev = units.reduce((m, u) => (u.prev && u.prev > m ? u.prev : m), "");
   if (prev && date < prev) return NextResponse.json({ error: `La fecha no puede ser anterior a la etapa previa (${prev})` }, { status: 400 });
   const late = units.filter((u) => u.est_date && !u.delay_reason && (date > u.est_date || today() > u.est_date));
-  if (late.length && !lateReason) return NextResponse.json({ error: `Hay ${late.length} unidades fuera de tiempo: indica el motivo de demora`, need: late.length }, { status: 400 });
 
   await tx(async (q) => {
     const ids = units.map((u) => u.id);

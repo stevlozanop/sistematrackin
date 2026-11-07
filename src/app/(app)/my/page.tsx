@@ -93,10 +93,9 @@ export default function MyWorkPage() {
     if (!stage || !selected.length) return;
     if (minDate && date < minDate) return toast.danger(`La fecha no puede ser anterior al ${fmtDate(minDate)} (etapa anterior)`);
     if (needsCarrier && !carrier.trim()) return toast.danger("Indica la empresa de transporte que lleva las unidades");
-    if (lateSel.length && !reason) return toast.danger("Indica el motivo de demora de las unidades fuera de tiempo");
     setSaving(true);
     // Primero el motivo de demora en las que llegan tarde, luego la fecha
-    if (lateSel.length) {
+    if (lateSel.length && reason) {
       const rr = await fetch("/api/units", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: lateSel.map((u) => u.id), changes: { delay_reason: reason } }) });
       if (!rr.ok) { setSaving(false); return toast.danger((await rr.json().catch(() => ({}))).error ?? "No se pudo guardar el motivo"); }
     }
@@ -273,7 +272,7 @@ export default function MyWorkPage() {
             </label>
             {lateSel.length > 0 && (
               <label className="flex flex-col gap-1 text-[11px]">
-                Motivo de demora ({lateSel.length} fuera de tiempo)
+                Motivo de demora ({lateSel.length} fuera de tiempo · puedes dejarlo para después)
                 <select value={reason} onChange={(e) => setReason(e.target.value)} className={cn(input, "w-full sm:w-56", !reason && "border-sb-on-surface")}>
                   <option value="">Elige el motivo…</option>
                   {DELAY_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}

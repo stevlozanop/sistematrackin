@@ -48,7 +48,7 @@ function Register({ from, to, label, date, setDate, min, need, reason, setReason
         <DatePicker label={`Fecha de ${label.toLowerCase()}`} value={date} min={min || null} onChange={setDate} disabled={readOnly} quick={pastQuick(min || null, today())} />
       </div>
       {need > 0 && (
-        <label className="flex flex-col gap-1 text-[11px] text-sb-late">Motivo de demora ({need} fuera de tiempo)
+        <label className="flex flex-col gap-1 text-[11px] text-sb-late">Motivo de demora ({need} fuera de tiempo · puedes dejarlo para después)
           <select className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
         </label>
       )}
@@ -130,19 +130,19 @@ export default function ArriboPage() {
   async function arrive() {
     if (!chosenNaves.length) return toast.danger("Marca la nave que llegó");
     if (arrMin && arrDate < arrMin) return toast.danger(`El arribo no puede ser antes del zarpe (${fmtDate(arrMin)})`);
-    if (arrNeed && !arrReason) return toast.danger(`Elige el motivo de demora para ${arrNeed} unidades fuera de tiempo`);
     const { ok, j } = await post({ action: "arrive", naves: chosenNaves.map((x) => x.nave), date: arrDate, lateReason: arrNeed ? arrReason : undefined });
     if (!ok) return toast.danger(j.error);
     toast.success(`Arribo registrado: ${chosenNaves.map((x) => x.nave).join(", ")}`, { description: `${n(j.units)} unidades → Arribo puerto`, timeout: 7000 });
+    if (arrNeed && !arrReason) toast.warning(`${arrNeed} unidades quedaron sin motivo de demora`, { description: "Puedes justificarlas después desde PCL/YUR o Alertas", timeout: 8000 });
     setNaveSel(new Set()); setArrReason(""); setReload((x) => x + 1);
   }
   async function store() {
     if (!chosenConts.length) return toast.danger("Marca los contenedores que ingresan al almacén");
     if (stoMin && stoDate < stoMin) return toast.danger(`El ingreso no puede ser antes del arribo (${fmtDate(stoMin)})`);
-    if (stoNeed && !stoReason) return toast.danger(`Elige el motivo de demora para ${stoNeed} unidades fuera de tiempo`);
     const { ok, j } = await post({ action: "store", items: chosenConts.map((c) => ({ nave: c.nave, container: c.container })), date: stoDate, lateReason: stoNeed ? stoReason : undefined });
     if (!ok) return toast.danger(j.error);
     toast.success(`Ingreso a almacén: ${chosenConts.length} contenedor(es)`, { description: `${n(j.units)} unidades → En almacén`, timeout: 7000 });
+    if (stoNeed && !stoReason) toast.warning(`${stoNeed} unidades quedaron sin motivo de demora`, { description: "Puedes justificarlas después desde PCL/YUR o Alertas", timeout: 8000 });
     setContSel(new Set()); setStoReason(""); setReload((x) => x + 1);
   }
 

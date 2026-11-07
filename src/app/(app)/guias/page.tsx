@@ -145,7 +145,6 @@ export default function GuiasPage() {
     if (!date) return toast.danger("Indica la fecha");
     if (minDate && date < minDate) return toast.danger(`La fecha no puede ser anterior a ${fmtDate(minDate)} (etapa previa)`);
     if (activeStage === "d_zarpe" && !nave.trim()) return toast.danger("Indica la nave en la que zarpan");
-    if (needReason && !reason) return toast.danger(`Elige el motivo de demora para las ${needReason} unidades fuera de tiempo`);
     setSaving(true);
     const changes: Record<string, string> = { [activeStage]: date };
     if (activeStage === "d_zarpe") changes.nave = nave.trim().toUpperCase();
@@ -164,6 +163,7 @@ export default function GuiasPage() {
       ].filter(Boolean).join("\n"),
       timeout: 8000,
     });
+    if (needReason && !reason) toast.warning(`${needReason} unidades quedaron sin motivo de demora`, { description: "Puedes justificarlas después desde PCL/YUR o Alertas", timeout: 8000 });
     resetSelection(); setReason("");
     setReload((x) => x + 1);
   }
@@ -333,7 +333,7 @@ export default function GuiasPage() {
                 )}
                 {needReason > 0 && (
                   <label className="flex flex-col gap-1 text-[11px] text-sb-late">
-                    Motivo de demora ({needReason} fuera de tiempo)
+                    Motivo de demora ({needReason} fuera de tiempo · puedes dejarlo para después)
                     <select className={cn(field, "w-52")} value={reason} onChange={(e) => setReason(e.target.value)}>
                       <option value="">Elegir…</option>
                       {DELAY_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
