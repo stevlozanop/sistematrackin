@@ -134,7 +134,6 @@ export async function POST(req: Request) {
     if (c.sailed_on) return NextResponse.json({ error: "La nave ya zarpó: corrígelo desde el módulo" }, { status: 409 });
     const code = text(b.container, 40) || c.code, nave = text(b.nave, 60) || c.nave;
     const date = day(b.date) ?? c.loaded_on;
-    if (date > today()) return NextResponse.json({ error: "No se puede registrar una fecha futura" }, { status: 400 });
     const list = (v: unknown) => (Array.isArray(v) ? [...new Set(v.map((g) => String(g).trim()).filter(Boolean))].slice(0, 100) : []);
     const remove = list(b.removeGuias), add = list(b.addGuias);
     if (code !== c.code) {
@@ -193,7 +192,6 @@ export async function POST(req: Request) {
   const perm = await can(s, site);
   const date = day(b.date);
   if (!date) return NextResponse.json({ error: "Indica la fecha" }, { status: 400 });
-  if (date > today()) return NextResponse.json({ error: "No se puede registrar una fecha futura" }, { status: 400 });
 
   // 1.1 Embarque de un contenedor
   if (b.action === "embark") {

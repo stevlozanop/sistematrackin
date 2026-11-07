@@ -269,7 +269,7 @@ export default function MyWorkPage() {
           <div className="flex w-full max-w-3xl flex-wrap items-end gap-2 rounded-2xl border border-sb-outline-variant/60 bg-sb-surface p-3 shadow-xl sm:gap-3">
             <div className="min-w-32 flex-1 text-sm"><b>{sel.size}</b> {sel.size === 1 ? "unidad marcada" : "unidades marcadas"}<div className="text-[11px] text-muted">{stageLabel(stage.site, stage.field)}</div></div>
             <label className="flex flex-col gap-1 text-[11px]">Fecha
-              <input type="date" value={date} min={minDate} max={today()} onChange={(e) => setDate(e.target.value)} className={input} />
+              <input type="date" value={date} min={minDate} onChange={(e) => setDate(e.target.value)} className={input} />
             </label>
             {lateSel.length > 0 && (
               <label className="flex flex-col gap-1 text-[11px]">

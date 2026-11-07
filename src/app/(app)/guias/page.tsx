@@ -143,7 +143,6 @@ export default function GuiasPage() {
   async function apply() {
     if (!activeStage || !chosen.length) return;
     if (!date) return toast.danger("Indica la fecha");
-    if (date > today()) return toast.danger("No se puede registrar una fecha futura");
     if (minDate && date < minDate) return toast.danger(`La fecha no puede ser anterior a ${fmtDate(minDate)} (etapa previa)`);
     if (activeStage === "d_zarpe" && !nave.trim()) return toast.danger("Indica la nave en la que zarpan");
     if (needReason && !reason) return toast.danger(`Elige el motivo de demora para las ${needReason} unidades fuera de tiempo`);
@@ -323,7 +322,7 @@ export default function GuiasPage() {
                 </div>
                 <label className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">
                   {stageLabel(current!, activeStage)}
-                  <input type="date" className={field} value={date} min={minDate || undefined} max={today()} onChange={(e) => setDate(e.target.value)} />
+                  <input type="date" className={field} value={date} min={minDate || undefined} onChange={(e) => setDate(e.target.value)} />
                 </label>
                 {activeStage === "d_zarpe" && (
                   <label className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">

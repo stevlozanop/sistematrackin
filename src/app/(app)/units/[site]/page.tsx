@@ -59,7 +59,7 @@ function DateCell({ value, onSave, label, mode, min, rich = false }: {
   if (rich && mode === "next") {
     return (
       <div className="flex items-start gap-1.5">
-        <DatePicker className="flex-1" label={label} value={draft} onChange={setDraft} min={min} max={today()} quick={pastQuick(min, today())} placeholder="Elegir fecha" />
+        <DatePicker className="flex-1" label={label} value={draft} onChange={setDraft} min={min} quick={pastQuick(min, today())} placeholder="Elegir fecha" />
         <Button isIconOnly aria-label={`Guardar ${label} (queda bloqueada)`} isDisabled={!draft} onPress={() => onSave(draft)}><CheckIcon className="h-4 w-4" /></Button>
       </div>
     );
@@ -83,7 +83,7 @@ function DateCell({ value, onSave, label, mode, min, rich = false }: {
           aria-label={label}
           value={draft}
           min={min ?? undefined}
-          max={today()}
+         
           onChange={(e) => setDraft(e.target.value)}
           className={`w-[8.5rem] ${field} border-sb-on-surface/60`}
         />
@@ -698,7 +698,7 @@ export default function SitePage({ params, searchParams }: {
           </SheetSection>
         ) : (
           <SheetSection title="Fecha" hint={sup ? "Vacía = borrar esa fecha en las unidades elegidas." : "Se aplica solo a las unidades que esperan esta etapa."}>
-            <DatePicker id="bulk-date" value={bulkValue} onChange={setBulkValue} max={sup ? undefined : today()} quick={pastQuick(null, today())} clearable={sup} />
+            <DatePicker id="bulk-date" value={bulkValue} onChange={setBulkValue} quick={pastQuick(null, today())} clearable={sup} />
           </SheetSection>
         )}
       </Sheet>

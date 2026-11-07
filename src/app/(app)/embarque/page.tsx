@@ -310,7 +310,7 @@ export default function EmbarquePage() {
                 <datalist id="naves-emb">{naveOptions.map((v) => <option key={v} value={v} />)}</datalist>
               </Label>
               <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Fecha de embarque
-                <DatePicker label="Fecha de embarque" value={date} max={today()} onChange={setDate} disabled={!data?.canEmbark} quick={pastQuick(null, today())} /></div>
+                <DatePicker label="Fecha de embarque" value={date} onChange={setDate} disabled={!data?.canEmbark} quick={pastQuick(null, today())} /></div>
               {tot.need > 0 && (
                 <Label t={`Motivo de demora (${tot.need} fuera de tiempo)`}>
                   <select className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
@@ -388,7 +388,7 @@ export default function EmbarquePage() {
             <div className="flex flex-col gap-3 border-t border-sb-outline-variant/40 pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
               <StateChange from="Embarque" to="Tránsito fluvial" />
               <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Fecha de zarpe
-                <DatePicker label="Fecha de zarpe" value={sailDate} min={sailMin || null} max={today()} onChange={setSailDate} disabled={!data?.canSail} quick={pastQuick(sailMin || null, today())} /></div>
+                <DatePicker label="Fecha de zarpe" value={sailDate} min={sailMin || null} onChange={setSailDate} disabled={!data?.canSail} quick={pastQuick(sailMin || null, today())} /></div>
               {sailNeed > 0 && (
                 <Label t={`Motivo de demora (${sailNeed} fuera de tiempo)`}>
                   <select className={field} value={sailReason} onChange={(e) => setSailReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>

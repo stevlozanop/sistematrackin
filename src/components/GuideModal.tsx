@@ -103,7 +103,7 @@ const RULES_STEP: Step = {
       <P>Para que los datos sean confiables, los encargados siguen cuatro reglas:</P>
       <List items={[
         <><b>Orden estricto:</b> solo se puede registrar la etapa que sigue. No se puede registrar el arribo si todavía no hay zarpe.</>,
-        <><b>Sin fechas futuras</b> y nunca antes que la fecha de la etapa anterior.</>,
+        <>Nunca antes que la fecha de la etapa anterior.</>,
         <><b>Queda bloqueada:</b> una vez guardada, el encargado ya no puede cambiarla.</>,
         <><b>Solo su parte:</b> cada encargado ve y registra solo las etapas de su área (y, si es transportista, solo las unidades de su empresa).</>,
       ]} />

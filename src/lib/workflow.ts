@@ -101,7 +101,6 @@ export function checkDateEdit(
   if (u[field]) return "La fecha ya fue registrada y está bloqueada";
   if (!value) return "Indica la fecha";
   if (!allowedNext(site, u).includes(field)) return "Primero debe registrarse la etapa anterior";
-  if (value > today()) return "No se puede registrar una fecha futura";
   const prev = previousDate(site, u, field);
   if (prev && value < prev) return "La fecha no puede ser anterior a la de la etapa previa";
   return null;

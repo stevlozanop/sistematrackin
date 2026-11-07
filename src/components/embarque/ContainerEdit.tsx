@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Button, toast } from "@heroui/react";
 import { Box, Plus, RotateCcw, Ship, Trash2, X } from "lucide-react";
 import { DELAY_REASONS, type Site } from "@/lib/hsp";
-import { today } from "@/lib/workflow";
 import { DatePicker } from "@/components/modal/DatePicker";
 import { cn } from "@/lib/cn";
 
@@ -79,7 +78,7 @@ export function ContainerEdit({ site, id, code, nave, loadedOn, guias, naves, on
           <datalist id="edit-naves">{naves.map((x) => <option key={x} value={x} />)}</datalist>
         </label>
         <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Fecha de embarque
-          <DatePicker label="Fecha de embarque" value={d} max={today()} onChange={setD} />
+          <DatePicker label="Fecha de embarque" value={d} onChange={setD} />
         </div>
       </div>
 
