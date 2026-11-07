@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, Forklift, PackageCheck, type LucideIcon } from "lucide-react";
+import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, Forklift, PackageCheck, Boxes, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
@@ -42,6 +42,7 @@ const SECTIONS: Section[] = [
       { title: "Embarque y zarpe", href: "/embarque", icon: Container, fields: ["d_carga", "d_zarpe"] },
       // Solo quien recibe la nave o la ingresa al almacén en destino
       { title: "Arribo e ingreso", href: "/arribo", icon: Warehouse, fields: ["d_arribo", "d_almacen"] },
+      { title: "Stock en almacén", href: "/stock", icon: Boxes, fields: ["d_almacen", "d_despacho"] },
       { title: "Despacho", href: "/despacho", icon: Forklift, fields: ["d_despacho"] },
       { title: "Entrega · Conductor", href: "/conductor", icon: Truck, fields: ["d_entrega"] },
       { title: "Carga por guía", href: "/guias", icon: FileStack },
@@ -83,6 +84,7 @@ const SECTIONS: Section[] = [
       { title: "Encargados en vivo", href: "/live", icon: Activity, badge: "online" },
       { title: "Embarque y zarpe", href: "/embarque", icon: Container },
       { title: "Arribo e ingreso", href: "/arribo", icon: Warehouse },
+      { title: "Stock en almacén", href: "/stock", icon: Boxes },
       { title: "Despacho", href: "/despacho", icon: Forklift },
       { title: "Carga por guía", href: "/guias", icon: FileStack },
     ],

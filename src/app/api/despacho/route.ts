@@ -11,6 +11,7 @@ import { isSuper, today } from "@/lib/workflow";
  * GET  ?site=PCL               -> permisos, choferes conocidos y resumen de viajes recientes
  * GET  ?site=PCL&guia=…        -> unidades de esa guía listas para despachar
  * GET  ?site=PCL&trip=12       -> detalle del viaje: destino, dealer, factura, guía, cantidad y tipo
+ * GET  ?site=PCL&stock=1       -> stock en almacén (ingresó y aún no se despacha), por guía
  * POST { action: "dispatch", site, guias: [], driver, plate, date, lateReason? }
  */
 
@@ -48,6 +49,20 @@ export async function GET(req: Request) {
       guia, district: uniq("district"), dealer: uniq("dealer"),
       w2: ready.filter((u) => u.category === "2W").length, w3: ready.filter((u) => u.category === "3W").length, total: ready.length,
       need: ready.filter((u) => Number(u.need)).length, skipped: units.length - ready.length,
+    });
+  }
+
+  // Stock en almacén: todo lo que ingresó y aún no se despacha, por guía
+  if (p.get("stock")) {
+    const rows = await queryList<{ guia: string | null; district: string | null; dealer: string | null; nave: string | null; container: string | null; w2: number; w3: number; total: number; since: string; need: number; models: string | null }>(
+      `SELECT guia, district, dealer, MAX(nave) nave, MAX(container) container,
+         SUM(category = '2W') w2, SUM(category = '3W') w3, COUNT(*) total, MIN(d_almacen) since,
+         SUM(est_date < CURDATE() AND delay_reason IS NULL) need, string_agg(DISTINCT split_part(replace(material::text, '_', ' '), ' ', 1), ', ') models
+       FROM v_units WHERE site = ? AND next_step = 'd_despacho'${scope}
+       GROUP BY guia, district, dealer ORDER BY MIN(d_almacen), district, dealer, guia`, [site, ...sargs]);
+    return NextResponse.json({
+      canDispatch: perm.ok,
+      rows: rows.map((r) => ({ ...r, w2: num(r.w2), w3: num(r.w3), total: num(r.total), need: num(r.need) })),
     });
   }
 

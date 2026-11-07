@@ -98,6 +98,37 @@ export default function DespachoPage() {
     return () => { alive = false; };
   }, [current, reload]);
 
+  // Guías que llegan desde «Stock en almacén»: se agregan solas al viaje
+  const [preload, setPreload] = useState<string[] | null>(null);
+  useEffect(() => {
+    // Vale por un minuto (al entrar, la pantalla puede montarse más de una vez)
+    let got: { site?: string; guias?: string[]; at?: number } | null = null;
+    try { got = JSON.parse(sessionStorage.getItem("sb-despacho-preload") ?? "null"); } catch { got = null; }
+    if (!got?.guias?.length || !got.at || Date.now() - got.at > 60_000) return;
+    // Se lee una sola vez al abrir (no existe en el servidor, por eso va en un efecto)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (got.site === "PCL" || got.site === "YUR") setSite(got.site);
+    setPreload(got.guias.map(String));
+  }, []);
+  useEffect(() => {
+    if (!preload || !current) return;
+    let alive = true;
+    (async () => {
+      const got: Guia[] = [], bad: string[] = [];
+      for (const g of preload) {
+        const r = await fetch(`/api/despacho?${new URLSearchParams({ site: current, guia: g })}`);
+        const j = await r.json().catch(() => null);
+        if (r.ok && j) got.push(j); else bad.push(g);
+      }
+      if (!alive) return;
+      setGuias((x) => [...x, ...got.filter((g) => !x.some((y) => y.guia === g.guia))]);
+      setPreload(null);
+      if (got.length) toast.success(`${got.length} guía(s) agregadas desde el stock`);
+      if (bad.length) toast.warning(`No se pudieron agregar: ${bad.join(", ")}`);
+    })();
+    return () => { alive = false; };
+  }, [preload, current]);
+
   const tot = guias.reduce((t, g) => ({ w2: t.w2 + g.w2, w3: t.w3 + g.w3, total: t.total + g.total, need: t.need + g.need }), { w2: 0, w3: 0, total: 0, need: 0 });
 
   async function add() {
@@ -126,6 +157,7 @@ export default function DespachoPage() {
     if (!r.ok) return toast.danger(j.error);
     toast.success(`Despachado con ${j.driver}`, { description: `${n(j.units)} unidades → Tránsito dealer`, timeout: 7000 });
     if (tot.need && !reason) toast.warning(`${tot.need} unidades quedaron sin motivo de demora`, { description: "Puedes justificarlas después desde PCL/YUR o Alertas", timeout: 8000 });
+    try { sessionStorage.removeItem("sb-despacho-preload"); } catch { /* nada */ }
     setGuias([]); setReason(""); setPlate(""); setReload((x) => x + 1);
   }
 
@@ -135,7 +167,7 @@ export default function DespachoPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageTitle title="Despacho" sub="5. Arma el viaje del camión con sus guías, indica chofer, placa y fecha, y despacha. Abajo ves el resumen de cada viaje.">
+      <PageTitle title="Despacho" sub="5. Arma el viaje del camión con sus guías (o márcalas en «Stock en almacén»), indica chofer, placa y fecha, y despacha. Abajo ves el resumen de cada viaje.">
         {sites.length > 1 && (
           <div className="flex rounded-full bg-sb-surface-container p-1">
             {sites.map((s) => (
