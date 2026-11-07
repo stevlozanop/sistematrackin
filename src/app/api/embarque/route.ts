@@ -128,12 +128,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ rows: rows.map(({ bay, rw, tier, ...r }) => { const sl = slotOf({ bay, rw, tier }); return { ...r, place: sl ? slotName(sl, v) : null }; }) });
   }
 
-  const naves = await queryList<{ nave: string; containers: number; w2: number; w3: number; total: number; first: string; last: string; need: number; codes: string }>(
+  const naves = await queryList<{ nave: string; containers: number; w2: number; w3: number; total: number; first: string; last: string; need: number; codes: string; bays: number | null; rows: number | null; tiers: number | null }>(
     `SELECT c.nave, COUNT(DISTINCT c.id) containers, SUM(u.category = '2W') w2, SUM(u.category = '3W') w3, COUNT(u.id) total,
        MIN(c.loaded_on) first, MAX(c.loaded_on) last,
        SUM(v.est_date < CURDATE() AND v.delay_reason IS NULL) need,
-       string_agg(DISTINCT c.code || '|' || c.id, ',') codes
-     FROM containers c JOIN units u ON u.container_id = c.id JOIN v_units v ON v.id = u.id
+       string_agg(DISTINCT c.code || '|' || c.id || '|' || COALESCE(c.slot_bay, 0) || '|' || COALESCE(c.slot_row, 0) || '|' || COALESCE(c.slot_tier, 0), ',') codes,
+       MAX(ve.bays) bays, MAX(ve.rows) rows, MAX(ve.tiers) tiers
+     FROM containers c JOIN units u ON u.container_id = c.id JOIN v_units v ON v.id = u.id LEFT JOIN vessels ve ON ve.name = c.nave
      WHERE c.site = ? AND c.sailed_on IS NULL
      GROUP BY c.nave ORDER BY MIN(c.loaded_on), c.nave`,
     [site],
@@ -143,7 +144,12 @@ export async function GET(req: Request) {
     site, canEmbark: perm.embark, canSail: perm.sail,
     naves: naves.map((n) => ({
       ...n, containers: Number(n.containers), w2: Number(n.w2 ?? 0), w3: Number(n.w3 ?? 0), total: Number(n.total), need: Number(n.need ?? 0),
-      list: (n.codes ?? "").split(",").filter(Boolean).map((x) => { const [code, id] = x.split("|"); return { code, id: Number(id) }; }),
+      // Cada contenedor con su lugar en la nave (para dibujarlo en el muelle) y el tamaño de la nave
+      list: (n.codes ?? "").split(",").filter(Boolean).map((x) => {
+        const [code, id, bay, row, tier] = x.split("|");
+        return { code, id: Number(id), slot: Number(bay) && Number(row) && Number(tier) ? { bay: Number(bay), row: Number(row), tier: Number(tier) } : null };
+      }),
+      vessel: n.bays ? { bays: Number(n.bays), rows: Number(n.rows), tiers: Number(n.tiers) } : DEFAULT_VESSEL,
     })),
     known: known.map((k) => k.v),
   });

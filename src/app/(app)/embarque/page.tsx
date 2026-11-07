@@ -17,6 +17,7 @@ import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
 import { NaveContents } from "@/components/embarque/NaveContents";
 import { StowagePlan } from "@/components/embarque/StowagePlan";
 import { PendingGuias } from "@/components/embarque/PendingGuias";
+import { ContainerPanel } from "@/components/embarque/ContainerPanel";
 
 /**
  * Embarque y zarpe (Iquitos):
@@ -27,7 +28,7 @@ import { PendingGuias } from "@/components/embarque/PendingGuias";
  */
 
 type Guia = { guia: string; district: string; dealer: string; w2: number; w3: number; total: number; need: number; skipped: number };
-type Nave = { nave: string; containers: number; w2: number; w3: number; total: number; first: string; last: string; need: number; list: { code: string; id: number }[] };
+type Nave = { nave: string; containers: number; w2: number; w3: number; total: number; first: string; last: string; need: number; list: { code: string; id: number; slot: { bay: number; row: number; tier: number } | null }[]; vessel: { bays: number; rows: number; tiers: number } };
 type Data = { site: Site; canEmbark: boolean; canSail: boolean; naves: Nave[]; known: string[]; error?: string };
 type Row = { cid: number; code: string; loaded_on: string; guia: string | null; district: string | null; dealer: string | null; category: string | null; chassis: string; motor: string | null; material: string | null };
 
@@ -140,6 +141,8 @@ export default function EmbarquePage() {
   const [sailing, setSailing] = useState(false);
   const [view, setView] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<Set<string>>(new Set());
+  // Contenedor tocado en el muelle: su contenido en el panel del costado
+  const [boxPick, setBoxPick] = useState<{ id: number; code: string; nave: string } | null>(null);
 
   useEffect(() => { fetch("/api/me").then((r) => r.json()).then(setMe); }, []);
   const sites = useMemo<Site[]>(() => {
@@ -238,7 +241,8 @@ export default function EmbarquePage() {
           <DockScene naves={data?.naves ?? []} checked={checked} leaving={leaving} canSail={!!data?.canSail}
             building={{ guias: guias.length, units: tot.total, container, nave }}
             onOpen={setView}
-            onToggle={(v) => setChecked((st) => { const y = new Set(st); if (y.has(v)) y.delete(v); else y.add(v); return y; })} />
+            onToggle={(v) => setChecked((st) => { const y = new Set(st); if (y.has(v)) y.delete(v); else y.add(v); return y; })}
+            onPickContainer={setBoxPick} selectedContainer={boxPick?.id ?? null} />
         </Card>
 
         {/* Guías que esperan embarque, con aviso de duplicadas */}
@@ -419,6 +423,7 @@ export default function EmbarquePage() {
           </div>
         </Card>
       </div>
+      <ContainerPanel site={current} pick={boxPick} onClose={() => setBoxPick(null)} onOpenNave={setView} />
       <NaveDetail key={view ?? "none"} site={current} nave={view} naves={naveOptions} canUndo={!!data?.canEmbark} onClose={() => setView(null)} onChanged={() => setReload((x) => x + 1)} />
     </MotionConfig>
   );
