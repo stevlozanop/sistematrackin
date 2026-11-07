@@ -7,7 +7,7 @@ import { ContainerEdit } from "./ContainerEdit";
 import { fmtDate } from "@/lib/hsp";
 import { cn } from "@/lib/cn";
 
-export type NaveRow = { cid: number; code: string; loaded_on: string; guia: string | null; district: string | null; dealer: string | null; category: string | null; chassis: string; motor: string | null; material: string | null };
+export type NaveRow = { cid: number; code: string; loaded_on: string; place?: string | null; guia: string | null; district: string | null; dealer: string | null; category: string | null; chassis: string; motor: string | null; material: string | null };
 
 const n = (v: number) => Number(v ?? 0).toLocaleString("es-PE");
 /** «GL125E3 S/D-RO» → modelo «GL125E3» */
@@ -30,9 +30,9 @@ export function NaveContents({ site, nave, rows, canUndo, onUndo, naves = [], on
   naves?: string[]; onEdited?: (moved: boolean) => void;
 }) {
   const containers = useMemo(() => {
-    const m = new Map<number, { code: string; loaded_on: string; units: NaveRow[] }>();
+    const m = new Map<number, { code: string; loaded_on: string; place: string | null; units: NaveRow[] }>();
     for (const r of rows) {
-      const c = m.get(r.cid) ?? { code: r.code, loaded_on: r.loaded_on, units: [] };
+      const c = m.get(r.cid) ?? { code: r.code, loaded_on: r.loaded_on, place: r.place ?? null, units: [] };
       c.units.push(r);
       m.set(r.cid, c);
     }
@@ -87,7 +87,7 @@ export function NaveContents({ site, nave, rows, canUndo, onUndo, naves = [], on
       {/* 2. Contenedores: uno a la vez */}
       {containers.length > 1 && (
         <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
-          {[{ id: "all" as const, code: "Todos", units: rows }, ...containers].map((c) => (
+          {[{ id: "all" as const, code: "Todos", units: rows, place: null }, ...containers].map((c) => (
             <button key={c.id} type="button" onClick={() => setPick(c.id)}
               className={cn("flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
                 pick === c.id ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant text-sb-on-surface-variant hover:text-sb-on-surface")}>
@@ -114,7 +114,7 @@ export function NaveContents({ site, nave, rows, canUndo, onUndo, naves = [], on
         }
         return (
           <div className="flex items-center justify-between gap-2 rounded-xl border border-sb-outline-variant/50 px-3 py-2 text-xs">
-            <span className="flex items-center gap-2"><Box className="h-4 w-4" /><b className="text-sm">{c.code}</b><span className="text-sb-on-surface-variant">embarcado {fmtDate(c.loaded_on)}</span></span>
+            <span className="flex items-center gap-2"><Box className="h-4 w-4" /><b className="text-sm">{c.code}</b><span className="text-sb-on-surface-variant">embarcado {fmtDate(c.loaded_on)}</span>{c.place && <span className="rounded-full bg-sb-primary-soft px-2 py-0.5 text-[10px] font-semibold">{c.place}</span>}</span>
             {canUndo && (
               <span className="flex items-center gap-1">
                 <button type="button" onClick={() => setEditing(c.id)} className="flex items-center gap-1 rounded-full px-2 py-1 font-medium text-sb-on-surface hover:bg-sb-surface-container">

@@ -3,6 +3,7 @@ import { queryList, tx } from "@/lib/db";
 import { getScope, guard } from "@/lib/guard";
 import { isSite, type Site } from "@/lib/hsp";
 import { isSuper, today } from "@/lib/workflow";
+import { DEFAULT_VESSEL, floating, inside, nextFree, same, slotName, type Slot, type Vessel } from "@/lib/stowage";
 
 /**
  * Embarque y zarpe en Iquitos (pasos 1.1 y 2).
@@ -29,6 +30,23 @@ async function can(s: Who, site: Site) {
   const has = (f: string) => sc.stages.some((st) => st.site === site && st.field === f);
   return { embark: has("d_carga"), sail: has("d_zarpe"), carrier: sc.carrier };
 }
+
+/** Tamaño de la nave (o el de siempre si aún no se configuró) */
+async function vesselOf(nave: string): Promise<Vessel> {
+  const [v] = await queryList<Vessel>("SELECT bays, rows, tiers FROM vessels WHERE name = ?", [nave]);
+  return v ? { bays: Number(v.bays), rows: Number(v.rows), tiers: Number(v.tiers) } : DEFAULT_VESSEL;
+}
+/** Contenedores de la nave que aún no zarpa, con su lugar */
+async function planOf(site: string, nave: string) {
+  return queryList<{ id: number; code: string; bay: number | null; rw: number | null; tier: number | null; units: number; guias: number; dealers: string | null; loaded_on: string }>(
+    `SELECT c.id, c.code, c.slot_bay bay, c.slot_row rw, c.slot_tier tier, c.loaded_on, COUNT(u.id) units, COUNT(DISTINCT u.guia) guias,
+       string_agg(DISTINCT d.name::text, ', ') dealers
+     FROM containers c LEFT JOIN units u ON u.container_id = c.id LEFT JOIN dealers d ON d.id = u.dealer_id
+     WHERE c.site = ? AND c.nave = ? AND c.sailed_on IS NULL
+     GROUP BY c.id, c.code, c.slot_bay, c.slot_row, c.slot_tier, c.loaded_on ORDER BY c.id`, [site, nave]);
+}
+const slotOf = (c: { bay: number | null; rw: number | null; tier: number | null }): Slot | null =>
+  c.bay && c.rw && c.tier ? { bay: Number(c.bay), row: Number(c.rw), tier: Number(c.tier) } : null;
 
 const day = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
 const text = (v: unknown, max: number) => String(v ?? "").trim().replace(/\s+/g, " ").toUpperCase().slice(0, max);
@@ -66,15 +84,21 @@ export async function GET(req: Request) {
 
   // Detalle de una nave: contenedores → guías → chasis
   const nave = p.get("nave")?.trim();
+  // Plano de estiba de la nave
+  if (nave && p.get("plan")) {
+    const [vessel, plan] = await Promise.all([vesselOf(nave), planOf(site, nave)]);
+    return NextResponse.json({ vessel, canEdit: perm.embark, containers: plan.map((c) => ({ ...c, units: Number(c.units), guias: Number(c.guias), slot: slotOf(c) })) });
+  }
   if (nave) {
-    const rows = await queryList<{ cid: number; code: string; loaded_on: string; guia: string | null; district: string | null; dealer: string | null; category: string | null; chassis: string; motor: string | null; material: string | null }>(
-      `SELECT c.id cid, c.code, c.loaded_on, u.guia, u.district, d.name dealer, u.category, u.chassis, u.motor, u.material
+    const rows = await queryList<{ cid: number; code: string; loaded_on: string; bay: number | null; rw: number | null; tier: number | null; guia: string | null; district: string | null; dealer: string | null; category: string | null; chassis: string; motor: string | null; material: string | null }>(
+      `SELECT c.id cid, c.code, c.loaded_on, c.slot_bay bay, c.slot_row rw, c.slot_tier tier, u.guia, u.district, d.name dealer, u.category, u.chassis, u.motor, u.material
        FROM containers c JOIN units u ON u.container_id = c.id LEFT JOIN dealers d ON d.id = u.dealer_id
        WHERE c.site = ? AND c.nave = ? AND c.sailed_on IS NULL
        ORDER BY c.id, u.guia, u.chassis`,
       [site, nave],
     );
-    return NextResponse.json({ rows });
+    const v = await vesselOf(nave);
+    return NextResponse.json({ rows: rows.map(({ bay, rw, tier, ...r }) => { const sl = slotOf({ bay, rw, tier }); return { ...r, place: sl ? slotName(sl, v) : null }; }) });
   }
 
   const naves = await queryList<{ nave: string; containers: number; w2: number; w3: number; total: number; first: string; last: string; need: number; codes: string }>(
@@ -121,6 +145,43 @@ export async function POST(req: Request) {
       return list.length;
     });
     return NextResponse.json({ ok: true, units: n, code: c.code });
+  }
+
+  // Plano de estiba: mover un contenedor a un lugar (si está ocupado, se intercambian) o dejarlo sin ubicar
+  if (b.action === "place" || b.action === "unplace") {
+    const [c] = await queryList<{ id: number; site: Site; nave: string; sailed_on: string | null }>("SELECT id, site, nave, sailed_on FROM containers WHERE id = ?", [Number(b.id)]);
+    if (!c) return NextResponse.json({ error: "Ese contenedor no existe" }, { status: 404 });
+    if (!(await can(s, c.site)).embark) return NextResponse.json({ error: "No tienes permiso para esta acción" }, { status: 403 });
+    if (c.sailed_on) return NextResponse.json({ error: "La nave ya zarpó" }, { status: 409 });
+    const v = await vesselOf(c.nave);
+    const plan = await planOf(c.site, c.nave);
+    const me = plan.find((x) => x.id === c.id)!;
+    const from = slotOf(me);
+    const to: Slot | null = b.action === "place" ? { bay: Number(b.bay), row: Number(b.row), tier: Number(b.tier) } : null;
+    if (to && !inside(to, v)) return NextResponse.json({ error: "Ese lugar no existe en la nave" }, { status: 400 });
+    const other = to ? plan.find((x) => x.id !== c.id && slotOf(x) && same(slotOf(x)!, to)) : undefined;
+    // Cómo quedaría el plano
+    const after = plan.map((x) => x.id === c.id ? to : other && x.id === other.id ? from : slotOf(x)).filter(Boolean) as Slot[];
+    const bad = floating(after);
+    if (bad) return NextResponse.json({ error: "Así un contenedor quedaría flotando: primero ocupa el lugar de abajo" }, { status: 400 });
+    await tx(async (q) => {
+      await q.query("UPDATE containers SET slot_bay = ?, slot_row = ?, slot_tier = ? WHERE id = ?", [to?.bay ?? null, to?.row ?? null, to?.tier ?? null, c.id]);
+      if (other) await q.query("UPDATE containers SET slot_bay = ?, slot_row = ?, slot_tier = ? WHERE id = ?", [from?.bay ?? null, from?.row ?? null, from?.tier ?? null, other.id]);
+    });
+    return NextResponse.json({ ok: true, swapped: other?.code ?? null });
+  }
+  // Tamaño de la nave
+  if (b.action === "vessel") {
+    const nave = text(b.nave, 60);
+    if (!nave) return NextResponse.json({ error: "Indica la nave" }, { status: 400 });
+    const site = isSite(b.site) ? b.site : "PCL";
+    if (!(await can(s, site)).embark) return NextResponse.json({ error: "No tienes permiso para esta acción" }, { status: 403 });
+    const v: Vessel = { bays: Math.round(Number(b.bays)), rows: Math.round(Number(b.rows)), tiers: Math.round(Number(b.tiers)) };
+    if (!(v.bays >= 1 && v.bays <= 20 && v.rows >= 1 && v.rows <= 6 && v.tiers >= 1 && v.tiers <= 5)) return NextResponse.json({ error: "Tamaño fuera de rango (bahías 1–20, filas 1–6, niveles 1–5)" }, { status: 400 });
+    const out = (await planOf(site, nave)).filter((x) => { const sl = slotOf(x); return sl && !inside(sl, v); });
+    if (out.length) return NextResponse.json({ error: `No entra: ${out.map((x) => x.code).join(", ")} quedaría fuera. Muévelos primero.` }, { status: 409 });
+    await queryList("INSERT INTO vessels(name, bays, rows, tiers) VALUES (?, ?, ?, ?) ON CONFLICT (name) DO UPDATE SET bays = EXCLUDED.bays, rows = EXCLUDED.rows, tiers = EXCLUDED.tiers", [nave, v.bays, v.rows, v.tiers]);
+    return NextResponse.json({ ok: true, vessel: v });
   }
 
   // Editar un contenedor (su nave aún no zarpa): número, nave, fecha de embarque,
@@ -213,8 +274,11 @@ export async function POST(req: Request) {
     if (early) return NextResponse.json({ error: `La fecha no puede ser anterior a la facturación (${early.billing_date})` }, { status: 400 });
     const late = units.filter((u) => u.est_date && !u.delay_reason && (date > u.est_date || today() > u.est_date));
 
+    // Se ubica en el próximo lugar libre de la nave (de abajo hacia arriba); si está llena, queda sin ubicar
+    const free = nextFree((await planOf(site, nave)).map(slotOf).filter(Boolean) as Slot[], await vesselOf(nave));
     const id = await tx(async (q) => {
-      const [c] = await q.query("INSERT INTO containers(site, code, nave, loaded_on, created_by) VALUES (?, ?, ?, ?, ?) RETURNING id", [site, code, nave, date, s.id]);
+      const [c] = await q.query("INSERT INTO containers(site, code, nave, loaded_on, created_by, slot_bay, slot_row, slot_tier) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+        [site, code, nave, date, s.id, free?.bay ?? null, free?.row ?? null, free?.tier ?? null]);
       const cid = (c as { id: number }[])[0].id;
       const ids = units.map((u) => u.id);
       await q.query("UPDATE units SET d_carga = ?, nave = ?, container = ?, container_id = ? WHERE id IN (?) AND d_carga IS NULL", [date, nave, code, cid, ids]);
