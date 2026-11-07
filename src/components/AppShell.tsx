@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, type LucideIcon } from "lucide-react";
+import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
@@ -40,6 +40,8 @@ const SECTIONS: Section[] = [
       { title: "Mi trabajo", href: "/my", icon: ClipboardCheck },
       // Solo quien embarca o zarpa en Iquitos
       { title: "Embarque y zarpe", href: "/embarque", icon: Container, fields: ["d_carga", "d_zarpe"] },
+      // Solo quien recibe la nave o la ingresa al almacén en destino
+      { title: "Arribo e ingreso", href: "/arribo", icon: Warehouse, fields: ["d_arribo", "d_almacen"] },
       { title: "Carga por guía", href: "/guias", icon: FileStack },
       { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship },
       { title: "YUR · Yurimaguas", href: "/units/yur", icon: Truck },
@@ -77,6 +79,7 @@ const SECTIONS: Section[] = [
     items: [
       { title: "Encargados en vivo", href: "/live", icon: Activity, badge: "online" },
       { title: "Embarque y zarpe", href: "/embarque", icon: Container },
+      { title: "Arribo e ingreso", href: "/arribo", icon: Warehouse },
       { title: "Carga por guía", href: "/guias", icon: FileStack },
     ],
   },
