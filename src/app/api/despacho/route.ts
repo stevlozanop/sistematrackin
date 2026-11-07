@@ -54,15 +54,16 @@ export async function GET(req: Request) {
 
   // Stock en almacén: todo lo que ingresó y aún no se despacha, por guía
   if (p.get("stock")) {
-    const rows = await queryList<{ guia: string | null; district: string | null; dealer: string | null; nave: string | null; container: string | null; w2: number; w3: number; total: number; since: string; need: number; models: string | null }>(
+    const rows = await queryList<{ guia: string | null; district: string | null; dealer: string | null; nave: string | null; container: string | null; w2: number; w3: number; total: number; since: string; need: number; models: string | null; est: string | null; billing: string | null; overdue: number }>(
       `SELECT guia, district, dealer, MAX(nave) nave, MAX(container) container,
          SUM(category = '2W') w2, SUM(category = '3W') w3, COUNT(*) total, MIN(d_almacen) since,
-         SUM(est_date < CURDATE() AND delay_reason IS NULL) need, string_agg(DISTINCT split_part(replace(material::text, '_', ' '), ' ', 1), ', ') models
+         SUM(est_date < CURDATE() AND delay_reason IS NULL) need, string_agg(DISTINCT split_part(replace(material::text, '_', ' '), ' ', 1), ', ') models,
+         MIN(est_date) est, MIN(billing_date) billing, SUM(est_date < CURDATE()) overdue
        FROM v_units WHERE site = ? AND next_step = 'd_despacho'${scope}
        GROUP BY guia, district, dealer ORDER BY MIN(d_almacen), district, dealer, guia`, [site, ...sargs]);
     return NextResponse.json({
       canDispatch: perm.ok,
-      rows: rows.map((r) => ({ ...r, w2: num(r.w2), w3: num(r.w3), total: num(r.total), need: num(r.need) })),
+      rows: rows.map((r) => ({ ...r, w2: num(r.w2), w3: num(r.w3), total: num(r.total), need: num(r.need), overdue: num(r.overdue) })),
     });
   }
 
