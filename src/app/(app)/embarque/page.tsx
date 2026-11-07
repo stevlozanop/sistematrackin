@@ -16,6 +16,7 @@ import { SuggestInput } from "@/components/SuggestInput";
 import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
 import { NaveContents } from "@/components/embarque/NaveContents";
 import { StowagePlan } from "@/components/embarque/StowagePlan";
+import { PendingGuias } from "@/components/embarque/PendingGuias";
 
 /**
  * Embarque y zarpe (Iquitos):
@@ -239,6 +240,10 @@ export default function EmbarquePage() {
             onOpen={setView}
             onToggle={(v) => setChecked((st) => { const y = new Set(st); if (y.has(v)) y.delete(v); else y.add(v); return y; })} />
         </Card>
+
+        {/* Guías que esperan embarque, con aviso de duplicadas */}
+        <PendingGuias site={current} inBox={guias.map((g) => g.guia)} canEmbark={!!data?.canEmbark}
+          onAdd={(g) => addGuia(g)} onChanged={() => setReload((x) => x + 1)} />
 
         {/* 1. Embarque de un contenedor */}
         <Card className="overflow-hidden">

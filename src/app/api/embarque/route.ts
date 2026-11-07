@@ -83,6 +83,33 @@ export async function GET(req: Request) {
   }
 
   // Detalle de una nave: contenedores → guías → chasis
+  // Guías pendientes de embarque (en IQT-Port), con avisos de posible duplicado
+  if (p.get("pending")) {
+    const scope = perm.carrier ? " AND v.carrier = ?" : "";
+    const rows = await queryList<{ guia: string; district: string | null; dealer: string | null; w2: number; w3: number; total: number; billing: string | null; est: string | null; overdue: number; models: string | null; ahead: number; ahead_status: string | null; other_site: string | null; dup_chassis: number }>(
+      `SELECT v.guia, MAX(v.district) district, MAX(v.dealer) dealer, SUM(v.category = '2W') w2, SUM(v.category = '3W') w3, COUNT(*) total,
+         MIN(v.billing_date) billing, MIN(v.est_date) est, SUM(v.est_date < CURDATE()) overdue,
+         string_agg(DISTINCT split_part(replace(v.material::text, '_', ' '), ' ', 1), ', ') models,
+         (SELECT COUNT(*) FROM v_units w WHERE w.site = v.site AND w.guia = v.guia AND w.next_step IS DISTINCT FROM 'd_carga') ahead,
+         (SELECT MAX(w.status) FROM v_units w WHERE w.site = v.site AND w.guia = v.guia AND w.next_step IS DISTINCT FROM 'd_carga') ahead_status,
+         (SELECT MAX(o.site) FROM units o WHERE o.guia = v.guia AND o.site <> v.site) other_site,
+         (SELECT COUNT(*) FROM units o WHERE o.site <> v.site AND o.chassis IN (SELECT x.chassis FROM units x WHERE x.site = v.site AND x.guia = v.guia AND x.d_carga IS NULL)) dup_chassis
+       FROM v_units v WHERE v.site = ? AND v.next_step = 'd_carga' AND v.guia IS NOT NULL${scope}
+       GROUP BY v.site, v.guia ORDER BY MIN(v.billing_date), v.guia`,
+      perm.carrier ? [site, perm.carrier] : [site]);
+    const num = (x: unknown) => Number(x ?? 0);
+    return NextResponse.json({
+      canDelete: s.role === "admin",
+      rows: rows.map((r) => {
+        const flags: string[] = [];
+        if (num(r.ahead)) flags.push(`${num(r.ahead)} unidades de esta guía ya están en «${r.ahead_status}»`);
+        if (r.other_site) flags.push(`Esta guía también está cargada en ${r.other_site}`);
+        if (num(r.dup_chassis)) flags.push(`${num(r.dup_chassis)} chasis también están en la otra ruta`);
+        return { ...r, w2: num(r.w2), w3: num(r.w3), total: num(r.total), overdue: num(r.overdue), flags };
+      }),
+    });
+  }
+
   const nave = p.get("nave")?.trim();
   // Plano de estiba de la nave
   if (nave && p.get("plan")) {
@@ -145,6 +172,17 @@ export async function POST(req: Request) {
       return list.length;
     });
     return NextResponse.json({ ok: true, units: n, code: c.code });
+  }
+
+  // Eliminar una guía duplicada que aún no se embarca (solo la empresa): se borran sus unidades pendientes en IQT-Port
+  if (b.action === "delete-guia") {
+    if (s.role !== "admin") return NextResponse.json({ error: "Solo la empresa puede eliminar guías" }, { status: 403 });
+    const site = b.site, guia = String(b.guia ?? "").trim();
+    if (!isSite(site) || !guia) return NextResponse.json({ error: "Indica la guía" }, { status: 400 });
+    const units = await queryList<{ id: number }>("SELECT id FROM units WHERE site = ? AND guia = ? AND d_carga IS NULL AND container_id IS NULL", [site, guia]);
+    if (!units.length) return NextResponse.json({ error: "Esa guía no tiene unidades pendientes de embarque" }, { status: 409 });
+    await tx(async (q) => { await q.query("DELETE FROM units WHERE id IN (?)", [units.map((u) => u.id)]); });
+    return NextResponse.json({ ok: true, units: units.length, guia });
   }
 
   // Plano de estiba: mover un contenedor a un lugar (si está ocupado, se intercambian) o dejarlo sin ubicar
