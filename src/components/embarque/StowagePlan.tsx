@@ -5,6 +5,7 @@ import { ArrowLeftRight, Box, Inbox, Ruler, X } from "lucide-react";
 import type { Site } from "@/lib/hsp";
 import { bayName, floating, rowName, same, slotName, tierName, type Slot, type Vessel } from "@/lib/stowage";
 import { cn } from "@/lib/cn";
+import { Stowage3D } from "./Stowage3D";
 
 type Item = { id: number; code: string; slot: Slot | null; units: number; guias: number; dealers: string | null };
 
@@ -21,6 +22,8 @@ export function StowagePlan({ site, nave, onChanged }: { site: Site; nave: strin
   const [sel, setSel] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [sizing, setSizing] = useState<Vessel | null>(null);
+  // En celular se abre el plano por niveles (se lee mejor); el 3D queda a un toque
+  const [mode, setMode] = useState<"3d" | "plano">(() => (typeof window !== "undefined" && window.innerWidth < 640 ? "plano" : "3d"));
 
   const load = useCallback(() => {
     fetch(`/api/embarque?${new URLSearchParams({ site, nave, plan: "1" })}`).then((r) => r.json()).then((j) => {
@@ -94,8 +97,16 @@ export function StowagePlan({ site, nave, onChanged }: { site: Site; nave: strin
         </div>
       )}
 
+      {/* Vista: 3D o plano por niveles (en celular el plano se lee mejor) */}
+      <div className="flex w-max gap-1 rounded-full bg-sb-surface-container p-1">
+        {([["3d", "Vista 3D"], ["plano", "Plano por niveles"]] as const).map(([k, l]) => (
+          <button key={k} type="button" onClick={() => setMode(k)}
+            className={cn("rounded-full px-3 py-1.5 text-xs font-semibold transition-colors", mode === k ? "bg-sb-on-surface text-sb-surface" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>{l}</button>
+        ))}
+      </div>
+
       {/* Niveles: de arriba hacia abajo */}
-      <div className="flex w-max max-w-full gap-1 overflow-x-auto rounded-full bg-sb-surface-container p-1">
+      <div className={cn("flex w-max max-w-full gap-1 overflow-x-auto rounded-full bg-sb-surface-container p-1", mode === "3d" && "hidden")}>
         {tiers.map((tt) => (
           <button key={tt} type="button" onClick={() => setTier(tt)}
             className={cn("flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors", t === tt ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
@@ -107,12 +118,18 @@ export function StowagePlan({ site, nave, onChanged }: { site: Site; nave: strin
       {/* Ayuda / acción en curso */}
       <p className={cn("rounded-xl px-3 py-2 text-[11px]", picked ? "bg-sb-primary-soft text-sb-on-surface" : "bg-sb-surface-container-low text-sb-on-surface-variant")}>
         {picked
-          ? <>Moviendo <b className="font-mono">{picked.code}</b>{picked.slot ? <> (está en {slotName(picked.slot, vessel)})</> : " (sin ubicar)"}: toca el lugar donde va. Si está ocupado, se intercambian.</>
-          : canEdit ? "Toca un contenedor para moverlo. Arriba eliges el nivel; la proa está a la izquierda." : "Así está cargada la nave. La proa está a la izquierda."}
+          ? <>Moviendo <b className="font-mono">{picked.code}</b>{picked.slot ? <> (está en {slotName(picked.slot, vessel)})</> : " (sin ubicar)"}: toca {mode === "3d" ? "un «+» o el contenedor con el que quieras intercambiarlo" : "el lugar donde va. Si está ocupado, se intercambian"}.</>
+          : canEdit ? (mode === "3d" ? "Toca un contenedor para moverlo y luego el «+» donde va. Gira la nave con los botones de arriba." : "Toca un contenedor para moverlo. Arriba eliges el nivel; la proa está a la izquierda.") : "Así está cargada la nave."}
       </p>
 
+      {mode === "3d" && (
+        <Stowage3D vessel={vessel} items={items} sel={sel} canEdit={canEdit && !busy} canDrop={canDrop}
+          onTapItem={(id) => { const it = items.find((i) => i.id === id); if (it?.slot) tap(it.slot); else setSel(sel === id ? null : id); }}
+          onTapSlot={tap} />
+      )}
+
       {/* Cuadrícula del nivel: bahías × filas, con la forma de la nave */}
-      <div className="-mx-1 overflow-x-auto px-1 pb-1">
+      <div className={cn("-mx-1 overflow-x-auto px-1 pb-1", mode === "3d" && "hidden")}>
         <div className="relative min-w-max rounded-[1.5rem_0.75rem_0.75rem_1.5rem] border-2 border-sb-outline-variant/70 bg-sb-surface-container-low/60 p-2 sm:p-3">
           <div className="grid gap-1.5" style={{ gridTemplateColumns: `3.4rem repeat(${vessel.bays}, minmax(4.6rem, 1fr))` }}>
             <span />
