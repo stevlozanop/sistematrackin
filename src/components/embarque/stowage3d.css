@@ -27,3 +27,8 @@
 .st3-bow{position:absolute;transform:translate(-50%,-50%);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--sb-on-surface-variant);pointer-events:none}
 @media (prefers-reduced-motion:reduce){.st3 .st3-box,.st3-drop{animation:none}}
 @media (max-width:640px){.st3-tag{font-size:8px;padding:0 4px}.st3-drop{width:20px;height:20px;font-size:12px}}
+/* Contenedores de colores (como en el puerto) */
+.st3 .st3-box[style] .iso-top{fill:color-mix(in oklab,var(--box) 62%,#fff)}
+.st3 .st3-box[style] .iso-fill{fill:color-mix(in oklab,var(--box) 88%,#fff)}
+.st3 .st3-box[style] .iso-shade{fill:color-mix(in oklab,var(--box) 78%,#000)}
+.st3 .st3-box.is-sel .iso-top{fill:var(--sb-primary)}

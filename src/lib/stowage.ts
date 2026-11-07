@@ -2,10 +2,21 @@
  * Plano de estiba de una nave: cada lugar es bahía (proa → popa) × fila (izquierda → derecha) × nivel (abajo → arriba).
  * Se usa en el servidor (validar y ubicar) y en la pantalla (nombres de los lugares).
  */
-export type Vessel = { bays: number; rows: number; tiers: number };
+export type VesselKind = "chata" | "motonave";
+export type Vessel = { bays: number; rows: number; tiers: number; kind?: VesselKind };
 export type Slot = { bay: number; row: number; tier: number };
 
-export const DEFAULT_VESSEL: Vessel = { bays: 4, rows: 3, tiers: 2 };
+export const DEFAULT_VESSEL: Vessel = { bays: 4, rows: 3, tiers: 2, kind: "chata" };
+
+/**
+ * Tamaño inicial según el tipo de nave (como en las fotos del puerto de Iquitos):
+ * - chata (KIARA): barcaza plana con empujador, contenedores en filas largas → 6 × 2 × 2
+ * - motonave (HENRY): barco de pasajeros, pocos contenedores en la cubierta de proa → 2 × 2 × 2
+ * Las HENRY son motonaves; las demás, chatas, hasta que la empresa diga otra cosa.
+ */
+export const kindOf = (name: string): VesselKind => (/^\s*HENRY/i.test(name) ? "motonave" : "chata");
+export const defaultVessel = (name: string): Vessel => (kindOf(name) === "motonave" ? { bays: 2, rows: 2, tiers: 2, kind: "motonave" } : { bays: 6, rows: 2, tiers: 2, kind: "chata" });
+export const KIND_LABEL: Record<VesselKind, string> = { chata: "Chata con empujador", motonave: "Motonave" };
 
 export const bayName = (b: number, v: Vessel) => (v.bays > 1 && b === 1 ? "Proa" : v.bays > 1 && b === v.bays ? "Popa" : `Bahía ${b}`);
 export const rowName = (r: number, v: Vessel) =>
@@ -36,4 +47,12 @@ export function nextFree(placed: Slot[], v: Vessel): Slot | null {
         return s;
       }
   return null;
+}
+
+/** Color del contenedor (como los reales: naranja, azul, verde, mostaza, rojo, gris), fijo por su código */
+const BOX_COLORS = ["#c8692a", "#2f6fb0", "#2f8a73", "#c9a227", "#a33b36", "#5b6b7a", "#3f7f3a"];
+export function boxColor(code: string) {
+  let h = 0;
+  for (const ch of code) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return BOX_COLORS[h % BOX_COLORS.length];
 }

@@ -3,7 +3,7 @@ import { queryList, tx } from "@/lib/db";
 import { getScope, guard } from "@/lib/guard";
 import { isSite, type Site } from "@/lib/hsp";
 import { isSuper, today } from "@/lib/workflow";
-import { DEFAULT_VESSEL, floating, inside, nextFree, same, slotName, type Slot, type Vessel } from "@/lib/stowage";
+import { defaultVessel, floating, inside, nextFree, same, slotName, type Slot, type Vessel, type VesselKind } from "@/lib/stowage";
 
 /**
  * Embarque y zarpe en Iquitos (pasos 1.1 y 2).
@@ -31,10 +31,19 @@ async function can(s: Who, site: Site) {
   return { embark: has("d_carga"), sail: has("d_zarpe"), carrier: sc.carrier };
 }
 
-/** Tamaño de la nave (o el de siempre si aún no se configuró) */
+/** Si aún no se configuró: el tamaño de su tipo, agrandado si ya tiene contenedores más allá */
+const fitDefault = (nave: string, used: (Slot | null)[]): Vessel => {
+  const d = defaultVessel(nave);
+  const max = (k: keyof Slot) => Math.max(0, ...used.map((x) => (x ? x[k] : 0)));
+  return { ...d, bays: Math.max(d.bays, max("bay")), rows: Math.max(d.rows, max("row")), tiers: Math.max(d.tiers, max("tier")) };
+};
+/** Tamaño y tipo de la nave (chata o motonave) */
 async function vesselOf(nave: string): Promise<Vessel> {
-  const [v] = await queryList<Vessel>("SELECT bays, rows, tiers FROM vessels WHERE name = ?", [nave]);
-  return v ? { bays: Number(v.bays), rows: Number(v.rows), tiers: Number(v.tiers) } : DEFAULT_VESSEL;
+  const [v] = await queryList<Vessel>("SELECT bays, rows, tiers, kind FROM vessels WHERE name = ?", [nave]);
+  if (v) return { bays: Number(v.bays), rows: Number(v.rows), tiers: Number(v.tiers), kind: (v.kind as VesselKind) ?? "chata" };
+  const used = await queryList<{ bay: number | null; rw: number | null; tier: number | null }>(
+    "SELECT slot_bay bay, slot_row rw, slot_tier tier FROM containers WHERE nave = ? AND sailed_on IS NULL", [nave]);
+  return fitDefault(nave, used.map((u) => slotOf(u)));
 }
 /** Contenedores de la nave que aún no zarpa, con su lugar */
 async function planOf(site: string, nave: string) {
@@ -128,12 +137,12 @@ export async function GET(req: Request) {
     return NextResponse.json({ rows: rows.map(({ bay, rw, tier, ...r }) => { const sl = slotOf({ bay, rw, tier }); return { ...r, place: sl ? slotName(sl, v) : null }; }) });
   }
 
-  const naves = await queryList<{ nave: string; containers: number; w2: number; w3: number; total: number; first: string; last: string; need: number; codes: string; bays: number | null; rows: number | null; tiers: number | null }>(
+  const naves = await queryList<{ nave: string; containers: number; w2: number; w3: number; total: number; first: string; last: string; need: number; codes: string; bays: number | null; rows: number | null; tiers: number | null; kind: string | null }>(
     `SELECT c.nave, COUNT(DISTINCT c.id) containers, SUM(u.category = '2W') w2, SUM(u.category = '3W') w3, COUNT(u.id) total,
        MIN(c.loaded_on) first, MAX(c.loaded_on) last,
        SUM(v.est_date < CURDATE() AND v.delay_reason IS NULL) need,
        string_agg(DISTINCT c.code || '|' || c.id || '|' || COALESCE(c.slot_bay, 0) || '|' || COALESCE(c.slot_row, 0) || '|' || COALESCE(c.slot_tier, 0), ',') codes,
-       MAX(ve.bays) bays, MAX(ve.rows) rows, MAX(ve.tiers) tiers
+       MAX(ve.bays) bays, MAX(ve.rows) rows, MAX(ve.tiers) tiers, MAX(ve.kind) kind
      FROM containers c JOIN units u ON u.container_id = c.id JOIN v_units v ON v.id = u.id LEFT JOIN vessels ve ON ve.name = c.nave
      WHERE c.site = ? AND c.sailed_on IS NULL
      GROUP BY c.nave ORDER BY MIN(c.loaded_on), c.nave`,
@@ -142,15 +151,18 @@ export async function GET(req: Request) {
   const known = await queryList<{ v: string }>("SELECT DISTINCT UPPER(nave) v FROM units WHERE nave IS NOT NULL AND nave <> '' ORDER BY v LIMIT 300");
   return NextResponse.json({
     site, canEmbark: perm.embark, canSail: perm.sail,
-    naves: naves.map((n) => ({
-      ...n, containers: Number(n.containers), w2: Number(n.w2 ?? 0), w3: Number(n.w3 ?? 0), total: Number(n.total), need: Number(n.need ?? 0),
-      // Cada contenedor con su lugar en la nave (para dibujarlo en el muelle) y el tamaño de la nave
-      list: (n.codes ?? "").split(",").filter(Boolean).map((x) => {
+    naves: naves.map((n) => {
+      const list = (n.codes ?? "").split(",").filter(Boolean).map((x) => {
         const [code, id, bay, row, tier] = x.split("|");
         return { code, id: Number(id), slot: Number(bay) && Number(row) && Number(tier) ? { bay: Number(bay), row: Number(row), tier: Number(tier) } : null };
-      }),
-      vessel: n.bays ? { bays: Number(n.bays), rows: Number(n.rows), tiers: Number(n.tiers) } : DEFAULT_VESSEL,
-    })),
+      });
+      return {
+      ...n, containers: Number(n.containers), w2: Number(n.w2 ?? 0), w3: Number(n.w3 ?? 0), total: Number(n.total), need: Number(n.need ?? 0),
+      // Cada contenedor con su lugar en la nave (para dibujarlo en el muelle) y el tamaño y tipo de la nave
+      list,
+      vessel: n.bays ? { bays: Number(n.bays), rows: Number(n.rows), tiers: Number(n.tiers), kind: (n.kind as VesselKind) ?? "chata" } : fitDefault(n.nave, list.map((c) => c.slot)),
+      };
+    }),
     known: known.map((k) => k.v),
   });
 }
@@ -220,11 +232,11 @@ export async function POST(req: Request) {
     if (!nave) return NextResponse.json({ error: "Indica la nave" }, { status: 400 });
     const site = isSite(b.site) ? b.site : "PCL";
     if (!(await can(s, site)).embark) return NextResponse.json({ error: "No tienes permiso para esta acción" }, { status: 403 });
-    const v: Vessel = { bays: Math.round(Number(b.bays)), rows: Math.round(Number(b.rows)), tiers: Math.round(Number(b.tiers)) };
+    const v: Vessel = { bays: Math.round(Number(b.bays)), rows: Math.round(Number(b.rows)), tiers: Math.round(Number(b.tiers)), kind: b.kind === "motonave" ? "motonave" : "chata" };
     if (!(v.bays >= 1 && v.bays <= 20 && v.rows >= 1 && v.rows <= 6 && v.tiers >= 1 && v.tiers <= 5)) return NextResponse.json({ error: "Tamaño fuera de rango (bahías 1–20, filas 1–6, niveles 1–5)" }, { status: 400 });
     const out = (await planOf(site, nave)).filter((x) => { const sl = slotOf(x); return sl && !inside(sl, v); });
     if (out.length) return NextResponse.json({ error: `No entra: ${out.map((x) => x.code).join(", ")} quedaría fuera. Muévelos primero.` }, { status: 409 });
-    await queryList("INSERT INTO vessels(name, bays, rows, tiers) VALUES (?, ?, ?, ?) ON CONFLICT (name) DO UPDATE SET bays = EXCLUDED.bays, rows = EXCLUDED.rows, tiers = EXCLUDED.tiers", [nave, v.bays, v.rows, v.tiers]);
+    await queryList("INSERT INTO vessels(name, bays, rows, tiers, kind) VALUES (?, ?, ?, ?, ?) ON CONFLICT (name) DO UPDATE SET bays = EXCLUDED.bays, rows = EXCLUDED.rows, tiers = EXCLUDED.tiers, kind = EXCLUDED.kind", [nave, v.bays, v.rows, v.tiers, v.kind]);
     return NextResponse.json({ ok: true, vessel: v });
   }
 

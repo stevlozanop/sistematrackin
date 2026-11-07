@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, toast } from "@heroui/react";
 import { ArrowLeftRight, Box, Inbox, Ruler, X } from "lucide-react";
 import type { Site } from "@/lib/hsp";
-import { bayName, floating, rowName, same, slotName, tierName, type Slot, type Vessel } from "@/lib/stowage";
+import { KIND_LABEL, bayName, defaultVessel, floating, rowName, same, slotName, tierName, type Slot, type Vessel } from "@/lib/stowage";
 import { cn } from "@/lib/cn";
 import { Stowage3D } from "./Stowage3D";
 
@@ -76,13 +76,25 @@ export function StowagePlan({ site, nave, onChanged }: { site: Site; nave: strin
       {/* Resumen y tamaño */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded-full bg-sb-surface-container px-3 py-1"><b>{placed.length}</b> de {vessel.bays * vessel.rows * vessel.tiers} lugares ocupados</span>
-        <span className="text-sb-on-surface-variant">{vessel.bays} bahías × {vessel.rows} filas × {vessel.tiers} niveles</span>
+        <span className="text-sb-on-surface-variant">{KIND_LABEL[vessel.kind ?? "chata"]} · {vessel.bays} bahías × {vessel.rows} filas × {vessel.tiers} niveles</span>
         {canEdit && !sizing && (
           <button type="button" onClick={() => setSizing(vessel)} className="ml-auto flex items-center gap-1 rounded-full px-2 py-1 text-sb-on-surface-variant hover:bg-sb-surface-container"><Ruler className="h-3.5 w-3.5" /> Tamaño de la nave</button>
         )}
       </div>
       {sizing && (
         <div className="flex flex-wrap items-end gap-2 rounded-xl border border-sb-outline-variant/50 p-3 text-[11px] text-sb-on-surface-variant">
+          <label className="flex flex-col gap-1">Tipo de nave
+            <select className="h-9 rounded-lg border border-sb-outline-variant bg-sb-surface px-2 text-sm text-sb-on-surface" value={sizing.kind ?? "chata"}
+              onChange={(e) => {
+                const kind = e.target.value as "chata" | "motonave";
+                // Al cambiar el tipo se propone su tamaño típico (se puede ajustar)
+                const d = defaultVessel(kind === "motonave" ? "HENRY" : "CHATA");
+                setSizing({ ...d, kind });
+              }}>
+              <option value="chata">Chata con empujador (muchos contenedores)</option>
+              <option value="motonave">Motonave (pocos contenedores en proa)</option>
+            </select>
+          </label>
           {([["bays", "Bahías (largo)", 20], ["rows", "Filas (ancho)", 6], ["tiers", "Niveles (alto)", 5]] as const).map(([k, l, max]) => (
             <label key={k} className="flex flex-col gap-1">{l}
               <select className="h-9 rounded-lg border border-sb-outline-variant bg-sb-surface px-2 text-sm text-sb-on-surface" value={sizing[k]}

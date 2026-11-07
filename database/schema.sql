@@ -268,6 +268,10 @@ CREATE TABLE IF NOT EXISTS vessels (
   tiers smallint NOT NULL DEFAULT 2 CHECK (tiers BETWEEN 1 AND 5)
 );
 -- Lugar del contenedor en su nave (vacío = sin ubicar)
+-- Tipo: chata (barcaza con empujador, muchos contenedores, ej. KIARA) o motonave (barco de pasajeros con pocos contenedores en proa, ej. HENRY)
+ALTER TABLE vessels ADD COLUMN IF NOT EXISTS kind citext NOT NULL DEFAULT 'chata';
+ALTER TABLE vessels DROP CONSTRAINT IF EXISTS vessels_kind_check;
+ALTER TABLE vessels ADD CONSTRAINT vessels_kind_check CHECK (kind IN ('chata', 'motonave'));
 ALTER TABLE containers ADD COLUMN IF NOT EXISTS slot_bay smallint;
 ALTER TABLE containers ADD COLUMN IF NOT EXISTS slot_row smallint;
 ALTER TABLE containers ADD COLUMN IF NOT EXISTS slot_tier smallint;

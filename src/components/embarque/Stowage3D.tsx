@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as k from "@/components/iso/iso-kit";
 import type { Plan, Point3 } from "@/components/iso/iso-kit";
 import { RotateCcw, RotateCw } from "lucide-react";
-import { bayName, slotName, type Slot, type Vessel } from "@/lib/stowage";
+import { bayName, boxColor, slotName, type Slot, type Vessel } from "@/lib/stowage";
 import { cn } from "@/lib/cn";
 import "@/components/iso/iso.css";
 import "./stowage3d.css";
@@ -38,14 +38,27 @@ export function Stowage3D({ vessel, items, sel, canEdit, canDrop, onTapItem, onT
 
   const geo = useMemo(() => {
     const len = vessel.bays * (LEN + GAP) - GAP, wid = vessel.rows * (WID + GAP) - GAP;
-    const hull: Plan = { x: -16, y: -10, w: len + 30, d: wid + 20, r: 9 };
-    const P = k.fitProjection([...k.boxCorners(hull, -16, vessel.tiers * HGT + 4)], W, H, { pad: 14, headroom: 30, azimuth: VIEWS[view].az, elevation: 34 });
+    const moto = vessel.kind === "motonave";
+    // Motonave: las cubiertas de pasajeros van detrás de la carga (hacia popa); chata: el empujador detrás
+    const back = moto ? 70 : 0;
+    const hull: Plan = { x: -16, y: -10, w: len + 30 + back, d: wid + 20, r: moto ? 18 : 9 };
+    const pusher: Plan = { x: len + 22, y: wid / 2 - 14, w: 34, d: 28, r: 8 };
+    const P = k.fitProjection([...k.boxCorners(hull, -16, Math.max(vessel.tiers * HGT, moto ? 46 : 0) + 4), ...(moto ? [] : k.boxCorners(pusher, -16, 24))], W, H, { pad: 14, headroom: 30, azimuth: VIEWS[view].az, elevation: 34 });
     const cell = (s: Slot): Plan => ({ x: (s.bay - 1) * (LEN + GAP), y: (s.row - 1) * (WID + GAP), w: LEN, d: WID, r: 0.6 });
     const center = (s: Slot, z: number): Point3 => { const c = cell(s); return [c.x + c.w / 2, c.y + c.d / 2, z]; };
     const hullSvg = k.solidSvg(k.slabOf(hull, -16, 14, P, 8, 0.6), { tone: "mid", inner: k.lineSvg(k.planOutline(k.insetPlan(hull, 4), -2, P, 8), { tone: "faint" }) })
       // proa marcada
       + k.lineSvg(k.segment([-12, wid / 2, -2], [-4, wid / 2, -2], P), { tone: "mid" });
-    return { P, cell, center, hullSvg };
+    const cx0 = len + 12;
+    const deck = (dx: number, w: number, z: number, h: number, inset: number) => k.solidSvg(k.slabOf({ x: cx0 + dx, y: -6 + inset, w, d: wid + 12 - inset * 2, r: 3 }, z, h, P, 3, 0.4), { tone: "hi" });
+    // Motonave: tres cubiertas, cada una más chica, y el mástil · Chata: el empujador con su cabina
+    const backSvg = moto
+      ? deck(0, back - 6, -2, 14, 1) + deck(6, back - 18, 12, 12, 4) + deck(back - 34, 22, 24, 10, 8)
+        + k.lineSvg(k.segment([cx0 + back - 23, wid / 2, 34], [cx0 + back - 23, wid / 2, 52], P), { tone: "mid" })
+      : k.solidSvg(k.slabOf(pusher, -16, 12, P, 6, 0.4), { tone: "mid" }) + k.solidSvg(k.slabOf(k.insetPlan(pusher, 7), -4, 12, P, 2, 0.3), { tone: "hi" })
+        + k.solidSvg(k.slabOf(k.insetPlan(pusher, 10), 8, 8, P, 2, 0.3), { tone: "hi" });
+    const backAt: Point3 = moto ? [cx0 + back / 2, wid / 2, 0] : [pusher.x + pusher.w / 2, wid / 2, 0];
+    return { P, cell, center, hullSvg, backSvg, backAt };
   }, [vessel, view]);
   const { P, cell, center } = geo;
 
@@ -60,9 +73,10 @@ export function Stowage3D({ vessel, items, sel, canEdit, canDrop, onTapItem, onT
   }
 
   // Orden del pintor: de atrás hacia adelante y de abajo hacia arriba
-  type Draw = { kind: "box"; item: Item; s: Slot } | { kind: "slot"; s: Slot };
-  const draws: Draw[] = [...placed.map((item) => ({ kind: "box" as const, item, s: item.slot! })), ...free.map((s) => ({ kind: "slot" as const, s }))]
-    .sort((a, b) => k.depthOf(center(a.s, 0), P) - k.depthOf(center(b.s, 0), P) || a.s.tier - b.s.tier);
+  type Draw = { kind: "box"; item: Item; s: Slot } | { kind: "slot"; s: Slot } | { kind: "back"; s: null };
+  const depthOfDraw = (d: Draw) => (d.kind === "back" ? k.depthOf(geo.backAt, P) : k.depthOf(center(d.s, 0), P));
+  const draws: Draw[] = [...placed.map((item) => ({ kind: "box" as const, item, s: item.slot! })), ...free.map((s) => ({ kind: "slot" as const, s })), { kind: "back" as const, s: null }]
+    .sort((a, b) => depthOfDraw(a) - depthOfDraw(b) || (a.s?.tier ?? 0) - (b.s?.tier ?? 0));
 
   const box = (s: Slot, lit: boolean) => {
     const c = cell(s), z = (s.tier - 1) * HGT;
@@ -100,8 +114,10 @@ export function Stowage3D({ vessel, items, sel, canEdit, canDrop, onTapItem, onT
         <div className="iso st3 relative min-w-[520px] sm:min-w-0" data-theme={theme}>
           <svg className="iso-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Nave en 3D con sus contenedores">
             <g dangerouslySetInnerHTML={{ __html: geo.hullSvg }} />
-            {draws.map((d) => d.kind === "box" ? (
-              <g key={`b${d.item.id}-${d.s.bay}${d.s.row}${d.s.tier}`} className={cn("st3-box", canEdit && "is-pick", sel === d.item.id && "is-sel", picked && sel !== d.item.id && canDrop(d.s) && "is-swap")}
+            {draws.map((d) => d.kind === "back" ? (
+              <g key="back" dangerouslySetInnerHTML={{ __html: geo.backSvg }} />
+            ) : d.kind === "box" ? (
+              <g key={`b${d.item.id}-${d.s.bay}${d.s.row}${d.s.tier}`} style={{ ["--box" as string]: boxColor(d.item.code) }} className={cn("st3-box", canEdit && "is-pick", sel === d.item.id && "is-sel", picked && sel !== d.item.id && canDrop(d.s) && "is-swap")}
                 onClick={() => canEdit && onTapItem(d.item.id)} dangerouslySetInnerHTML={{ __html: box(d.s, sel === d.item.id) }} />
             ) : (
               <g key={`s${d.s.bay}${d.s.row}${d.s.tier}`} className={cn("st3-slot", picked && "is-target")}

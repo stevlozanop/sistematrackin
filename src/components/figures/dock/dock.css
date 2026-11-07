@@ -19,3 +19,8 @@
 .dk-code.is-on{background:var(--sb-primary);color:var(--sb-on-primary);border-color:var(--sb-primary)}
 .dk{cursor:grab}
 .dk:active{cursor:grabbing}
+/* Contenedores de colores (como en el puerto) */
+.dk .dk-box .iso-top{fill:color-mix(in oklab,var(--box,#888) 62%,#fff)}
+.dk .dk-box .iso-fill{fill:color-mix(in oklab,var(--box,#888) 88%,#fff)}
+.dk .dk-box .iso-shade{fill:color-mix(in oklab,var(--box,#888) 78%,#000)}
+.dk .dk-box.is-on .iso-top{fill:var(--sb-primary)}

@@ -4,7 +4,7 @@ import * as React from "react";
 import * as k from "@/components/iso/iso-kit";
 import type { Plan, Point3, Projection } from "@/components/iso/iso-kit";
 import { Check, Eye, Minus, Plus, RotateCcw, RotateCw, Scan } from "lucide-react";
-import { DEFAULT_VESSEL, type Slot, type Vessel } from "@/lib/stowage";
+import { DEFAULT_VESSEL, boxColor, type Slot, type Vessel } from "@/lib/stowage";
 import { cn } from "@/lib/cn";
 import "@/components/iso/iso.css";
 import "@/components/figures/route/route.css";
@@ -70,12 +70,22 @@ function draw(P: Projection) {
 }
 type Scene = ReturnType<typeof draw>;
 
-/** Medidas de la chata según el tamaño de la nave (cabe en el espacio de amarre) */
+/**
+ * Medidas de la nave según su tipo y tamaño (cabe en su espacio de amarre; la proa mira río abajo, a +x):
+ * - chata: barcaza plana con los contenedores a lo largo y el empujador detrás;
+ * - motonave: casco de barco con las cubiertas de pasajeros atrás y los pocos contenedores en la cubierta de proa.
+ */
 function hullOf(cx: number, v: Vessel) {
+  const y = 12;
+  if (v.kind === "motonave") {
+    const cl = Math.min(19, 40 / v.bays), cw = Math.min(10.5, 26 / v.rows), ch = 9;
+    const len = v.bays * cl, wid = v.rows * cw, cabin = 44, total = cabin + len + 18;
+    const hx = cx - total / 2, d = Math.max(wid + 10, 30);
+    return { kind: "motonave" as const, cl, cw, ch, hull: { x: hx, y: y - d / 2, w: total, d, r: 12 } as Plan, x0: hx + cabin + 6, y0: y - wid / 2, cabinX: hx + 4, cabinW: cabin - 4, d };
+  }
   const cl = Math.min(22, 86 / v.bays), cw = Math.min(11, 28 / v.rows), ch = 9;
   const len = v.bays * cl, wid = v.rows * cw;
-  const y = 12;
-  return { cl, cw, ch, hull: { x: cx - len / 2 - 6, y: y - wid / 2 - 5, w: len + 12, d: wid + 10, r: 7 } as Plan, x0: cx - len / 2, y0: y - wid / 2 };
+  return { kind: "chata" as const, cl, cw, ch, hull: { x: cx - len / 2 - 6, y: y - wid / 2 - 5, w: len + 12, d: wid + 10, r: 7 } as Plan, x0: cx - len / 2, y0: y - wid / 2, cabinX: 0, cabinW: 0, d: wid + 10 };
 }
 
 export function DockScene({ naves, checked, leaving, building, canSail, onOpen, onToggle, onPickContainer, selectedContainer }: {
@@ -126,16 +136,32 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
   const barges = shown.map((v, i) => {
     const vessel = v.vessel ?? DEFAULT_VESSEL;
     const g = hullOf(SLOTS[i], vessel);
-    const tug: Plan = { x: g.hull.x - 24, y: 12 - 9, w: 22, d: 18, r: 6 };
-    const hullSvg = s.solid(s.slab(g.hull, -14, 10, 6, 0.6), { tone: "mid", inner: s.line(k.sideSeam(g.hull, -10, P, 6), "faint") });
-    const tugSvg = s.solid(s.slab(tug, -14, 8, 5, 0.4), { tone: "mid" }) + s.solid(s.slab({ x: tug.x + 6, y: tug.y + 4, w: 10, d: 10, r: 1 }, -6, 8, 2, 0.3), { tone: "hi" });
+    let hullSvg: string, tugSvg = "", tugAt = 0, cabinSvg = "", cabinFront = false;
+    if (g.kind === "motonave") {
+      // Casco alto, cubiertas de pasajeros (cada una más chica), puente de mando, mástil y bandera
+      const cy = 12, deck = (dx: number, w: number, z: number, h: number, inset: number) => s.solid(s.slab({ x: g.cabinX + dx, y: cy - g.d / 2 + inset, w, d: g.d - inset * 2, r: 2 }, z, h, 3, 0.4), { tone: "hi" });
+      const windows = [0.15, 0.35, 0.55, 0.75].map((f) => s.seg([g.cabinX + g.cabinW * f, cy + g.d / 2 - 2, 1], [g.cabinX + g.cabinW * f + 5, cy + g.d / 2 - 2, 1])).join("");
+      hullSvg = s.solid(s.slab(g.hull, -14, 12, 10, 0.6), { tone: "mid", inner: s.line(k.sideSeam(g.hull, -9, P, 10), "faint") });
+      // Si la cámara mira desde popa, las cubiertas tapan los contenedores (se dibujan después)
+      cabinFront = s.depth([g.cabinX + g.cabinW / 2, cy, 0]) > s.depth([g.x0 + 10, cy, 0]);
+      cabinSvg = deck(0, g.cabinW, -2, 9, 2) + s.line(windows, "faint") + deck(4, g.cabinW - 8, 7, 8, 4) + deck(g.cabinW - 18, 14, 15, 7, 6)
+        + s.line(s.seg([g.cabinX + g.cabinW - 11, cy, 22], [g.cabinX + g.cabinW - 11, cy, 36]), "mid")
+        + s.solid(s.slab({ x: g.cabinX + g.cabinW - 11, y: cy - 0.5, w: 7, d: 1, r: 0 }, 31, 4, 1), { tone: "mid" });
+    } else {
+      // Chata: barcaza plana y su empujador detrás (con su cabina)
+      const tug: Plan = { x: g.hull.x - 26, y: 12 - 10, w: 24, d: 20, r: 6 };
+      hullSvg = s.solid(s.slab(g.hull, -14, 10, 6, 0.6), { tone: "mid", inner: s.line(k.sideSeam(g.hull, -10, P, 6), "faint") });
+      tugSvg = s.solid(s.slab(tug, -14, 9, 5, 0.4), { tone: "mid" }) + s.solid(s.slab({ x: tug.x + 4, y: tug.y + 4, w: 12, d: 12, r: 1 }, -5, 8, 2, 0.3), { tone: "hi" })
+        + s.solid(s.slab({ x: tug.x + 6, y: tug.y + 6, w: 8, d: 8, r: 1 }, 3, 5, 2, 0.3), { tone: "hi" });
+      tugAt = tug.x + 12;
+    }
     const boxes = (v.list ?? []).filter((c) => c.slot && c.slot.bay <= vessel.bays && c.slot.row <= vessel.rows).map((c) => {
       const cx = g.x0 + (c.slot!.bay - 0.5) * g.cl, cy = g.y0 + (c.slot!.row - 0.5) * g.cw, cz = -4 + (c.slot!.tier - 1) * g.ch;
       return { c, cx, cy, cz, key: s.depth([cx, cy, 0]) * 10 + c.slot!.tier };
     }).sort((a, b) => a.key - b.key);
     const loose = (v.list ?? []).filter((c) => !c.slot).length;
-    const tugFirst = s.depth([tug.x + 11, 12, 0]) < s.depth([SLOTS[i], 12, 0]);
-    return { v, g, hullSvg, tugSvg, tugFirst, boxes, loose, key: s.depth([SLOTS[i], 12, 0]) };
+    const tugFirst = !tugSvg || s.depth([tugAt, 12, 0]) < s.depth([SLOTS[i], 12, 0]);
+    return { v, g, hullSvg, tugSvg, tugFirst, cabinSvg, cabinFront, boxes, loose, key: s.depth([SLOTS[i], 12, 0]) };
   }).sort((a, b) => a.key - b.key);
 
   // Arrastrar para girar · rueda / pellizco para acercar
@@ -196,12 +222,14 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
   const bargeSvg = (b: (typeof barges)[number]) => (b.tugFirst ? b.tugSvg + b.hullSvg : b.hullSvg + b.tugSvg);
   const bargesSvg = barges.map((b) => (
     <g key={b.v.nave} className={cn("dk-barge", checked.has(b.v.nave) && "is-on", leaving.has(b.v.nave) && "is-leaving")}>
-      <g className="rf-pick" role="button" tabIndex={-1} aria-label={`Nave ${b.v.nave}`} onClick={() => onOpen(b.v.nave)} dangerouslySetInnerHTML={{ __html: bargeSvg(b) }} />
+      <g className="rf-pick" role="button" tabIndex={-1} aria-label={`Nave ${b.v.nave}`} onClick={() => onOpen(b.v.nave)} dangerouslySetInnerHTML={{ __html: bargeSvg(b) + (b.cabinFront ? "" : b.cabinSvg) }} />
       {b.boxes.map(({ c, cx, cy, cz }) => (
         <g key={`${c.id}-${c.slot!.bay}${c.slot!.row}${c.slot!.tier}`} className={cn("rf-pick dk-box", selectedContainer === c.id && "is-on")} role="button" tabIndex={-1} aria-label={`Contenedor ${c.code}`}
           onClick={(e) => { e.stopPropagation(); (onPickContainer ?? (() => onOpen(b.v.nave)))({ id: c.id, code: c.code, nave: b.v.nave }); }}
-          dangerouslySetInnerHTML={{ __html: s.crate(cx, cy, cz, selectedContainer === c.id || checked.has(b.v.nave), b.g.cl - 1.5, b.g.cw - 1.5, b.g.ch - 0.6) }} />
+          style={{ ["--box" as string]: boxColor(c.code) }}
+          dangerouslySetInnerHTML={{ __html: s.crate(cx, cy, cz, selectedContainer === c.id, b.g.cl - 1.5, b.g.cw - 1.5, b.g.ch - 0.6) }} />
       ))}
+      {b.cabinFront && <g className="rf-pick" onClick={() => onOpen(b.v.nave)} dangerouslySetInnerHTML={{ __html: b.cabinSvg }} />}
     </g>
   ));
 
