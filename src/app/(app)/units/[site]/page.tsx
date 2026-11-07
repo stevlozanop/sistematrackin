@@ -11,7 +11,7 @@ import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
 import { ChoiceCards } from "@/components/modal/ChoiceCards";
 import { humanDate } from "@/lib/dates";
 import type { Key, Selection, SortDescriptor } from "@heroui/react";
-import { Bike, CalendarDays, Check as CheckIcon, FileStack, Layers, Map as MapIcon, MessageSquareWarning, Table2, ChevronLeft, ChevronRight, History, Lock, MoreHorizontal, Search, SlidersHorizontal, X } from "lucide-react";
+import { Bike, CalendarDays, Check as CheckIcon, Copy, FileStack, Layers, Map as MapIcon, MessageSquareWarning, Table2, ChevronLeft, ChevronRight, History, Lock, MoreHorizontal, Search, SlidersHorizontal, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { Check } from "@/components/Check";
 import { DATA_EVENT } from "@/components/UploadCenter";
@@ -184,6 +184,34 @@ function Filter({ label, value, onChange, options, className }: {
 }
 
 const FILTER_KEYS = ["q", "status", "service", "dealer", "zone", "reason", "year", "month", "mine", "pending", "alert", "nave"] as const;
+
+/**
+ * La tabla selecciona solo con la casilla: un clic en el resto de la fila no la marca,
+ * y así se puede seleccionar texto (guía, factura, chasis) para copiarlo.
+ */
+function stopRowPress(e: React.PointerEvent | React.MouseEvent) {
+  const t = e.target as HTMLElement;
+  if (!t.closest('[role="row"]') || t.closest('[role="columnheader"]')) return;
+  if (t.closest('button, a, input, select, textarea, label, [role="checkbox"], [slot="selection"]')) return;
+  e.stopPropagation();
+}
+
+/** Texto que se copia con un clic (guía, factura) */
+function CopyText({ value, className }: { value: string | null; className?: string }) {
+  if (!value) return <div className={className}>—</div>;
+  const copy = () => navigator.clipboard.writeText(value).then(() => toast.success(`Copiado: ${value}`, { timeout: 1800 }), () => toast.danger("No se pudo copiar"));
+  return (
+    <div className={`group/copy flex items-center gap-1 ${className ?? ""}`}>
+      <span className="select-text">{value}</span>
+      <button type="button" aria-label={`Copiar ${value}`} title="Copiar"
+        onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => { e.stopPropagation(); copy(); }}
+        className="rounded p-0.5 text-sb-on-surface-variant opacity-0 transition-opacity hover:bg-sb-surface-container hover:text-sb-on-surface focus:opacity-100 group-hover/copy:opacity-100">
+        <Copy className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
 
 export default function SitePage({ params, searchParams }: {
   params: Promise<{ site: string }>;
@@ -507,6 +535,7 @@ export default function SitePage({ params, searchParams }: {
 
       <Card className="sb-anim-table-in hidden overflow-hidden md:block">
         <Table>
+          <div className="contents [&_[role=gridcell]]:select-text [&_[role=rowheader]]:select-text" onPointerDownCapture={stopRowPress} onMouseDownCapture={stopRowPress} onClickCapture={stopRowPress}>
           <Table.ScrollContainer>
             <Table.Content
               aria-label={`Unidades ${site}`}
@@ -573,8 +602,8 @@ export default function SitePage({ params, searchParams }: {
                       <div className="text-[10px] text-muted">{u.category}{u.lote ? ` · Lote ${u.lote}` : ""}</div>
                     </Table.Cell>
                     <Table.Cell>
-                      <div className="whitespace-nowrap font-mono text-xs">{u.guia || "—"}</div>
-                      <div className="whitespace-nowrap font-mono text-[10px] text-muted">{u.invoice || ""}</div>
+                      <CopyText value={u.guia} className="whitespace-nowrap font-mono text-xs" />
+                      {u.invoice && <CopyText value={u.invoice} className="whitespace-nowrap font-mono text-[10px] text-muted" />}
                     </Table.Cell>
                     <Table.Cell><Transport u={u} /></Table.Cell>
                     <Table.Cell>
@@ -633,6 +662,7 @@ export default function SitePage({ params, searchParams }: {
               </Table.Body>
             </Table.Content>
           </Table.ScrollContainer>
+          </div>
         </Table>
         <div className="flex items-center justify-between border-t border-sb-outline-variant/40 px-4 py-2.5 text-[11px] text-sb-on-surface-variant">
           <span>{selIds.length ? `${selIds.length} seleccionadas` : `${total.toLocaleString()} resultados`}</span>
