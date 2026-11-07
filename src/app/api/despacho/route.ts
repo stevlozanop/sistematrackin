@@ -69,11 +69,15 @@ export async function GET(req: Request) {
 
   const trip = Number(p.get("trip"));
   if (trip) {
-    const rows = await queryList<{ guia: string | null; district: string | null; dealer: string | null; invoice: string | null; w2: number; w3: number; total: number; delivered: number }>(
-      `SELECT guia, district, dealer, string_agg(DISTINCT invoice::text, ', ') invoice,
-         SUM(category = '2W') w2, SUM(category = '3W') w3, COUNT(*) total, SUM(d_entrega IS NOT NULL) delivered
-       FROM v_units WHERE dispatch_id = ? GROUP BY guia, district, dealer ORDER BY district, dealer, guia`, [trip]);
-    return NextResponse.json({ rows: rows.map((r) => ({ ...r, w2: num(r.w2), w3: num(r.w3), total: num(r.total), delivered: num(r.delivered) })) });
+    const rows = await queryList<{ guia: string | null; district: string | null; department: string | null; dealer: string | null; invoice: string | null; w2: number; w3: number; total: number; delivered: number; delivered_on: string | null; via_lima: number }>(
+      `SELECT guia, district, department, dealer, string_agg(DISTINCT invoice::text, ', ') invoice,
+         SUM(category = '2W') w2, SUM(category = '3W') w3, COUNT(*) total, SUM(d_entrega IS NOT NULL) delivered, MAX(d_entrega) delivered_on, MAX(via_lima) via_lima
+       FROM v_units WHERE dispatch_id = ? GROUP BY guia, district, department, dealer ORDER BY department, district, dealer, guia`, [trip]);
+    const guias = [...new Set(rows.map((r) => r.guia).filter(Boolean))] as string[];
+    const recs = guias.length ? await queryList<{ guia: string; kind: string; note: string | null }>(
+      "SELECT DISTINCT ON (guia) guia, kind, note FROM receptions WHERE site = ? AND guia IN (?) ORDER BY guia, created_at DESC", [site, guias]) : [];
+    const rec = new Map(recs.map((r) => [r.guia, r]));
+    return NextResponse.json({ rows: rows.map((r) => ({ ...r, w2: num(r.w2), w3: num(r.w3), total: num(r.total), delivered: num(r.delivered), via_lima: num(r.via_lima), reception: (r.guia && rec.get(r.guia)) || null })) });
   }
 
   const [trips, drivers] = await Promise.all([

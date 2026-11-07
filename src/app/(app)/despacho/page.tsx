@@ -18,7 +18,7 @@ import { cn } from "@/lib/cn";
 type Guia = { guia: string; district: string; dealer: string; w2: number; w3: number; total: number; need: number; skipped: number };
 type Trip = { id: number; dispatched_on: string; driver: string; plate: string | null; destinos: string | null; dealers: string | null; w2: number; w3: number; total: number; delivered: number };
 type Data = { site: Site; canDispatch: boolean; drivers: string[]; trips: Trip[]; error?: string };
-type TripRow = { guia: string | null; district: string | null; dealer: string | null; invoice: string | null; w2: number; w3: number; total: number; delivered: number };
+type TripRow = { guia: string | null; district: string | null; department: string | null; dealer: string | null; invoice: string | null; w2: number; w3: number; total: number; delivered: number; delivered_on: string | null; via_lima: number; reception: { kind: string; note: string | null } | null };
 
 const field = "h-10 w-full rounded-xl border border-sb-outline-variant bg-sb-surface px-3 text-sm text-sb-on-surface outline-none focus:border-sb-on-surface";
 const n = (v: number) => Number(v ?? 0).toLocaleString("es-PE");
@@ -35,27 +35,41 @@ function TripDetail({ site, trip, onClose }: { site: Site; trip: Trip | null; on
       sub={trip ? `${fmtDate(trip.dispatched_on)}${trip.plate ? ` · placa ${trip.plate}` : ""} · ${n(trip.total)} unidades · ${n(trip.delivered)} entregadas` : ""}>
       {!rows ? <p className="py-8 text-center text-sm text-sb-on-surface-variant">Cargando…</p> : (
         <div className="max-h-[60vh] overflow-auto rounded-xl border border-sb-outline-variant/40">
-          <table className="w-full min-w-[620px] text-left text-xs">
+          <table className="w-full min-w-[760px] text-left text-xs">
             <thead>
               <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
                 <th className="px-3 py-2 font-semibold">Destino</th><th className="px-2 py-2 font-semibold">Dealer</th><th className="px-2 py-2 font-semibold">N° factura</th>
                 <th className="px-2 py-2 font-semibold">Guía R.</th><th className="px-2 py-2 text-right font-semibold">2W</th><th className="px-2 py-2 text-right font-semibold">3W</th>
-                <th className="px-2 py-2 text-right font-semibold">Cantidad</th><th className="px-3 py-2 text-right font-semibold">Entregadas</th>
+                <th className="px-2 py-2 text-right font-semibold">Cantidad</th><th className="px-3 py-2 text-right font-semibold">Entrega</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {[...new Map(rows.map((r) => [r.district ?? "—", rows.filter((x) => (x.district ?? "—") === (r.district ?? "—"))])).entries()].map(([d, list], si) => [
+                <tr key={`h-${d}`} className="border-b border-sb-outline-variant/30 bg-sb-surface-container-low/70">
+                  <td colSpan={8} className="px-3 py-2">
+                    <span className="flex flex-wrap items-center gap-x-2">
+                      <span className="grid h-5 w-5 place-items-center rounded-full bg-sb-primary text-[10px] font-bold text-sb-on-primary">{si + 1}</span>
+                      <span className="text-[11px] text-sb-on-surface-variant">{list.some((x) => x.via_lima) ? "Lima" : site === "PCL" ? "Pucallpa" : "Yurimaguas"} →</span>
+                      <b>{d}</b><span className="text-[11px] text-sb-on-surface-variant">{list[0].department ?? ""} · {n(list.reduce((t, x) => t + x.delivered, 0))}/{n(list.reduce((t, x) => t + x.total, 0))} entregadas</span>
+                    </span>
+                  </td>
+                </tr>,
+                ...list.map((r) => (
                 <tr key={`${r.guia}|${r.dealer}`} className="border-b border-sb-outline-variant/20 last:border-0">
-                  <td className="px-3 py-2 font-medium">{r.district ?? "—"}</td>
+                  <td className="px-3 py-2 pl-9 font-medium">{r.district ?? "—"}</td>
                   <td className="max-w-[12rem] truncate px-2 py-2" title={r.dealer ?? ""}>{r.dealer ?? "—"}</td>
-                  <td className="px-2 py-2 font-mono text-[11px]">{r.invoice ?? "—"}</td>
-                  <td className="px-2 py-2 font-mono text-[11px] font-semibold">{r.guia ?? "—"}</td>
+                  <td className="whitespace-nowrap px-2 py-2 font-mono text-[11px]">{r.invoice ?? "—"}</td>
+                  <td className="whitespace-nowrap px-2 py-2 font-mono text-[11px] font-semibold">{r.guia ?? "—"}</td>
                   <td className="px-2 py-2 text-right tabular-nums">{r.w2 || ""}</td>
                   <td className="px-2 py-2 text-right tabular-nums">{r.w3 || ""}</td>
                   <td className="px-2 py-2 text-right font-semibold tabular-nums">{n(r.total)}</td>
-                  <td className={cn("px-3 py-2 text-right tabular-nums", r.delivered === r.total ? "font-semibold text-sb-primary" : "text-sb-on-surface-variant")}>{n(r.delivered)}</td>
+                  <td className="px-3 py-2 text-right">
+                    <span className={cn("tabular-nums", r.delivered === r.total ? "font-semibold text-sb-primary" : "text-sb-on-surface-variant")}>{r.delivered === r.total ? fmtDate(r.delivered_on) : `${n(r.delivered)}/${n(r.total)}`}</span>
+                    {r.reception && <span className={cn("block text-[10px]", r.reception.kind === "completo" ? "text-sb-primary" : "text-sb-late")} title={r.reception.note ?? ""}>{r.reception.kind === "completo" ? "Dealer: completo" : "Dealer: con observación"}</span>}
+                  </td>
                 </tr>
-              ))}
+                )),
+              ])}
             </tbody>
           </table>
         </div>

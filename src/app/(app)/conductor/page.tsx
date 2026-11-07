@@ -14,7 +14,7 @@ import { cn } from "@/lib/cn";
  * marca las que entregó y registra la entrega → «Entregado».
  */
 
-type Row = { guia: string | null; district: string | null; dealer: string | null; driver: string; w2: number; w3: number; total: number; dispatched: string; need: number };
+type Row = { guia: string | null; district: string | null; department: string | null; via_lima: number; dealer: string | null; driver: string; w2: number; w3: number; total: number; dispatched: string; need: number };
 
 const field = "h-10 w-full rounded-xl border border-sb-outline-variant bg-sb-surface px-3 text-sm text-sb-on-surface outline-none focus:border-sb-on-surface";
 const n = (v: number) => Number(v ?? 0).toLocaleString("es-PE");
@@ -58,6 +58,12 @@ export default function ConductorPage() {
   }, [current, searched, reload]);
 
   const k = (r: Row) => r.guia ?? "";
+  // Paradas del camión: una por distrito de destino
+  const stops = useMemo(() => {
+    const m = new Map<string, Row[]>();
+    for (const r of rows ?? []) { const d = r.district ?? "—"; m.set(d, [...(m.get(d) ?? []), r]); }
+    return [...m.entries()];
+  }, [rows]);
   const chosen = (rows ?? []).filter((r) => sel.has(k(r)));
   const need = chosen.reduce((t, r) => t + r.need, 0);
   const min = chosen.reduce((m, r) => (r.dispatched > m ? r.dispatched : m), "");
@@ -78,6 +84,7 @@ export default function ConductorPage() {
 
   if (!me) return <div className="p-6 text-sm text-sb-on-surface-variant">Cargando…</div>;
   if (!sites.length || !current) return <div className="p-6 text-sm text-sb-on-surface-variant">La entrega no es una etapa asignada a ti.</div>;
+  const city = current === "PCL" ? "Pucallpa" : "Yurimaguas";
 
   return (
     <div className="flex flex-col gap-4">
@@ -126,21 +133,37 @@ export default function ConductorPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(rows ?? []).map((r) => {
-                    const on = sel.has(k(r));
-                    const flip = () => canDeliver && setSel((s) => { const y = new Set(s); if (y.has(k(r))) y.delete(k(r)); else y.add(k(r)); return y; });
-                    return (
-                      <tr key={`${k(r)}|${r.dealer}`} onClick={flip} className={cn("cursor-pointer border-b border-sb-outline-variant/20 last:border-0", on ? "bg-sb-primary-soft" : "hover:bg-sb-surface-container-low")}>
-                        <td className="px-3 py-2.5 font-medium">{r.district ?? "—"}<span className="block text-[10px] font-normal text-sb-on-surface-variant">despacho {fmtDate(r.dispatched)}</span></td>
-                        <td className="max-w-[14rem] truncate px-2 py-2.5" title={r.dealer ?? ""}>{r.dealer ?? "—"}</td>
-                        <td className="px-2 py-2.5 font-mono font-semibold">{r.guia ?? "—"}{r.need ? <span className="ml-1 rounded-full bg-sb-late-soft px-1.5 font-sans text-[10px] text-sb-late">{r.need} tarde</span> : null}</td>
-                        <td className="px-2 py-2.5 text-right tabular-nums">{r.w2 || ""}</td>
-                        <td className="px-2 py-2.5 text-right tabular-nums">{r.w3 || ""}</td>
-                        <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
-                          <input type="checkbox" className="h-5 w-5 accent-[var(--sb-primary)]" aria-label={`Entregado ${r.guia}`} checked={on} disabled={!canDeliver} onChange={flip} />
+                  {stops.map(([d, list], si) => {
+                    const t = list.reduce((a, r) => ({ total: a.total + r.total, w2: a.w2 + r.w2, w3: a.w3 + r.w3 }), { total: 0, w2: 0, w3: 0 });
+                    const origin = list.some((r) => r.via_lima) ? "Lima" : city;
+                    return [
+                      <tr key={`stop-${d}`} className="border-b border-sb-outline-variant/30 bg-sb-surface-container-low/70">
+                        <td colSpan={6} className="px-3 py-2">
+                          <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <span className="grid h-5 w-5 place-items-center rounded-full bg-sb-primary text-[10px] font-bold text-sb-on-primary">{si + 1}</span>
+                            <span className="text-[11px] text-sb-on-surface-variant">{origin} →</span>
+                            <b className="text-sm">{d}</b>
+                            <span className="text-[11px] text-sb-on-surface-variant">{list[0].department ?? ""} · {list.length} guía(s) · {n(t.total)} motos (2W {t.w2} · 3W {t.w3})</span>
+                          </span>
                         </td>
-                      </tr>
-                    );
+                      </tr>,
+                      ...list.map((r) => {
+                        const on = sel.has(k(r));
+                        const flip = () => canDeliver && setSel((s) => { const y = new Set(s); if (y.has(k(r))) y.delete(k(r)); else y.add(k(r)); return y; });
+                        return (
+                          <tr key={`${k(r)}|${r.dealer}`} onClick={flip} className={cn("cursor-pointer border-b border-sb-outline-variant/20 last:border-0", on ? "bg-sb-primary-soft" : "hover:bg-sb-surface-container-low")}>
+                            <td className="px-3 py-2.5 pl-10 font-medium">{r.district ?? "—"}<span className="block text-[10px] font-normal text-sb-on-surface-variant">despacho {fmtDate(r.dispatched)}</span></td>
+                            <td className="max-w-[14rem] truncate px-2 py-2.5" title={r.dealer ?? ""}>{r.dealer ?? "—"}</td>
+                            <td className="px-2 py-2.5 font-mono font-semibold">{r.guia ?? "—"}{r.need ? <span className="ml-1 rounded-full bg-sb-late-soft px-1.5 font-sans text-[10px] text-sb-late">{r.need} tarde</span> : null}</td>
+                            <td className="px-2 py-2.5 text-right tabular-nums">{r.w2 || ""}</td>
+                            <td className="px-2 py-2.5 text-right tabular-nums">{r.w3 || ""}</td>
+                            <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                              <input type="checkbox" className="h-5 w-5 accent-[var(--sb-primary)]" aria-label={`Entregado ${r.guia}`} checked={on} disabled={!canDeliver} onChange={flip} />
+                            </td>
+                          </tr>
+                        );
+                      }),
+                    ];
                   })}
                   {!searched && <tr><td colSpan={6} className="px-3 py-8 text-center text-sb-on-surface-variant">Escribe tu nombre y pulsa «Buscar».</td></tr>}
                   {searched && rows && !rows.length && <tr><td colSpan={6} className="px-3 py-8 text-center text-sb-on-surface-variant">No hay entregas pendientes para «{searched}».</td></tr>}

@@ -14,6 +14,7 @@ import { isSuper, today } from "@/lib/workflow";
  * GET  ?site=PCL&drivers=1              -> choferes con entregas pendientes
  * GET  ?guia=…                          -> la guía para el dealer: tipo, dealer, total, estado y recepciones
  * GET  ?observations=1                  -> recepciones con observación (empresa)
+ * GET  ?site=PCL&report=1&from&to       -> detalle de entregas: origen, distrito, dealer, guía, chofer, entregado
  * POST { action: "deliver", site, guias: [], date, lateReason? }
  * POST { action: "receive", guia, kind: "completo" | "observacion", note?, date }
  * POST { action: "review", id }
@@ -30,9 +31,45 @@ const day = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test
 const num = (v: unknown) => Number(v ?? 0);
 
 export async function GET(req: Request) {
-  const { s, err } = await guard(["admin", "operator", "dealer"]);
+  const { s, err } = await guard(["admin", "operator", "dealer", "viewer"]);
   if (err) return err;
   const p = new URL(req.url).searchParams;
+
+  // Detalle de entregas: cada guía despachada con su origen, distrito de destino, dealer, chofer y si ya se entregó
+  if (p.get("report")) {
+    if (s.role === "dealer") return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
+    const site = p.get("site");
+    if (!isSite(site)) return NextResponse.json({ error: "Módulo inválido" }, { status: 400 });
+    const scope = s.role === "operator" ? (await getScope(s.id)).carrier : null;
+    const where = ["v.site = ?", "v.d_despacho IS NOT NULL"];
+    const args: unknown[] = [site];
+    const from = day(p.get("from")), to = day(p.get("to"));
+    if (from) { where.push("v.d_despacho >= ?"); args.push(from); }
+    if (to) { where.push("v.d_despacho <= ?"); args.push(to); }
+    if (scope) { where.push("v.carrier = ?"); args.push(scope); }
+    const rows = await queryList<{
+      trip: number | null; origin: string; department: string | null; district: string | null; dealer: string | null; guia: string | null;
+      driver: string | null; plate: string | null; dispatched: string; delivered_on: string | null; w2: number; w3: number; total: number; delivered: number; via_lima: number;
+    }>(
+      `SELECT v.dispatch_id trip, CASE WHEN v.via_lima = 1 THEN 'Lima' ELSE ? END origin, v.department, v.district, v.dealer, v.guia,
+         COALESCE(d.driver, v.driver) driver, d.plate, MIN(v.d_despacho) dispatched, MAX(v.d_entrega) delivered_on,
+         SUM(v.category = '2W') w2, SUM(v.category = '3W') w3, COUNT(*) total, SUM(v.d_entrega IS NOT NULL) delivered, MAX(v.via_lima) via_lima
+       FROM v_units v LEFT JOIN dispatches d ON d.id = v.dispatch_id
+       WHERE ${where.join(" AND ")}
+       GROUP BY v.dispatch_id, v.via_lima, v.department, v.district, v.dealer, v.guia, COALESCE(d.driver, v.driver), d.plate
+       ORDER BY MIN(v.d_despacho) DESC, v.department, v.district, v.dealer, v.guia LIMIT 2000`,
+      [site === "PCL" ? "Pucallpa" : "Yurimaguas", ...args],
+    );
+    // Lo último que confirmó el dealer de cada guía
+    const guias = [...new Set(rows.map((r) => r.guia).filter(Boolean))] as string[];
+    const recs = guias.length ? await queryList<{ guia: string; kind: string; note: string | null; received_on: string }>(
+      `SELECT DISTINCT ON (guia) guia, kind, note, received_on FROM receptions WHERE site = ? AND guia IN (?) ORDER BY guia, created_at DESC`, [site, guias]) : [];
+    const rec = new Map(recs.map((r) => [r.guia, r]));
+    return NextResponse.json({
+      rows: rows.map((r) => ({ ...r, w2: num(r.w2), w3: num(r.w3), total: num(r.total), delivered: num(r.delivered), via_lima: num(r.via_lima), reception: (r.guia && rec.get(r.guia)) || null })),
+    });
+  }
+  if (s.role === "viewer") return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
 
   if (p.get("observations")) {
     if (s.role !== "admin") return NextResponse.json({ error: "Solo la empresa revisa las observaciones" }, { status: 403 });
@@ -80,12 +117,12 @@ export async function GET(req: Request) {
 
   const driver = p.get("driver")?.trim();
   if (!driver) return NextResponse.json({ error: "Escribe el nombre del conductor" }, { status: 400 });
-  const rows = await queryList<{ guia: string | null; district: string | null; dealer: string | null; driver: string; w2: number; w3: number; total: number; dispatched: string; need: number }>(
-    `SELECT guia, district, dealer, driver, SUM(category = '2W') w2, SUM(category = '3W') w3, COUNT(*) total, MAX(d_despacho) dispatched,
+  const rows = await queryList<{ guia: string | null; district: string | null; department: string | null; via_lima: number; dealer: string | null; driver: string; w2: number; w3: number; total: number; dispatched: string; need: number }>(
+    `SELECT guia, district, department, MAX(via_lima) via_lima, dealer, driver, SUM(category = '2W') w2, SUM(category = '3W') w3, COUNT(*) total, MAX(d_despacho) dispatched,
        SUM(est_date < CURDATE() AND delay_reason IS NULL) need
      FROM v_units WHERE site = ? AND next_step = 'd_entrega' AND d_despacho IS NOT NULL AND driver ILIKE ?${scope}
-     GROUP BY guia, district, dealer, driver ORDER BY district, dealer, guia`, [site, `%${driver}%`, ...sargs]);
-  return NextResponse.json({ canDeliver: perm.ok, rows: rows.map((r) => ({ ...r, w2: num(r.w2), w3: num(r.w3), total: num(r.total), need: num(r.need) })) });
+     GROUP BY guia, district, department, dealer, driver ORDER BY department, district, dealer, guia`, [site, `%${driver}%`, ...sargs]);
+  return NextResponse.json({ canDeliver: perm.ok, rows: rows.map((r) => ({ ...r, via_lima: num(r.via_lima), w2: num(r.w2), w3: num(r.w3), total: num(r.total), need: num(r.need) })) });
 }
 
 export async function POST(req: Request) {

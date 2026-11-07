@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, Forklift, PackageCheck, Boxes, type LucideIcon } from "lucide-react";
+import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, Forklift, PackageCheck, Boxes, MapPinned, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
@@ -94,6 +94,7 @@ const SECTIONS: Section[] = [
     title: "Entrega",
     roles: SUPER,
     items: [
+      { title: "Detalle de entregas", href: "/entregas", icon: MapPinned },
       { title: "Conductor", href: "/conductor", icon: Truck },
       { title: "Dealer", href: "/recepcion", icon: PackageCheck },
     ],
@@ -103,6 +104,7 @@ const SECTIONS: Section[] = [
     roles: READ,
     items: [
       { title: "Tablero mensual", href: "/board", icon: ChartColumn },
+      { title: "Detalle de entregas", href: "/entregas", icon: MapPinned, roles: ["viewer"] },
       { title: "Reportes", href: "/reports", icon: FileSpreadsheet },
     ],
   },
