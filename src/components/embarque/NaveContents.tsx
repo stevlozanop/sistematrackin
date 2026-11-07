@@ -1,7 +1,9 @@
 "use client";
 import { useMemo, useState } from "react";
 import { Chip } from "@heroui/react";
-import { Box, ChevronDown, MapPin, Search, Trash2, X } from "lucide-react";
+import { Box, ChevronDown, MapPin, Pencil, Search, Trash2, X } from "lucide-react";
+import type { Site } from "@/lib/hsp";
+import { ContainerEdit } from "./ContainerEdit";
 import { fmtDate } from "@/lib/hsp";
 import { cn } from "@/lib/cn";
 
@@ -23,7 +25,10 @@ function models(us: NaveRow[]) {
  * 1) resumen en cifras; 2) un contenedor a la vez (pestañas); 3) guías cerradas con dealer, destino y modelos;
  * los chasis aparecen solo al abrir una guía o al buscarlos.
  */
-export function NaveContents({ rows, canUndo, onUndo }: { rows: NaveRow[]; canUndo: boolean; onUndo: (id: number, code: string) => void }) {
+export function NaveContents({ site, nave, rows, canUndo, onUndo, naves = [], onEdited }: {
+  site: Site; nave: string; rows: NaveRow[]; canUndo: boolean; onUndo: (id: number, code: string) => void;
+  naves?: string[]; onEdited?: (moved: boolean) => void;
+}) {
   const containers = useMemo(() => {
     const m = new Map<number, { code: string; loaded_on: string; units: NaveRow[] }>();
     for (const r of rows) {
@@ -36,6 +41,7 @@ export function NaveContents({ rows, canUndo, onUndo }: { rows: NaveRow[]; canUn
   const [pick, setPick] = useState<number | "all">("all");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Set<string>>(new Set());
+  const [editing, setEditing] = useState<number | null>(null);
 
   const needle = q.trim().toLowerCase();
   const scope = pick === "all" ? rows : rows.filter((r) => r.cid === pick);
@@ -93,17 +99,39 @@ export function NaveContents({ rows, canUndo, onUndo }: { rows: NaveRow[]; canUn
       )}
       {(current || containers.length === 1) && (() => {
         const c = current ?? containers[0];
+        if (editing === c.id) {
+          const gs = new Map<string, { guia: string; dealer: string; district: string; units: number }>();
+          for (const u of c.units) {
+            const k = u.guia ?? "";
+            const g = gs.get(k) ?? { guia: k, dealer: u.dealer ?? "—", district: u.district ?? "—", units: 0 };
+            g.units++; gs.set(k, g);
+          }
+          return (
+            <ContainerEdit key={c.id} site={site} id={c.id} code={c.code} nave={nave} loadedOn={c.loaded_on} guias={[...gs.values()].filter((g) => g.guia)} naves={naves}
+              onCancel={() => setEditing(null)}
+              onDone={({ moved }) => { setEditing(null); if (moved) setPick("all"); onEdited?.(moved); }} />
+          );
+        }
         return (
           <div className="flex items-center justify-between gap-2 rounded-xl border border-sb-outline-variant/50 px-3 py-2 text-xs">
             <span className="flex items-center gap-2"><Box className="h-4 w-4" /><b className="text-sm">{c.code}</b><span className="text-sb-on-surface-variant">embarcado {fmtDate(c.loaded_on)}</span></span>
             {canUndo && (
-              <button type="button" onClick={() => onUndo(c.id, c.code)} className="flex items-center gap-1 rounded-full px-2 py-1 text-sb-on-surface-variant hover:bg-sb-late-soft hover:text-sb-late">
-                <Trash2 className="h-3.5 w-3.5" /> Quitar
-              </button>
+              <span className="flex items-center gap-1">
+                <button type="button" onClick={() => setEditing(c.id)} className="flex items-center gap-1 rounded-full px-2 py-1 font-medium text-sb-on-surface hover:bg-sb-surface-container">
+                  <Pencil className="h-3.5 w-3.5" /> Editar
+                </button>
+                <button type="button" onClick={() => onUndo(c.id, c.code)} className="flex items-center gap-1 rounded-full px-2 py-1 text-sb-on-surface-variant hover:bg-sb-late-soft hover:text-sb-late">
+                  <Trash2 className="h-3.5 w-3.5" /> Quitar
+                </button>
+              </span>
             )}
           </div>
         );
       })()}
+
+      {canUndo && pick === "all" && containers.length > 1 && (
+        <p className="-mt-1 text-[11px] text-sb-on-surface-variant">Elige un contenedor arriba para editarlo o quitarlo.</p>
+      )}
 
       {/* Buscar chasis, guía o dealer */}
       <label className="flex h-10 items-center gap-2 rounded-xl border border-sb-outline-variant bg-sb-surface px-3 text-sm focus-within:border-sb-on-surface">

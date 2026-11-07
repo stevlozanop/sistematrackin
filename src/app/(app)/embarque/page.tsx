@@ -49,12 +49,13 @@ const Label = ({ t, children }: { t: string; children: React.ReactNode }) => (
 );
 
 /** Detalle de una nave: contenedores → guías → chasis. */
-function NaveDetail({ site, nave, canUndo, onClose, onChanged }: { site: Site; nave: string | null; canUndo: boolean; onClose: () => void; onChanged: () => void }) {
+function NaveDetail({ site, nave, naves, canUndo, onClose, onChanged }: { site: Site; nave: string | null; naves: string[]; canUndo: boolean; onClose: () => void; onChanged: () => void }) {
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [again, setAgain] = useState(0);
   useEffect(() => {
     if (!nave) return;
     fetch(`/api/embarque?${new URLSearchParams({ site, nave })}`).then((r) => r.json()).then((j) => setRows(j.rows ?? []));
-  }, [site, nave]);
+  }, [site, nave, again]);
   const containers = useMemo(() => {
     const m = new Map<number, { code: string; loaded_on: string; guias: Map<string, Row[]> }>();
     for (const r of rows ?? []) {
@@ -90,7 +91,7 @@ function NaveDetail({ site, nave, canUndo, onClose, onChanged }: { site: Site; n
         </Link>
       ) : null}>
               {!rows ? <p className="py-8 text-center text-sm text-sb-on-surface-variant">Cargando…</p>
-                : <NaveContents rows={rows} canUndo={canUndo} onUndo={(id, code) => setAsk({ id, code })} />}
+                : <NaveContents site={site} nave={nave ?? ""} naves={naves} rows={rows} canUndo={canUndo} onUndo={(id, code) => setAsk({ id, code })} onEdited={() => { setAgain((x) => x + 1); onChanged(); }} />}
     </Sheet>
       <ConfirmDialog open={!!ask} title={`¿Quitar el contenedor ${ask?.code ?? ""}?`} confirmLabel="Sí, quitar contenedor" busy={undoing}
         onCancel={() => setAsk(null)} onConfirm={() => ask && undo(ask.id, ask.code)}>
@@ -399,7 +400,7 @@ export default function EmbarquePage() {
           </div>
         </Card>
       </div>
-      <NaveDetail key={view ?? "none"} site={current} nave={view} canUndo={!!data?.canEmbark} onClose={() => setView(null)} onChanged={() => setReload((x) => x + 1)} />
+      <NaveDetail key={view ?? "none"} site={current} nave={view} naves={naveOptions} canUndo={!!data?.canEmbark} onClose={() => setView(null)} onChanged={() => setReload((x) => x + 1)} />
     </MotionConfig>
   );
 }

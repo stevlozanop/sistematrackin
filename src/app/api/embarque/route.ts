@@ -123,6 +123,71 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, units: n, code: c.code });
   }
 
+  // Editar un contenedor (su nave aún no zarpa): número, nave, fecha de embarque,
+  // quitar guías (vuelven a IQT-Port) y agregar guías que esperan el embarque.
+  if (b.action === "edit") {
+    const [c] = await queryList<{ id: number; site: Site; sailed_on: string | null; code: string; nave: string; loaded_on: string }>(
+      "SELECT id, site, sailed_on, code, nave, loaded_on::text loaded_on FROM containers WHERE id = ?", [Number(b.id)]);
+    if (!c) return NextResponse.json({ error: "Ese contenedor no existe" }, { status: 404 });
+    const perm = await can(s, c.site);
+    if (!perm.embark) return NextResponse.json({ error: "No tienes permiso para esta acción" }, { status: 403 });
+    if (c.sailed_on) return NextResponse.json({ error: "La nave ya zarpó: corrígelo desde el módulo" }, { status: 409 });
+    const code = text(b.container, 40) || c.code, nave = text(b.nave, 60) || c.nave;
+    const date = day(b.date) ?? c.loaded_on;
+    if (date > today()) return NextResponse.json({ error: "No se puede registrar una fecha futura" }, { status: 400 });
+    const list = (v: unknown) => (Array.isArray(v) ? [...new Set(v.map((g) => String(g).trim()).filter(Boolean))].slice(0, 100) : []);
+    const remove = list(b.removeGuias), add = list(b.addGuias);
+    if (code !== c.code) {
+      const [dup] = await queryList<{ nave: string }>("SELECT nave FROM containers WHERE site = ? AND code = ? AND sailed_on IS NULL AND id <> ?", [c.site, code, c.id]);
+      if (dup) return NextResponse.json({ error: `El contenedor ${code} ya está en la nave ${dup.nave}` }, { status: 409 });
+    }
+    const current = await queryList<{ id: number; guia: string | null; billing_date: string | null; d_carga: string | null; nave: string | null; container: string | null }>(
+      "SELECT id, guia, billing_date::text billing_date, d_carga::text d_carga, nave, container FROM units WHERE container_id = ? AND d_zarpe IS NULL", [c.id]);
+    const out = current.filter((u) => u.guia && remove.includes(u.guia));
+    const stay = current.filter((u) => !out.includes(u));
+    const incoming = add.length ? await queryList<{ id: number; billing_date: string | null; est_date: string | null; delay_reason: string | null; nave: string | null; container: string | null }>(
+      `SELECT id, billing_date, est_date, delay_reason, nave, container FROM v_units
+       WHERE site = ? AND guia IN (?) AND next_step = 'd_carga'${perm.carrier ? " AND carrier = ?" : ""}`,
+      perm.carrier ? [c.site, add, perm.carrier] : [c.site, add]) : [];
+    if (add.length && !incoming.length) return NextResponse.json({ error: "Esas guías no tienen unidades por embarcar" }, { status: 409 });
+    if (!stay.length && !incoming.length) return NextResponse.json({ error: "El contenedor quedaría vacío: usa «Quitar» para eliminarlo" }, { status: 400 });
+    const early = [...stay, ...incoming].find((u) => u.billing_date && date < u.billing_date);
+    if (early) return NextResponse.json({ error: `La fecha no puede ser anterior a la facturación (${early.billing_date})` }, { status: 400 });
+    const late = incoming.filter((u) => u.est_date && !u.delay_reason && (date > u.est_date || today() > u.est_date));
+    if (late.length && !lateReason) return NextResponse.json({ error: `Hay ${late.length} unidades fuera de tiempo: indica el motivo de demora`, need: late.length }, { status: 400 });
+
+    await tx(async (q) => {
+      await q.query("UPDATE containers SET code = ?, nave = ?, loaded_on = ? WHERE id = ?", [code, nave, date, c.id]);
+      const ev: unknown[][] = [];
+      if (stay.length) {
+        await q.query("UPDATE units SET d_carga = ?, nave = ?, container = ? WHERE id IN (?)", [date, nave, code, stay.map((u) => u.id)]);
+        for (const u of stay) {
+          if (u.d_carga !== date) ev.push([u.id, s.id, "d_carga", u.d_carga, date]);
+          if (u.nave !== nave) ev.push([u.id, s.id, "nave", u.nave, nave]);
+          if (u.container !== code) ev.push([u.id, s.id, "container", u.container, code]);
+        }
+      }
+      if (out.length) {
+        await q.query("UPDATE units SET d_carga = NULL, nave = NULL, container = NULL, container_id = NULL WHERE id IN (?)", [out.map((u) => u.id)]);
+        ev.push(...out.map((u) => [u.id, s.id, "d_carga", u.d_carga, null]));
+      }
+      if (incoming.length) {
+        await q.query("UPDATE units SET d_carga = ?, nave = ?, container = ?, container_id = ? WHERE id IN (?) AND d_carga IS NULL", [date, nave, code, c.id, incoming.map((u) => u.id)]);
+        ev.push(...incoming.flatMap((u) => [
+          [u.id, s.id, "d_carga", null, date],
+          ...(u.nave !== nave ? [[u.id, s.id, "nave", u.nave, nave]] : []),
+          ...(u.container !== code ? [[u.id, s.id, "container", u.container, code]] : []),
+        ]));
+        if (late.length) {
+          await q.query("UPDATE units SET delay_reason = ? WHERE id IN (?) AND delay_reason IS NULL", [lateReason, late.map((u) => u.id)]);
+          ev.push(...late.map((u) => [u.id, s.id, "delay_reason", null, lateReason]));
+        }
+      }
+      for (let i = 0; i < ev.length; i += 1000) await q.query("INSERT INTO unit_events(unit_id, user_id, field, old_value, new_value) VALUES ?", [ev.slice(i, i + 1000)]);
+    });
+    return NextResponse.json({ ok: true, id: c.id, code, nave, date, removed: out.length, added: incoming.length, moved: nave !== c.nave });
+  }
+
   const site = b.site;
   if (!isSite(site)) return NextResponse.json({ error: "Módulo inválido" }, { status: 400 });
   const perm = await can(s, site);
