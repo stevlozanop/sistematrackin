@@ -105,7 +105,7 @@ export default function GuiasPage() {
   }, [current, stage, q, from, to, key]);
   const loading = data?.key !== key;
   // La búsqueda se aplica al dejar de escribir
-  useEffect(() => { const t = setTimeout(() => setQ(qInput.trim()), 350); return () => clearTimeout(t); }, [qInput]);
+  useEffect(() => { const t = setTimeout(() => setQ(qInput.trim()), 150); return () => clearTimeout(t); }, [qInput]);
 
   const groups = useMemo(() => data?.groups ?? [], [data]);
   const chosen = groups.filter((g) => sel.has(g.guia));

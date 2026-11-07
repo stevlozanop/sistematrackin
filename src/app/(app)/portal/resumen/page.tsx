@@ -9,6 +9,7 @@ import { Card, PageTitle, Pill } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
 import { ServiceBadge, ServiceSplitBar } from "@/components/Service";
 import { cn } from "@/lib/cn";
+import { SuggestInput } from "@/components/SuggestInput";
 import { MONTHS, fmtDate, type Service, type Status } from "@/lib/hsp";
 
 type Data = {
@@ -93,7 +94,10 @@ export default function ClientSummary() {
         <form className="flex flex-1 gap-2" onSubmit={(e) => { e.preventDefault(); if (q.trim()) router.push(`/portal?tab=all&q=${encodeURIComponent(q.trim())}`); }}>
           <label className="sbf-search flex-1">
             <Search className="h-4 w-4 opacity-40" />
-            <input placeholder="Escribe el chasis, motor o guía…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar pedido" />
+            <SuggestInput inputClassName="w-full bg-transparent outline-none" mono placeholder="Escribe el chasis, motor o guía…" ariaLabel="Buscar pedido" value={q} onChange={setQ}
+              onPick={(v) => router.push(`/portal?tab=all&q=${encodeURIComponent(v)}`)}
+              onEnter={() => { if (q.trim()) router.push(`/portal?tab=all&q=${encodeURIComponent(q.trim())}`); }}
+              source={(x) => `/api/suggest?${new URLSearchParams({ kind: "mine", q: x })}`} />
           </label>
           <button type="submit" className="sbf-chip active whitespace-nowrap">Buscar</button>
         </form>

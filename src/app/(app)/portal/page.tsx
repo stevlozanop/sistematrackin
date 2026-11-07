@@ -81,7 +81,7 @@ export default function PortalPage() {
   const [open, setOpen] = useState<Unit | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => { setQ(qInput); setPage(1); }, 300);
+    const t = setTimeout(() => { setQ(qInput); setPage(1); }, 150);
     return () => clearTimeout(t);
   }, [qInput]);
 

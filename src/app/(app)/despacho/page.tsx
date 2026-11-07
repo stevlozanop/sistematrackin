@@ -4,6 +4,7 @@ import { Button, toast } from "@heroui/react";
 import { ArrowDown, Eye, Plus, Truck, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { Sheet } from "@/components/modal/Sheet";
+import { SuggestInput } from "@/components/SuggestInput";
 import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
 import { DATA_EVENT } from "@/components/UploadCenter";
 import { DELAY_REASONS, SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
@@ -145,8 +146,8 @@ export default function DespachoPage() {
 
   const tot = guias.reduce((t, g) => ({ w2: t.w2 + g.w2, w3: t.w3 + g.w3, total: t.total + g.total, need: t.need + g.need }), { w2: 0, w3: 0, total: 0, need: 0 });
 
-  async function add() {
-    const g = input.trim();
+  async function add(pick?: string) {
+    const g = (pick ?? input).trim();
     if (!g || !current) return;
     if (guias.some((x) => x.guia.toUpperCase() === g.toUpperCase())) return toast.warning("Esa guía ya está en el viaje");
     setAdding(true);
@@ -201,7 +202,9 @@ export default function DespachoPage() {
         <div className="grid gap-4 p-4 lg:grid-cols-[1fr_17rem]">
           <div className="flex min-w-0 flex-col gap-3">
             <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); add(); }}>
-              <input className={field} placeholder="Guía de remisión (ej. 09-0T005-0157302)" value={input} onChange={(e) => setInput(e.target.value)} disabled={ro} />
+              <SuggestInput inputClassName={field} mono placeholder="Guía de remisión (escribe para buscar)" value={input} onChange={setInput} disabled={ro}
+                onPick={(v) => { setInput(v); add(v); }} onEnter={() => add()}
+                source={(q) => `/api/suggest?${new URLSearchParams({ kind: "guia", site: current, step: "d_despacho", q })}`} />
               <Button type="submit" variant="primary" className="shrink-0 rounded-full" isDisabled={adding || !input.trim() || ro}><Plus className="h-4 w-4" /> {adding ? "Buscando…" : "Agregar"}</Button>
             </form>
             <div className="overflow-x-auto rounded-xl border border-sb-outline-variant/40">

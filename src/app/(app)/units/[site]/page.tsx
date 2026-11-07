@@ -286,7 +286,7 @@ export default function SitePage({ params, searchParams }: {
 
   // Búsqueda con pequeña espera para no consultar en cada tecla
   useEffect(() => {
-    const t = setTimeout(() => { setF((p) => ({ ...p, q: qInput })); setPage(1); }, 300);
+    const t = setTimeout(() => { setF((p) => ({ ...p, q: qInput })); setPage(1); }, 150);
     return () => clearTimeout(t);
   }, [qInput]);
 

@@ -59,7 +59,7 @@ export default function MyWorkPage() {
     return () => window.removeEventListener(DATA_EVENT, again);
   }, [loadMe]);
 
-  useEffect(() => { const t = setTimeout(() => { setQDebounced(q); setPage(1); }, 300); return () => clearTimeout(t); }, [q]);
+  useEffect(() => { const t = setTimeout(() => { setQDebounced(q); setPage(1); }, 150); return () => clearTimeout(t); }, [q]);
 
   useEffect(() => {
     if (!stage) return;

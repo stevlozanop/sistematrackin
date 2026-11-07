@@ -12,6 +12,7 @@ import { DATA_EVENT } from "@/components/UploadCenter";
 import { DELAY_REASONS, SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { DockScene } from "@/components/figures/dock/DockScene";
+import { SuggestInput } from "@/components/SuggestInput";
 import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
 import { NaveContents } from "@/components/embarque/NaveContents";
 
@@ -150,8 +151,8 @@ export default function EmbarquePage() {
   const sailNeed = checkedNaves.reduce((t, x) => t + x.need, 0);
   const sailMin = checkedNaves.reduce((m, x) => (x.last > m ? x.last : m), "");
 
-  async function addGuia() {
-    const g = guiaInput.trim();
+  async function addGuia(pick?: string) {
+    const g = (pick ?? guiaInput).trim();
     if (!g || !current) return;
     if (guias.some((x) => x.guia.toUpperCase() === g.toUpperCase())) return toast.warning("Esa guía ya está en el contenedor");
     setAdding(true);
@@ -238,8 +239,9 @@ export default function EmbarquePage() {
           <div className="grid gap-4 p-4 lg:grid-cols-[1fr_17rem]">
             <div className="flex min-w-0 flex-col gap-3">
               <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); addGuia(); }}>
-                <input className={field} placeholder="Guía de remisión (ej. 09-0T005-0157228)" value={guiaInput} onChange={(e) => setGuiaInput(e.target.value)}
-                  aria-label="Guía de remisión" disabled={!data?.canEmbark} />
+                <SuggestInput inputClassName={field} mono placeholder="Guía de remisión (escribe para buscar)" value={guiaInput} onChange={setGuiaInput}
+                  ariaLabel="Guía de remisión" disabled={!data?.canEmbark} onPick={(v) => { setGuiaInput(v); addGuia(v); }} onEnter={() => addGuia()}
+                  source={(q) => `/api/suggest?${new URLSearchParams({ kind: "guia", site: current, step: "d_carga", q })}`} />
                 <Button type="submit" variant="primary" className="shrink-0 rounded-full" isDisabled={adding || !guiaInput.trim() || !data?.canEmbark}>
                   <Plus className="h-4 w-4" /> {adding ? "Buscando…" : "Agregar"}
                 </Button>

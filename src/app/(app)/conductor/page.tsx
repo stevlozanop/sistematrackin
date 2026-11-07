@@ -4,6 +4,7 @@ import { Button, toast } from "@heroui/react";
 import { Search, Truck } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
+import { SuggestInput } from "@/components/SuggestInput";
 import { DATA_EVENT } from "@/components/UploadCenter";
 import { DELAY_REASONS, SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
@@ -109,8 +110,10 @@ export default function ConductorPage() {
           <div className="flex min-w-0 flex-col gap-3">
             <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); setSel(new Set()); setRows(null); setSearched(name.trim()); }}>
               <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-[11px] text-sb-on-surface-variant">Nombre del conductor
-                <input className={cn(field, "uppercase")} list="choferes-pend" placeholder="Ej. VIDAL PARIONA" value={name} onChange={(e) => setName(e.target.value)} />
-                <datalist id="choferes-pend">{drivers.map((d) => <option key={d.name} value={d.name}>{d.units} por entregar</option>)}</datalist>
+                <SuggestInput inputClassName={cn(field, "uppercase")} placeholder="Escribe tu nombre (ej. VIDAL)" value={name} onChange={setName}
+                  onPick={(v) => { setName(v); setSel(new Set()); setRows(null); setSearched(v); }}
+                  onEnter={() => { setSel(new Set()); setRows(null); setSearched(name.trim()); }}
+                  source={(q) => `/api/suggest?${new URLSearchParams({ kind: "driver", site: current, q })}`} />
               </label>
               <Button type="submit" variant="primary" className="rounded-full" isDisabled={!name.trim()}><Search className="h-4 w-4" /> Buscar</Button>
               <span className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Estado

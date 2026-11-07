@@ -4,6 +4,7 @@ import { Button, toast } from "@heroui/react";
 import { Box, Plus, RotateCcw, Ship, Trash2, X } from "lucide-react";
 import { DELAY_REASONS, type Site } from "@/lib/hsp";
 import { DatePicker } from "@/components/modal/DatePicker";
+import { SuggestInput } from "@/components/SuggestInput";
 import { cn } from "@/lib/cn";
 
 type Guia = { guia: string; dealer: string; district: string; units: number };
@@ -36,8 +37,8 @@ export function ContainerEdit({ site, id, code, nave, loadedOn, guias, naves, on
   const askReason = need > 0 || lateNew > 0;
   const changed = c.trim().toUpperCase() !== code || v.trim().toUpperCase() !== nave || d !== loadedOn.slice(0, 10) || out.size > 0 || add.length > 0;
 
-  async function lookup() {
-    const g = input.trim();
+  async function lookup(pick?: string) {
+    const g = (pick ?? input).trim();
     if (!g) return;
     if (guias.some((x) => x.guia.toUpperCase() === g.toUpperCase()) || add.some((x) => x.guia.toUpperCase() === g.toUpperCase())) return toast.warning("Esa guía ya está en el contenedor");
     setLooking(true);
@@ -108,8 +109,10 @@ export function ContainerEdit({ site, id, code, nave, loadedOn, guias, naves, on
           </div>
         ))}
         <div className="flex gap-2">
-          <input className={field} placeholder="Agregar guía (ej. 09-0T005-0157228)" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); lookup(); } }} />
-          <Button variant="secondary" className="shrink-0 rounded-full" onPress={lookup} isDisabled={looking || !input.trim()}><Plus className="h-4 w-4" /> {looking ? "Buscando…" : "Agregar"}</Button>
+          <SuggestInput inputClassName={field} mono placeholder="Agregar guía (escribe para buscar)" value={input} onChange={setInput}
+            onPick={(v) => { setInput(v); lookup(v); }} onEnter={() => lookup()}
+            source={(q) => `/api/suggest?${new URLSearchParams({ kind: "guia", site, step: "d_carga", q })}`} />
+          <Button variant="secondary" className="shrink-0 rounded-full" onPress={() => lookup()} isDisabled={looking || !input.trim()}><Plus className="h-4 w-4" /> {looking ? "Buscando…" : "Agregar"}</Button>
         </div>
       </div>
 

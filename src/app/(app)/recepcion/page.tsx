@@ -5,6 +5,7 @@ import { CheckCircle2, MessageSquareWarning, PackageCheck, Search } from "lucide
 import { Card, PageTitle } from "@/components/ui";
 import { ChoiceCards } from "@/components/modal/ChoiceCards";
 import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
+import { SuggestInput } from "@/components/SuggestInput";
 import { DATA_EVENT } from "@/components/UploadCenter";
 import { fmtDate } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
@@ -110,7 +111,9 @@ export default function RecepcionPage() {
           <div className="flex min-w-0 flex-col gap-3">
             <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); look(); }}>
               <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-[11px] text-sb-on-surface-variant">Guía de remisión
-                <input className={field} placeholder="Ej. 09-0T005-0157302" value={input} onChange={(e) => setInput(e.target.value)} />
+                <SuggestInput inputClassName={field} mono placeholder="Escribe tu guía para buscarla" value={input} onChange={setInput}
+                  onPick={(v) => { setInput(v); look(v); }} onEnter={() => look()}
+                  source={(q) => `/api/suggest?${new URLSearchParams({ kind: "guia", step: "dispatched", q })}`} />
               </label>
               <Button type="submit" variant="primary" className="rounded-full" isDisabled={looking || !input.trim()}><Search className="h-4 w-4" /> {looking ? "Buscando…" : "Buscar"}</Button>
               {found && <span className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Estado
