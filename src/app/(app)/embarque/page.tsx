@@ -9,7 +9,7 @@ import { Card, PageTitle } from "@/components/ui";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { cn } from "@/lib/cn";
 import { DATA_EVENT } from "@/components/UploadCenter";
-import { DELAY_REASONS, SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
+import { DELAY_REASONS, SITE_INFO, fmtDate, unitsText, type Site } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { DockScene } from "@/components/figures/dock/DockScene";
 import { SuggestInput } from "@/components/SuggestInput";
@@ -239,7 +239,7 @@ export default function EmbarquePage() {
         {/* Muelle en vivo */}
         <Card className="overflow-hidden p-2 sm:p-3">
           <DockScene naves={data?.naves ?? []} checked={checked} leaving={leaving} canSail={!!data?.canSail}
-            building={{ guias: guias.length, units: tot.total, container, nave }}
+            building={{ guias: guias.length, units: tot.total, w2: tot.w2, w3: tot.w3, container, nave }}
             onOpen={setView}
             onToggle={(v) => setChecked((st) => { const y = new Set(st); if (y.has(v)) y.delete(v); else y.add(v); return y; })}
             onPickContainer={setBoxPick} selectedContainer={boxPick?.id ?? null} />
@@ -280,7 +280,7 @@ export default function EmbarquePage() {
                     </motion.div>
                   ))}
                 </AnimatePresence>
-                {guias.length > 0 && <p className="flex justify-between border-t border-sb-outline-variant/40 px-3 py-2 text-xs font-bold"><span>{guias.length} guía(s)</span><span>{tot.total} unid. · 2W {tot.w2} · 3W {tot.w3}</span></p>}
+                {guias.length > 0 && <p className="flex justify-between border-t border-sb-outline-variant/40 px-3 py-2 text-xs font-bold"><span>{guias.length} guía(s)</span><span>{tot.total} unid. · {unitsText(tot.w2, tot.w3)}</span></p>}
               </div>
               <div className="hidden overflow-x-auto rounded-xl border border-sb-outline-variant/40 sm:block">
                 <table className="w-full min-w-[560px] text-left text-xs">

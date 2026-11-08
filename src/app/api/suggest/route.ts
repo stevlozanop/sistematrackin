@@ -62,7 +62,7 @@ export async function GET(req: Request) {
       `SELECT guia v, COUNT(*) n, MAX(dealer) dealer, MAX(district) district FROM v_units
        WHERE ${[...where, "guia IS NOT NULL", "guia LIKE ?"].join(" AND ")}
        GROUP BY guia ORDER BY (guia LIKE ?) DESC, guia LIMIT 12`, [...args, like, starts]);
-    return NextResponse.json({ items: rows.map((r) => ({ value: r.v, label: `${r.dealer ?? "—"} · ${r.district ?? "—"} · ${Number(r.n)} motos` })) });
+    return NextResponse.json({ items: rows.map((r) => ({ value: r.v, label: `${r.dealer ?? "—"} · ${r.district ?? "—"} · ${Number(r.n)} unid.` })) });
   }
 
   return NextResponse.json({ error: "Tipo inválido" }, { status: 400 });

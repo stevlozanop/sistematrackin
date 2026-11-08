@@ -6,7 +6,7 @@ import { Card, PageTitle } from "@/components/ui";
 import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
 import { SuggestInput } from "@/components/SuggestInput";
 import { DATA_EVENT } from "@/components/UploadCenter";
-import { DELAY_REASONS, SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
+import { DELAY_REASONS, SITE_INFO, fmtDate, unitsText, type Site } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
 
@@ -146,7 +146,7 @@ export default function ConductorPage() {
                             <span className="grid h-5 w-5 place-items-center rounded-full bg-sb-primary text-[10px] font-bold text-sb-on-primary">{si + 1}</span>
                             <span className="text-[11px] text-sb-on-surface-variant">{origin} →</span>
                             <b className="text-sm">{d}</b>
-                            <span className="text-[11px] text-sb-on-surface-variant">{list[0].department ?? ""} · {list.length} guía(s) · {n(t.total)} motos (2W {t.w2} · 3W {t.w3})</span>
+                            <span className="text-[11px] text-sb-on-surface-variant">{list[0].department ?? ""} · {list.length} guía(s) · {unitsText(t.w2, t.w3)}</span>
                           </span>
                         </td>
                       </tr>,

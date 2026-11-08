@@ -89,7 +89,7 @@ export function GuiaGroups({ site, filters, reload, onOpenUnit }: { site: Site; 
                 {g.late > 0 && <Chip size="sm" color="danger" variant="soft"><AlertTriangle className="h-3 w-3" />{g.late} tarde</Chip>}
               </span>
               <span className="flex items-center gap-3 text-right text-xs">
-                <span><b className="text-sm">{g.n}</b> motos<span className="block text-[10px] text-sb-on-surface-variant">2W {g.w2} · 3W {g.w3}</span></span>
+                <span><b className="text-sm">{g.n}</b> unid.<span className="block text-[10px] text-sb-on-surface-variant">2W {g.w2} · 3W {g.w3}</span></span>
                 <span className="hidden text-[11px] text-sb-on-surface-variant sm:block">Fact. {fmtDate(g.billing) || "—"}<span className="block">Est. {fmtDate(g.est) || "—"}</span></span>
                 <ChevronDown className={cn("h-4 w-4 text-sb-on-surface-variant transition-transform", isOpen && "rotate-180")} />
               </span>

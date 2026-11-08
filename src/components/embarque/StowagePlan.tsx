@@ -166,7 +166,7 @@ export function StowagePlan({ site, nave, onChanged }: { site: Site; nave: strin
                     {here ? (
                       <>
                         <span className="flex items-center gap-1 font-mono text-[10px] font-bold sm:text-[11px]"><Box className="hidden h-3 w-3 opacity-60 sm:block" />{here.code}</span>
-                        <span className="text-[10px] text-sb-on-surface-variant">{here.units} motos</span>
+                        <span className="text-[10px] text-sb-on-surface-variant">{here.units} unid.</span>
                         {ok && <span className="flex items-center gap-0.5 text-[9px] font-semibold text-sb-ontime"><ArrowLeftRight className="h-2.5 w-2.5" />intercambiar</span>}
                       </>
                     ) : <span className="text-[10px] text-sb-on-surface-variant">{ok ? "Poner aquí" : t > 1 && !at({ ...s, tier: t - 1 }) ? "sin base" : "Libre"}</span>}
@@ -207,7 +207,7 @@ export function StowagePlan({ site, nave, onChanged }: { site: Site; nave: strin
             <li key={i.id} className="flex flex-wrap items-center gap-x-3 py-1.5">
               <span className="font-mono font-semibold">{i.code}</span>
               <span className="text-sb-on-surface-variant">{i.slot ? slotName(i.slot, vessel) : "Sin ubicar"}</span>
-              <span className="ml-auto text-sb-on-surface-variant">{i.units} motos · {i.guias} guía(s)</span>
+              <span className="ml-auto text-sb-on-surface-variant">{i.units} unidades · {i.guias} guía(s)</span>
             </li>
           ))}
           {!items.length && <li className="py-2 text-sb-on-surface-variant">La nave no tiene contenedores.</li>}

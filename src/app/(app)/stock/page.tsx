@@ -5,7 +5,7 @@ import { Button } from "@heroui/react";
 import { Forklift, Search, Warehouse, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { DATA_EVENT } from "@/components/UploadCenter";
-import { SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
+import { SITE_INFO, fmtDate, unitsText, type Site } from "@/lib/hsp";
 import { daysBetween, parseISO, todayLima } from "@/lib/dates";
 import { cn } from "@/lib/cn";
 
@@ -84,7 +84,7 @@ export default function StockPage() {
 
       {/* Resumen */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {[["Motos en almacén", n(all.total)], ["2W · 3W", `${n(all.w2)} · ${n(all.w3)}`], ["Guías", n(rows?.length ?? 0)]].map(([l, v]) => (
+        {[["Unidades en almacén", n(all.total)], ["2W · 3W", `${n(all.w2)} · ${n(all.w3)}`], ["Guías", n(rows?.length ?? 0)]].map(([l, v]) => (
           <Card key={l} className="px-4 py-3">
             <p className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">{l}</p>
             <p className="text-2xl font-bold tabular-nums">{rows ? v : "…"}</p>
@@ -173,7 +173,7 @@ export default function StockPage() {
       {chosen.length > 0 && (
         <div className="sticky bottom-24 z-40 flex flex-wrap items-center gap-3 rounded-2xl border border-sb-outline-variant bg-sb-surface p-3 shadow-2xl md:bottom-3">
           <div className="min-w-[10rem] flex-1">
-            <p className="text-sm font-semibold">{chosen.length} guía(s) · {n(pick.total)} motos</p>
+            <p className="text-sm font-semibold">{chosen.length} guía(s) · {unitsText(pick.w2, pick.w3)}</p>
             <p className="text-[11px] text-sb-on-surface-variant">2W {n(pick.w2)} · 3W {n(pick.w3)} · {[...new Set(chosen.map((r) => r.district).filter(Boolean))].join(", ")}</p>
           </div>
           <Button variant="secondary" className="rounded-full" onPress={() => setSel(new Set())}><X className="h-4 w-4" /> Quitar</Button>

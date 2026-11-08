@@ -4,7 +4,7 @@ import { Chip } from "@heroui/react";
 import { Box, ChevronDown, MapPin, Pencil, Search, Trash2, X } from "lucide-react";
 import type { Site } from "@/lib/hsp";
 import { ContainerEdit } from "./ContainerEdit";
-import { fmtDate } from "@/lib/hsp";
+import { fmtDate, unitsOf } from "@/lib/hsp";
 import { cn } from "@/lib/cn";
 
 export type NaveRow = { cid: number; code: string; loaded_on: string; place?: string | null; guia: string | null; district: string | null; dealer: string | null; category: string | null; chassis: string; motor: string | null; material: string | null };
@@ -72,7 +72,7 @@ export function NaveContents({ site, nave, rows, canUndo, onUndo, naves = [], on
       {/* 1. Resumen */}
       <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
         {[
-          ["Motos", n(scope.length)],
+          ["Unidades", n(scope.length)],
           ["2W · 3W", `${n(w2)} · ${n(scope.length - w2)}`],
           ["Guías", n(new Set(scope.map((u) => `${u.cid}|${u.guia}`)).size)],
           ["Dealers", n(dealers)],
@@ -159,7 +159,7 @@ export function NaveContents({ site, nave, rows, canUndo, onUndo, naves = [], on
                     {models(g.units).map(([m, c]) => <Chip key={m} size="sm" variant="soft">{m} ×{c}</Chip>)}
                   </span>
                 </span>
-                <span className="text-right"><b className="block text-lg leading-none tabular-nums">{g.units.length}</b><span className="text-[10px] text-sb-on-surface-variant">motos</span></span>
+                <span className="text-right"><b className="block text-lg leading-none tabular-nums">{g.units.length}</b><span className="block whitespace-nowrap text-[10px] text-sb-on-surface-variant">{unitsOf(g.units)}</span></span>
                 <ChevronDown className={cn("h-4 w-4 shrink-0 text-sb-on-surface-variant transition-transform", isOpen && "rotate-180")} />
               </button>
               {isOpen && (

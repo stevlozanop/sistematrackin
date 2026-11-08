@@ -133,3 +133,18 @@ export const stepLabel = (site: Site, field: DateField) => {
   const d = SITE_INFO[site].dates.find((x) => x.key === field);
   return d ? `${d.step} · ${d.action}` : field;
 };
+
+/**
+ * Cómo se nombran las unidades: 2W = motos, 3W = motokares (motocarros).
+ * «5 motos», «3 motokares» o, si van juntas, «4 motos · 2 motokares».
+ */
+export function unitsText(w2: number, w3: number) {
+  const f = (v: number) => Number(v || 0).toLocaleString("es-PE");
+  const m = `${f(w2)} moto${w2 === 1 ? "" : "s"}`, k = `${f(w3)} motokar${w3 === 1 ? "" : "es"}`;
+  if (w2 && w3) return `${m} · ${k}`;
+  if (w3) return k;
+  return m;
+}
+/** Igual que unitsText, pero desde una lista con category «2W» / «3W» */
+export const unitsOf = (list: { category?: string | null }[]) =>
+  unitsText(list.filter((u) => u.category !== "3W").length, list.filter((u) => u.category === "3W").length);

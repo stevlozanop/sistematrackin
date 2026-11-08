@@ -6,6 +6,7 @@ import type { Plan, Point3, Projection } from "@/components/iso/iso-kit";
 import { Check, Eye, Minus, Plus, RotateCcw, RotateCw, Scan } from "lucide-react";
 import { DEFAULT_VESSEL, boxColor, type Slot, type Vessel } from "@/lib/stowage";
 import { cn } from "@/lib/cn";
+import { unitsText } from "@/lib/hsp";
 import "@/components/iso/iso.css";
 import "@/components/figures/route/route.css";
 import "./dock.css";
@@ -18,7 +19,7 @@ import "./dock.css";
  * Tocar una chata abre la nave; tocar un contenedor abre su contenido al costado.
  */
 export type DockContainer = { id: number; code: string; slot: Slot | null };
-export type DockNave = { nave: string; containers: number; total: number; first: string; need: number; list?: DockContainer[]; vessel?: Vessel };
+export type DockNave = { nave: string; containers: number; total: number; w2?: number; w3?: number; first: string; need: number; list?: DockContainer[]; vessel?: Vessel };
 
 const W = 900, H = 360;
 const QUAY: Plan = { x: -330, y: -130, w: 660, d: 95, r: 6 };
@@ -89,7 +90,7 @@ function hullOf(cx: number, v: Vessel) {
 }
 
 export function DockScene({ naves, checked, leaving, building, canSail, onOpen, onToggle, onPickContainer, selectedContainer }: {
-  naves: DockNave[]; checked: Set<string>; leaving: Set<string>; building: { guias: number; units: number; container: string; nave: string };
+  naves: DockNave[]; checked: Set<string>; leaving: Set<string>; building: { guias: number; units: number; w2?: number; w3?: number; container: string; nave: string };
   canSail: boolean; onOpen: (nave: string) => void; onToggle: (nave: string) => void;
   onPickContainer?: (c: { id: number; code: string; nave: string }) => void; selectedContainer?: number | null;
 }) {
@@ -250,7 +251,7 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
 
         {/* Contenedor en armado */}
         <div className="rf-tag dk-tag" style={pct([BUILD[0], BUILD[1], 46])}>
-          <span className="rf-tag-n">{building.guias ? `${building.units} motos` : "Contenedor vacío"}</span>
+          <span className="rf-tag-n">{building.guias ? (building.w2 !== undefined ? unitsText(building.w2, building.w3 ?? 0) : `${building.units} unidades`) : "Contenedor vacío"}</span>
           <span className="rf-tag-l">{building.guias ? `${building.guias} guía(s)${building.container ? ` · ${building.container.toUpperCase()}` : ""}${building.nave ? ` → ${building.nave.toUpperCase()}` : ""}` : "Agrega guías abajo"}</span>
         </div>
         {/* Naves cargando */}
@@ -258,7 +259,7 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
           <div key={v.nave} className={cn("rf-tag dk-tag dk-nave", checked.has(v.nave) && "is-on", leaving.has(v.nave) && "is-leaving")} style={pct([SLOTS[i], 12, 34])}>
             <button type="button" className="flex flex-col items-center" onClick={() => onOpen(v.nave)} aria-label={`Ver detalle de ${v.nave}`}>
               <span className="rf-tag-n flex items-center gap-1">{v.nave}<Eye className="h-3 w-3 opacity-60" /></span>
-              <span className="rf-tag-l">{v.containers} cont. · {v.total.toLocaleString("es-PE")} motos{(v.list ?? []).some((c) => !c.slot) ? ` · ${(v.list ?? []).filter((c) => !c.slot).length} sin ubicar` : ""}</span>
+              <span className="rf-tag-l">{v.containers} cont. · {v.w2 !== undefined ? unitsText(v.w2, v.w3 ?? 0) : `${v.total.toLocaleString("es-PE")} unidades`}{(v.list ?? []).some((c) => !c.slot) ? ` · ${(v.list ?? []).filter((c) => !c.slot).length} sin ubicar` : ""}</span>
             </button>
             {v.need > 0 && <span className="rf-tag-late">{v.need} tarde</span>}
             {canSail && (

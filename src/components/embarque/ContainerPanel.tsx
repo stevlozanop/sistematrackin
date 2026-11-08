@@ -58,7 +58,7 @@ export function ContainerPanel({ site, pick, onClose, onOpenNave }: {
               {!rows ? <div className="grid place-items-center py-10"><Spinner /></div> : (
                 <>
                   <div className="grid grid-cols-3 gap-2">
-                    {[["Motos", rows.length], ["2W · 3W", `${w2} · ${rows.length - w2}`], ["Guías", guias.length]].map(([l, v]) => (
+                    {[["Unidades", rows.length], ["2W · 3W", `${w2} · ${rows.length - w2}`], ["Guías", guias.length]].map(([l, v]) => (
                       <div key={l} className="rounded-xl bg-sb-surface-container-low px-3 py-2">
                         <p className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">{l}</p>
                         <p className="text-lg font-bold tabular-nums">{v}</p>

@@ -5,7 +5,7 @@ import { AlertTriangle, ChevronDown, FileStack, Plus, Search, Trash2 } from "luc
 import { Card } from "@/components/ui";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DATA_EVENT } from "@/components/UploadCenter";
-import { fmtDate, type Site } from "@/lib/hsp";
+import { fmtDate, unitsText, type Site } from "@/lib/hsp";
 import { daysBetween, parseISO, todayLima } from "@/lib/dates";
 import { cn } from "@/lib/cn";
 
@@ -54,13 +54,12 @@ export function PendingGuias({ site, inBox, canEmbark, onAdd, onChanged }: {
   const dups = (rows ?? []).filter((r) => r.flags.length);
   const shown = (rows ?? []).filter((r) => (!onlyDup || r.flags.length) && (!terms.length || terms.some((t) => [r.guia, r.dealer, r.district, r.models].some((x) => (x ?? "").toLowerCase().includes(t)))));
   const today = todayLima();
-  const total = (rows ?? []).reduce((t, r) => t + r.total, 0);
 
   return (
     <Card className="overflow-hidden">
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full flex-wrap items-center gap-2 border-b border-sb-outline-variant/40 px-4 py-3 text-left">
         <h3 className="flex items-center gap-2 text-sm font-semibold"><FileStack className="h-4 w-4" /> Guías pendientes de embarque</h3>
-        <span className="text-[11px] text-sb-on-surface-variant">{rows ? `${n(rows.length)} guías · ${n(total)} motos en IQT-Port` : "Cargando…"}</span>
+        <span className="text-[11px] text-sb-on-surface-variant">{rows ? `${n(rows.length)} guías · ${unitsText(rows.reduce((t, r) => t + r.w2, 0), rows.reduce((t, r) => t + r.w3, 0))} en IQT-Port` : "Cargando…"}</span>
         {dups.length > 0 && <span className="flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400"><AlertTriangle className="h-3 w-3" />{dups.length} posible(s) duplicada(s)</span>}
         <ChevronDown className={cn("ml-auto h-4 w-4 text-sb-on-surface-variant transition-transform", open && "rotate-180")} />
       </button>

@@ -241,7 +241,7 @@ export function RouteFlow({ site, data, pick, onPick }: { site: "PCL" | "YUR"; d
         <button key={b.nave} type="button" onClick={() => onPick({ kind: "nave", nave: b.nave, status: b.status })} style={pct([x, y, 16])}
           className={cn("rf-tag rf-tag-boat", pick?.kind === "nave" && pick.nave === b.nave && "is-on")}>
           <span className="rf-tag-n">{b.nave}</span>
-          <span className="rf-tag-l">{b.n} motos · día {b.days}</span>
+          <span className="rf-tag-l">{b.n} unidades · día {b.days}</span>
           {b.late > 0 && <span className="rf-tag-late">{b.late} tarde</span>}
         </button>
       ))}

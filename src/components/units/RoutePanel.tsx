@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Button, Chip, Drawer, Spinner } from "@heroui/react";
 import { AlertTriangle, ChevronDown, Clock, Ship } from "lucide-react";
-import { STATUS_LABEL, fmtDate, type Site, type Status } from "@/lib/hsp";
+import { STATUS_LABEL, fmtDate, unitsOf, type Site, type Status } from "@/lib/hsp";
 import { cn } from "@/lib/cn";
 import type { FlowData, Pick } from "@/components/figures/route/RouteFlow";
 import { MiniRoute } from "./MiniRoute";
@@ -59,7 +59,7 @@ export function RoutePanel({ site, pick, flow, filters, onClose, onOpenUnit }: {
             <Drawer.Header className="flex flex-col gap-2">
               <Drawer.Heading className="flex items-center gap-2">{pick?.kind === "nave" && <Ship className="h-4 w-4" />}{title}</Drawer.Heading>
               <div className="flex flex-wrap gap-1.5">
-                <Chip size="sm" variant="soft">{(units?.length ?? stats?.n ?? nave?.n ?? 0).toLocaleString()} motos</Chip>
+                <Chip size="sm" variant="soft">{units ? unitsOf(units as { category?: string | null }[]) : `${(stats?.n ?? nave?.n ?? 0).toLocaleString("es-PE")} unidades`}</Chip>
                 <Chip size="sm" variant="soft">{groups.length} guías</Chip>
                 {(stats?.late ?? nave?.late ?? 0) > 0 && <Chip size="sm" color="danger" variant="soft">{stats?.late ?? nave?.late} fuera de tiempo</Chip>}
                 {(stats?.soon ?? 0) > 0 && <Chip size="sm" color="warning" variant="soft">{stats?.soon} por vencer</Chip>}
@@ -69,7 +69,7 @@ export function RoutePanel({ site, pick, flow, filters, onClose, onOpenUnit }: {
             </Drawer.Header>
             <Drawer.Body className="flex flex-col gap-2">
               {!units ? <div className="grid place-items-center py-10"><Spinner /></div>
-                : !units.length ? <p className="py-10 text-center text-sm text-sb-on-surface-variant">No hay motos en este punto con los filtros actuales.</p>
+                : !units.length ? <p className="py-10 text-center text-sm text-sb-on-surface-variant">No hay unidades en este punto con los filtros actuales.</p>
                 : groups.map(([g, list]) => {
                   const isOpen = allOpen || open.has(g);
                   const late = list.filter((u) => u.service === "FUERA DE TIEMPO").length;
@@ -80,7 +80,7 @@ export function RoutePanel({ site, pick, flow, filters, onClose, onOpenUnit }: {
                           <span className="block truncate font-mono text-sm font-semibold">{g}</span>
                           <span className="block truncate text-[11px] text-sb-on-surface-variant">{[...new Set(list.map((u) => u.dealer).filter(Boolean))].join(" · ") || "—"}</span>
                         </span>
-                        <span className="shrink-0 text-right text-xs"><b>{list.length}</b> motos{late > 0 && <span className="block text-[10px] font-semibold text-sb-late">{late} tarde</span>}</span>
+                        <span className="shrink-0 text-right text-xs"><b>{unitsOf(list as { category?: string | null }[])}</b>{late > 0 && <span className="block text-[10px] font-semibold text-sb-late">{late} tarde</span>}</span>
                         <ChevronDown className={cn("h-4 w-4 shrink-0 text-sb-on-surface-variant transition-transform", isOpen && "rotate-180")} />
                       </button>
                       {isOpen && (

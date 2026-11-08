@@ -90,7 +90,7 @@ export function ContainerEdit({ site, id, code, nave, loadedOn, guias, naves, on
             <div key={g.guia} className={cn("flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs", off ? "border-sb-late/40 bg-sb-late-soft/50" : "border-sb-outline-variant/50 bg-sb-surface")}>
               <span className="min-w-0 flex-1">
                 <span className={cn("block font-mono font-semibold", off && "line-through opacity-60")}>{g.guia}</span>
-                <span className="block truncate text-[11px] text-sb-on-surface-variant">{g.dealer} · {g.district} · {g.units} motos</span>
+                <span className="block truncate text-[11px] text-sb-on-surface-variant">{g.dealer} · {g.district} · {g.units} unid.</span>
               </span>
               <button type="button" onClick={() => toggleOut(g.guia)}
                 className={cn("flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium", off ? "text-sb-on-surface hover:bg-sb-surface-container" : "text-sb-on-surface-variant hover:bg-sb-late-soft hover:text-sb-late")}>
@@ -103,7 +103,7 @@ export function ContainerEdit({ site, id, code, nave, loadedOn, guias, naves, on
           <div key={g.guia} className="flex items-center gap-2 rounded-lg border border-sb-primary/40 bg-sb-surface px-2.5 py-1.5 text-xs">
             <span className="min-w-0 flex-1">
               <span className="block font-mono font-semibold">{g.guia} <span className="font-sans text-[10px] font-semibold text-sb-primary">NUEVA</span></span>
-              <span className="block truncate text-[11px] text-sb-on-surface-variant">{g.dealer} · {g.district} · {g.total} motos{g.need ? ` · ${g.need} fuera de tiempo` : ""}</span>
+              <span className="block truncate text-[11px] text-sb-on-surface-variant">{g.dealer} · {g.district} · {g.total} unid.{g.need ? ` · ${g.need} fuera de tiempo` : ""}</span>
             </span>
             <button type="button" aria-label={`Quitar ${g.guia}`} onClick={() => setAdd((x) => x.filter((y) => y.guia !== g.guia))} className="rounded-full p-1 text-sb-on-surface-variant hover:bg-sb-surface-container"><X className="h-3.5 w-3.5" /></button>
           </div>
