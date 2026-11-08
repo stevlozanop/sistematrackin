@@ -3,6 +3,7 @@ import { getSession, type Session } from "./auth";
 import { query, run } from "./db";
 import { countApi } from "./activity";
 import { cachedLicense, licenseMessage } from "./license";
+import { cachedAccess, maintenanceText, sessionClosed } from "./platform";
 import type { Stage } from "./workflow";
 
 type R = Session["role"][];
@@ -24,6 +25,16 @@ export async function guard(roles: R = STAFF) {
   const s = await getSession();
   if (!s || !roles.includes(s.role)) {
     return { s: null as never, err: NextResponse.json({ error: s ? "No tienes permiso para esta acción" : "No autorizado" }, { status: s ? 403 : 401 }) };
+  }
+  // Sesión cerrada por The Iceberg Labs, o plataforma en mantenimiento (The Iceberg Labs sigue entrando)
+  const acc = await cachedAccess(s.id);
+  if (sessionClosed(s.iat, acc.sessionsAfter)) {
+    const res = NextResponse.json({ error: "Tu sesión fue cerrada. Vuelve a ingresar.", closed: true }, { status: 401 });
+    res.cookies.delete("session");
+    return { s: null as never, err: res };
+  }
+  if (acc.platform.maintenance && s.role !== "dev") {
+    return { s: null as never, err: NextResponse.json({ error: maintenanceText(acc.platform), maintenance: true }, { status: 503 }) };
   }
   // Licencia de su empresa (The Iceberg Labs nunca se bloquea): suspendida o vencida = no puede usar nada
   if (s.role !== "dev") {

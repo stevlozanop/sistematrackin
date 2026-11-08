@@ -17,6 +17,12 @@ export function LiveSync() {
       busy = true;
       try {
         const r = await fetch("/api/data-version", { cache: "no-store" });
+        // Sesión cerrada por The Iceberg Labs: al login · Mantenimiento: recargar para mostrar el aviso
+        if (r.status === 401) {
+          const e = await r.json().catch(() => null);
+          if (e?.closed) { window.location.replace("/login?cerrada=1"); return; }
+        }
+        if (r.status === 503) { window.location.reload(); return; }
         // Licencia suspendida o vencida mientras usaba el sistema: recargar para mostrar la pantalla de bloqueo
         if (r.status === 403) {
           const e = await r.json().catch(() => null);

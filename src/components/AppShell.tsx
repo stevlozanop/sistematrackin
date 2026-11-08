@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, Forklift, PackageCheck, Boxes, MapPinned, type LucideIcon } from "lucide-react";
+import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, Forklift, PackageCheck, Boxes, MapPinned, Power, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
@@ -145,6 +145,7 @@ const DEV_SECTIONS: Section[] = [
   {
     title: "Infraestructura",
     items: [
+      { title: "Control", href: "/dev/control", icon: Power, badge: "control" },
       { title: "Salud de la base", href: "/dev/health", icon: HeartPulse, badge: "health" },
       { title: "Consumo", href: "/dev/usage", icon: Gauge, badge: "db" },
       { title: "Base de datos", href: "/dev/database", icon: Database },
@@ -205,6 +206,7 @@ function useDevBadges(on: boolean) {
           fails: j.fails ? { text: `${j.fails} fallidos`, tone: "alert" } : { text: "0", tone: "muted" },
           health: { text: H[j.health as keyof typeof H] ?? "—", tone: j.health === "crit" ? "alert" : j.health === "warn" ? "warn" : "muted" },
           db: { text: `${j.dbPct}%`, tone: j.dbPct >= 85 ? "alert" : j.dbPct >= 70 ? "warn" : "muted" },
+          control: j.maintenance ? { text: "Mantenimiento", tone: "alert" } : { text: "Normal", tone: "muted" },
           licenses: j.blocked ? { text: `${j.blocked} bloqueada${j.blocked === 1 ? "" : "s"}`, tone: "alert" } : j.soon ? { text: `${j.soon} por vencer`, tone: "warn" } : { text: "Al día", tone: "muted" },
         });
       }).catch(() => {});

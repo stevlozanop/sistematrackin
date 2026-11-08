@@ -7,10 +7,16 @@ import { themeCss } from "@/lib/theme";
 import { AppShell } from "@/components/AppShell";
 import { LicenseWall } from "@/components/LicenseWall";
 import { licenseMessage, licenseOfUser } from "@/lib/license";
+import { cachedAccess, maintenanceText, sessionClosed } from "@/lib/platform";
+import { MaintenanceWall } from "@/components/MaintenanceWall";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const s = await getSession();
   if (!s) redirect("/login");
+  // Sesión cerrada por The Iceberg Labs → al login · Mantenimiento → aviso (The Iceberg Labs sigue entrando)
+  const acc = await cachedAccess(s.id);
+  if (sessionClosed(s.iat, acc.sessionsAfter)) redirect("/api/auth/closed");
+  if (acc.platform.maintenance && s.role !== "dev") return <MaintenanceWall message={maintenanceText(acc.platform)} until={acc.platform.until} />;
   // Licencia de su empresa: si está suspendida o vencida, no ve nada del sistema (The Iceberg Labs siempre entra)
   const lic = s.role === "dev" ? null : await licenseOfUser(s.id);
   if (lic && lic.status !== "active") return <LicenseWall company={lic.company} message={licenseMessage(lic)} status={lic.status} />;

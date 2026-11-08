@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Input, toast } from "@heroui/react";
@@ -25,6 +25,10 @@ export function LoginForm({ brand, figure }: { brand?: PortalBrand; figure?: Rea
   const formRef = useRef<HTMLFormElement>(null);
   const [shake, setShake] = useState(0);
   const clients = brand?.audience === "clients";
+  // Llegó porque The Iceberg Labs cerró su sesión
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get("cerrada")) toast.warning("Tu sesión fue cerrada", { description: "Vuelve a ingresar con tu correo y contraseña.", timeout: 8000 });
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

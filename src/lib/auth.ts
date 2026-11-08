@@ -6,7 +6,7 @@ import path from "node:path";
 
 import type { Role } from "./workflow";
 
-export type Session = { id: number; name: string; email: string; role: Role };
+export type Session = { id: number; name: string; email: string; role: Role; iat?: number };
 
 function secret() {
   if (process.env.AUTH_SECRET) return new TextEncoder().encode(process.env.AUTH_SECRET);
@@ -21,6 +21,7 @@ function secret() {
 export async function createSession(s: Session) {
   const token = await new SignJWT({ ...s })
     .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt() // para poder cerrar sesiones iniciadas antes de una hora (consola The Iceberg Labs)
     .setExpirationTime("7d")
     .sign(secret());
   (await cookies()).set("session", token, {

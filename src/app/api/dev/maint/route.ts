@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { guard } from "@/lib/guard";
+import { logDev } from "@/lib/platform";
 
 /**
  * Consola The Iceberg Labs · mantenimiento de la base (solo dev):
@@ -30,6 +31,7 @@ export async function POST(req: Request) {
     if (!before) return NextResponse.json({ error: "Esa tabla no existe" }, { status: 404 });
     await query(`${b.action === "vacuum" ? "VACUUM (ANALYZE)" : "ANALYZE"} ${quoted(table)}`);
     const [after] = await statOf(table);
+    await logDev(s.id, b.action === "vacuum" ? "Limpió una tabla" : "Actualizó estadísticas", table, `${num(before.dead)} → ${num(after?.dead)} filas muertas`);
     return NextResponse.json({ ok: true, table, before: num(before.dead), after: num(after?.dead), ms: ms(), by: s.id });
   }
 
@@ -38,11 +40,13 @@ export async function POST(req: Request) {
     const need = all.filter((t) => num(t.live) + num(t.dead) > 1000 && num(t.dead) / (num(t.live) + num(t.dead)) >= 0.1);
     const done: { table: string; before: number }[] = [];
     for (const t of need) { await query(`VACUUM (ANALYZE) ${quoted(t.name)}`); done.push({ table: t.name, before: num(t.dead) }); }
+    await logDev(s.id, "Limpió las tablas que lo necesitaban", done.map((d) => d.table).join(", ") || "ninguna");
     return NextResponse.json({ ok: true, tables: done, ms: ms() });
   }
 
   if (b.action === "analyze-all") {
     await query("ANALYZE");
+    await logDev(s.id, "Actualizó estadísticas de toda la base");
     return NextResponse.json({ ok: true, ms: ms() });
   }
 
@@ -54,6 +58,7 @@ export async function POST(req: Request) {
     const fn = b.action === "cancel" ? "pg_cancel_backend" : "pg_terminate_backend";
     const [r] = await query<{ ok: boolean }>(`SELECT ${fn}(?) AS ok`, [pid]);
     if (!r?.ok) return NextResponse.json({ error: "Postgres no permitió detenerlo (puede ser un proceso del sistema)" }, { status: 409 });
+    await logDev(s.id, b.action === "cancel" ? "Detuvo una consulta" : "Cortó una conexión", `proceso ${pid}`);
     return NextResponse.json({ ok: true, pid });
   }
 
