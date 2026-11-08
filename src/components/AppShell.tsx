@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { TrackinMark } from "@/components/TrackinMark";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -376,7 +377,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
           ) : brand?.v ? (
             <LogoBadge id={brand.id} name={brand.name} v={brand.v} className="h-8 w-8 rounded-lg border border-sb-outline-variant/40" />
           ) : (
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sb-primary text-[11px] font-bold text-sb-on-primary">ST</span>
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sb-primary text-sb-on-primary"><TrackinMark className="h-6 w-6" title="System Trackin" /></span>
           )}
           {open && (
             <span className="flex min-w-0 flex-col leading-tight">
