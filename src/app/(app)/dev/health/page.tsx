@@ -145,7 +145,7 @@ export default function DevHealth() {
           <div className="px-5 pt-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-semibold">Limpieza de tablas</h3>
-              <span className="flex gap-1">
+              <span className="flex flex-wrap gap-1">
                 <Button size="sm" variant="primary" className="rounded-full" isDisabled={!!busy}
                   onPress={() => run("needed", { action: "vacuum-needed" }, (j) => (j.tables as unknown[]).length ? `Limpieza hecha en ${(j.tables as unknown[]).length} tabla(s) (${j.ms} ms)` : "Ninguna tabla lo necesitaba")}>
                   <Sparkles className="h-3.5 w-3.5" /> {busy === "needed" ? "Limpiando…" : "Limpiar lo necesario"}

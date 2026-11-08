@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { TableLabels } from "@/components/TableLabels";
 import { Button, toast } from "@heroui/react";
 import { ArrowDown, Box, Ship, Warehouse } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
@@ -185,7 +186,7 @@ export default function ArriboPage() {
             <h3 className="flex items-center gap-2 text-sm font-semibold"><Ship className="h-4 w-4" /> 3. Arribo · naves en camino a {dest}</h3>
           </div>
           <div className="grid gap-4 p-4 lg:grid-cols-[1fr_17rem]">
-            <div className="overflow-x-auto rounded-xl border border-sb-outline-variant/40">
+            <TableLabels className="rounded-xl border border-sb-outline-variant/40">
               <table className="w-full min-w-[480px] text-left text-xs">
                 <thead>
                   <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
@@ -214,7 +215,7 @@ export default function ArriboPage() {
                   {!data && <tr><td colSpan={5} className="px-3 py-8 text-center text-sb-on-surface-variant">Cargando…</td></tr>}
                 </tbody>
               </table>
-            </div>
+            </TableLabels>
             <Register from="Tránsito fluvial" to="Arribo puerto" label="Arribo" date={arrDate} setDate={setArrDate} min={arrMin} need={arrNeed}
               reason={arrReason} setReason={setArrReason} count={chosenNaves.length} units={chosenNaves.reduce((t, x) => t + x.total, 0)}
               busy={busy} disabled={!chosenNaves.length} readOnly={!data?.canArrive} onSave={arrive} />
@@ -245,7 +246,7 @@ export default function ArriboPage() {
             </div>
 
             {/* Contenedores de la nave elegida */}
-            <div className="overflow-x-auto rounded-xl border border-sb-outline-variant/40">
+            <TableLabels className="rounded-xl border border-sb-outline-variant/40">
               <table className="w-full min-w-[480px] text-left text-xs">
                 <thead>
                   <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
@@ -282,7 +283,7 @@ export default function ArriboPage() {
                   {!data && <tr><td colSpan={5} className="px-3 py-8 text-center text-sb-on-surface-variant">Cargando…</td></tr>}
                 </tbody>
               </table>
-            </div>
+            </TableLabels>
 
             <Register from="Arribo puerto" to="En almacén" label="Ingreso" date={stoDate} setDate={setStoDate} min={stoMin} need={stoNeed}
               reason={stoReason} setReason={setStoReason} count={chosenConts.length} units={chosenConts.reduce((t, x) => t + x.total, 0)}

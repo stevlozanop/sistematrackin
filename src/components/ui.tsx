@@ -1,4 +1,5 @@
 import { cn } from "@/lib/cn";
+import { TableLabels } from "@/components/TableLabels";
 
 export const Card = ({ className, ...p }: React.ComponentProps<"div">) => (
   <div className={cn("rounded-2xl border border-sb-outline-variant/40 bg-sb-surface", className)} {...p} />
@@ -16,9 +17,9 @@ export const PageTitle = ({ title, sub, children }: { title: string; sub?: strin
 
 /** Tabla con el estilo de EduconectaV2: encabezado en mayúsculas tenue, filas con separadores finos. */
 export const Table = ({ className, ...p }: React.ComponentProps<"table">) => (
-  <div className="overflow-x-auto">
+  <TableLabels>
     <table className={cn("w-full text-left text-xs", className)} {...p} />
-  </div>
+  </TableLabels>
 );
 export const Thead = ({ children }: { children: React.ReactNode }) => (
   <thead><tr className="border-b border-sb-outline-variant/40">{children}</tr></thead>

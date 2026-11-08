@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { TableLabels } from "@/components/TableLabels";
 import { Button, toast } from "@heroui/react";
 import { ArrowDown, Eye, Plus, Truck, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
@@ -207,7 +208,7 @@ export default function DespachoPage() {
                 source={(q) => `/api/suggest?${new URLSearchParams({ kind: "guia", site: current, step: "d_despacho", q })}`} />
               <Button type="submit" variant="primary" className="shrink-0 rounded-full" isDisabled={adding || !input.trim() || ro}><Plus className="h-4 w-4" /> {adding ? "Buscando…" : "Agregar"}</Button>
             </form>
-            <div className="overflow-x-auto rounded-xl border border-sb-outline-variant/40">
+            <TableLabels className="rounded-xl border border-sb-outline-variant/40">
               <table className="w-full min-w-[560px] text-left text-xs">
                 <thead>
                   <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
@@ -238,7 +239,7 @@ export default function DespachoPage() {
                   </tr></tfoot>
                 )}
               </table>
-            </div>
+            </TableLabels>
           </div>
           <div className="flex flex-col gap-3 border-t border-sb-outline-variant/40 pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
             <div className="flex flex-col items-start gap-1 text-xs">
@@ -273,7 +274,7 @@ export default function DespachoPage() {
           <h3 className="text-sm font-semibold">Resumen de viajes</h3>
           <span className="text-[11px] text-sb-on-surface-variant">{data?.trips.length ?? 0} viaje(s)</span>
         </div>
-        <div className="overflow-x-auto">
+        <TableLabels className="">
           <table className="w-full min-w-[760px] text-left text-xs">
             <thead>
               <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
@@ -301,7 +302,7 @@ export default function DespachoPage() {
               {data && !data.trips.length && <tr><td colSpan={9} className="px-4 py-8 text-center text-sb-on-surface-variant">Aún no hay viajes despachados.</td></tr>}
             </tbody>
           </table>
-        </div>
+        </TableLabels>
       </Card>
       <TripDetail site={current} trip={view} onClose={() => setView(null)} />
     </div>

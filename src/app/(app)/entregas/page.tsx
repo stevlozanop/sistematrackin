@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { TableLabels } from "@/components/TableLabels";
 import { CheckCircle2, ChevronDown, MapPin, MessageSquareWarning, Search, Truck, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { DATA_EVENT } from "@/components/UploadCenter";
@@ -146,7 +147,7 @@ export default function EntregasPage() {
                   <ChevronDown className={cn("h-4 w-4 text-sb-on-surface-variant transition-transform", isOpen && "rotate-180")} />
                 </button>
                 {isOpen && (
-                  <div className="overflow-x-auto">
+                  <TableLabels className="">
                     <table className="w-full min-w-[980px] text-left text-xs">
                       <thead>
                         <tr className="border-b border-sb-outline-variant/30 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
@@ -188,7 +189,7 @@ export default function EntregasPage() {
                         })}
                       </tbody>
                     </table>
-                  </div>
+                  </TableLabels>
                 )}
               </div>
             );

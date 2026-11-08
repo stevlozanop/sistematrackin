@@ -160,7 +160,7 @@ export default function DevSecurity() {
                     ? <span className="inline-flex items-center gap-1 font-medium"><MonitorSmartphone className="h-3.5 w-3.5" /> {l.new_device ? "Dispositivo nuevo" : "IP nueva"}</span>
                     : <span className="text-sb-on-surface-variant">Conocido</span>}</Td>
                   <Td className="text-right">
-                    {(l.new_device || l.new_ip) && l.role !== "dev" && (
+                    {!!(l.new_device || l.new_ip) && l.role !== "dev" && (
                       <span className="flex justify-end gap-1">
                         <Button size="sm" variant="tertiary" className="rounded-full" onPress={() => user("close", { id: l.user_id, name: l.name }, `¿Cerrar la sesión de ${l.name}?`, <>Sale del sistema en todos sus equipos y debe volver a ingresar.</>, "Sí, cerrar", `Sesión de ${l.name} cerrada`)}><LogOut className="h-3 w-3" /> Cerrar</Button>
                         {l.ip && <Button size="sm" variant="tertiary" className="rounded-full" onPress={() => block("ip", l.ip!)}><Ban className="h-3 w-3" /> IP</Button>}

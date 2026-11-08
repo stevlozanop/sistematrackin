@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { TableLabels } from "@/components/TableLabels";
 import { toast } from "@heroui/react";
 import { AlertTriangle, ChevronDown, FileStack, Plus, Search, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui";
@@ -76,7 +77,7 @@ export function PendingGuias({ site, inBox, canEmbark, onAdd, onChanged }: {
               <button type="button" onClick={() => setOnlyDup(true)} className={cn("rounded-full px-3 py-1 text-[11px] font-semibold", onlyDup ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant")}>Posibles duplicadas ({dups.length})</button>
             </div>
           </div>
-          <div className="max-h-[28rem] overflow-auto border-t border-sb-outline-variant/30">
+          <TableLabels className="max-h-[28rem] overflow-y-auto border-t border-sb-outline-variant/30">
             <table className="w-full min-w-[900px] text-left text-xs">
               <thead className="sticky top-0 z-10 bg-sb-surface">
                 <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
@@ -127,7 +128,7 @@ export function PendingGuias({ site, inBox, canEmbark, onAdd, onChanged }: {
                 {rows && !shown.length && <tr><td colSpan={10} className="px-4 py-8 text-center text-sb-on-surface-variant">{rows.length ? "Nada coincide." : "No hay guías pendientes de embarque."}</td></tr>}
               </tbody>
             </table>
-          </div>
+          </TableLabels>
           <p className="border-t border-sb-outline-variant/30 px-4 py-2 text-[10px] text-sb-on-surface-variant">
             <span className="text-sb-ontime">Azul</span>: al día · <span className="text-sb-late">rojo</span>: lead time vencido · <span className="text-amber-700 dark:text-amber-400">ámbar</span>: posible duplicada{canDelete ? " (puedes eliminarla)" : " (avisa a la empresa para eliminarla)"}.
           </p>

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { TableLabels } from "@/components/TableLabels";
 import { Button, toast } from "@heroui/react";
 import { Search, Truck } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
@@ -127,7 +128,7 @@ export default function ConductorPage() {
                 ))}
               </div>
             )}
-            <div className="overflow-x-auto rounded-xl border border-sb-outline-variant/40">
+            <TableLabels className="rounded-xl border border-sb-outline-variant/40">
               <table className="w-full min-w-[520px] text-left text-xs">
                 <thead>
                   <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
@@ -173,7 +174,7 @@ export default function ConductorPage() {
                   {searched && !rows && <tr><td colSpan={6} className="px-3 py-8 text-center text-sb-on-surface-variant">Buscando…</td></tr>}
                 </tbody>
               </table>
-            </div>
+            </TableLabels>
           </div>
           <div className="flex flex-col gap-3 border-t border-sb-outline-variant/40 pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
             <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Fecha de entrega

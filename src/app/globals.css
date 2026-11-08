@@ -264,3 +264,29 @@ html.dark {
 :where([class*="text-sb-on-surface-variant"], .text-muted) { font-weight: 600; }
 /* Las variantes con transparencia (/40, /60, /70…) también quedan con el color pleno */
 [class*="text-sb-on-surface-variant/"] { color: var(--sb-on-surface-variant) !important; }
+
+/* Celular: las tablas del sistema (componente Table) se ven como tarjetas, una por fila,
+   con el título de cada columna a la izquierda y su dato a la derecha. Nada se desliza de lado. */
+@media (max-width: 640px) {
+  .sb-stack { overflow-x: visible; }
+  .sb-stack table, .sb-stack tbody, .sb-stack tr, .sb-stack td { display: block; width: 100%; }
+  .sb-stack table { min-width: 0 !important; }
+  .sb-stack thead { display: none; }
+  .sb-stack tbody tr { padding: 0.65rem 1rem; }
+  /* El título de la columna flota a la izquierda; el dato (aunque tenga varias líneas) va a la derecha */
+  .sb-stack td {
+    padding: 0.28rem 0 !important; max-width: none !important; white-space: normal !important; text-align: right !important; overflow-wrap: anywhere;
+  }
+  .sb-stack td::before {
+    content: attr(data-label); float: left; max-width: 45%; margin-right: 0.75rem; text-align: left;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--sb-on-surface-variant);
+  }
+  .sb-stack td::after { content: ""; display: block; clear: both; }
+  .sb-stack td:empty { display: none; }
+  /* Columnas sin título (acciones): botones a la derecha */
+  .sb-stack td[data-label=""] { padding-top: 0.5rem !important; }
+  .sb-stack td[data-label=""]::before, .sb-stack td[colspan]::before { content: none; }
+  .sb-stack td[colspan] { text-align: center !important; }
+  .sb-stack td span.flex, .sb-stack td div.flex { flex-wrap: wrap; justify-content: flex-end; }
+  .sb-stack td input[type="checkbox"] { float: left; }
+}

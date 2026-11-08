@@ -53,8 +53,9 @@ export default function DevControl() {
 
       {/* 1. Modo mantenimiento */}
       <Card className={cn("flex flex-col gap-4 p-5", on && "ring-2 ring-sb-late/50")}>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className={cn("grid h-11 w-11 place-items-center rounded-2xl", on ? "bg-sb-late-soft text-sb-late" : "bg-sb-surface-container")}><Wrench className="h-5 w-5" /></span>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+          <span className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-2xl", on ? "bg-sb-late-soft text-sb-late" : "bg-sb-surface-container")}><Wrench className="h-5 w-5" /></span>
           <div className="min-w-0 flex-1">
             <h3 className="text-base font-semibold">Modo mantenimiento · <span className={on ? "text-sb-late" : "text-sb-ontime"}>{on ? "ENCENDIDO" : "apagado"}</span></h3>
             <p className="text-xs text-sb-on-surface-variant">
@@ -62,7 +63,8 @@ export default function DevControl() {
                 : "Pone a todas las cuentas en una pantalla de «Volvemos en unos minutos» mientras haces cambios grandes. Tú sigues entrando."}
             </p>
           </div>
-          <Button variant={on ? "primary" : "danger"} className="rounded-full" isDisabled={busy}
+          </div>
+          <Button variant={on ? "primary" : "danger"} className="w-full shrink-0 rounded-full sm:w-auto" isDisabled={busy}
             onPress={() => on
               ? post({ action: "maintenance", on: false }).then((j) => j && toast.success("Mantenimiento apagado: todos pueden entrar"))
               : setAsk({ title: "¿Encender el modo mantenimiento?", label: "Sí, encender", body: <>Todas las cuentas (Leyva, consorcios, encargados y clientes) verán la pantalla de mantenimiento en pocos segundos y no podrán entrar hasta que lo apagues.</>,
@@ -79,7 +81,7 @@ export default function DevControl() {
                 className="h-10 rounded-xl border border-sb-outline-variant bg-sb-surface px-3 text-sm outline-none focus:border-sb-on-surface" />
             </label>
             <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Vuelta estimada
-              <div className="flex gap-1 rounded-full bg-sb-surface-container p-1">
+              <div className="grid grid-cols-4 gap-1 rounded-full bg-sb-surface-container p-1 sm:flex">
                 {[[15, "15 min"], [30, "30 min"], [60, "1 h"], [0, "Sin hora"]].map(([m, l]) => (
                   <button key={m} type="button" onClick={() => setMinutes(Number(m))} className={cn("rounded-full px-3 py-1.5 text-xs font-semibold", minutes === m ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant")}>{l}</button>
                 ))}
@@ -102,13 +104,13 @@ export default function DevControl() {
           </div>
           <ul className="max-h-[26rem] divide-y divide-sb-outline-variant/30 overflow-y-auto">
             {users.slice(0, 120).map((u) => (
-              <li key={u.id} className="flex flex-wrap items-center gap-3 px-5 py-2.5 text-xs">
+              <li key={u.id} className="flex items-center gap-3 px-5 py-2.5 text-xs">
                 <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", u.online ? "bg-sb-ontime" : "bg-sb-outline-variant")} title={u.online ? "Conectado ahora" : "Desconectado"} />
                 <span className="min-w-0 flex-1">
                   <b className="block truncate text-sm">{u.name}</b>
                   <span className="block truncate text-[11px] text-sb-on-surface-variant">{u.email} · {roleLabel(u.role)}{u.company ? ` · ${u.company}` : ""}</span>
+                  <span className="block text-[11px] text-sb-on-surface-variant">{u.online ? "conectado ahora" : u.last_seen ? `visto ${u.last_seen}` : "nunca entró"}{u.closed_at && <span className="text-sb-late"> · cerrada {u.closed_at}</span>}</span>
                 </span>
-                <span className="text-right text-[11px] text-sb-on-surface-variant">{u.online ? "conectado" : u.last_seen ? `visto ${u.last_seen}` : "nunca entró"}{u.closed_at && <span className="block text-sb-late">cerrada {u.closed_at}</span>}</span>
                 <Button size="sm" variant="secondary" className="rounded-full" isDisabled={busy}
                   onPress={() => setAsk({ title: `¿Cerrar la sesión de ${u.name}?`, label: "Sí, cerrar sesión", body: <>Sale del sistema en pocos segundos en todos sus equipos y tendrá que volver a ingresar con su contraseña. Útil si perdió el celular o compartió su cuenta.</>,
                     run: async () => { const j = await post({ action: "close-user", id: u.id }); if (j) toast.success(`Sesión de ${u.name} cerrada`); } })}>

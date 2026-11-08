@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { TableLabels } from "@/components/TableLabels";
 import { Button, toast } from "@heroui/react";
 import { CheckCircle2, MessageSquareWarning, PackageCheck, Search } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
@@ -119,7 +120,7 @@ export default function RecepcionPage() {
               {found && <span className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Estado
                 <span className="rounded-full border border-sb-outline-variant px-3 py-2 text-xs font-semibold text-sb-on-surface">{found.status}</span></span>}
             </form>
-            <div className="overflow-x-auto rounded-xl border border-sb-outline-variant/40">
+            <TableLabels className="rounded-xl border border-sb-outline-variant/40">
               <table className="w-full min-w-[460px] text-left text-xs">
                 <thead>
                   <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
@@ -137,7 +138,7 @@ export default function RecepcionPage() {
                   ) : <tr><td colSpan={4} className="px-3 py-8 text-center text-sb-on-surface-variant">Escribe tu guía y pulsa «Buscar».</td></tr>}
                 </tbody>
               </table>
-            </div>
+            </TableLabels>
             {found && !ready && <p className="rounded-xl bg-sb-surface-container-low px-3 py-2 text-xs text-sb-on-surface-variant">Esta guía todavía no sale del almacén: podrás confirmarla cuando la despachen.</p>}
             {found?.receptions.length ? (
               <div className="flex flex-col gap-1">

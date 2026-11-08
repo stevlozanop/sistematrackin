@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { TableLabels } from "@/components/TableLabels";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 import { Forklift, Search, Warehouse, X } from "lucide-react";
@@ -113,7 +114,7 @@ export default function StockPage() {
             {q && <button type="button" aria-label="Limpiar" onClick={() => setQ("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-sb-on-surface-variant"><X className="h-3.5 w-3.5" /></button>}
           </label>
         </div>
-        <div className="overflow-x-auto">
+        <TableLabels className="">
           <table className="w-full min-w-[920px] text-left text-xs">
             <thead>
               <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
@@ -166,7 +167,7 @@ export default function StockPage() {
               {!rows && <tr><td colSpan={11} className="px-4 py-10 text-center text-sb-on-surface-variant">Cargando…</td></tr>}
             </tbody>
           </table>
-        </div>
+        </TableLabels>
       </Card>
 
       {/* Barra para armar el despacho con lo marcado */}
