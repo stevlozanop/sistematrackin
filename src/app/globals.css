@@ -248,3 +248,19 @@ html.dark {
   main { overflow: visible !important; padding: 0 !important; }
   .h-screen { height: auto !important; overflow: visible !important; }
 }
+
+/* Textos secundarios (antes gris claro, se perdían): negros y en negrita en todo el sistema.
+   En modo oscuro, casi blancos. Los textos de ayuda dentro de los campos (placeholder) siguen tenues. */
+:root {
+  --sb-on-surface-variant: #18181b;
+  --muted: #18181b;
+  --field-placeholder: oklch(0.5517 0.0138 285.94);
+}
+html.dark {
+  --sb-on-surface-variant: #e4e4e7;
+  --muted: #e4e4e7;
+  --field-placeholder: oklch(70.5% 0.015 286.067);
+}
+:where([class*="text-sb-on-surface-variant"], .text-muted) { font-weight: 600; }
+/* Las variantes con transparencia (/40, /60, /70…) también quedan con el color pleno */
+[class*="text-sb-on-surface-variant/"] { color: var(--sb-on-surface-variant) !important; }
