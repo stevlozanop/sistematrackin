@@ -33,6 +33,18 @@ export async function createSession(s: Session) {
   });
 }
 
+/** Pase corto (5 min) entre la contraseña y el código de la doble verificación */
+export async function signTicket(userId: number) {
+  return new SignJWT({ uid: userId, purpose: "2fa" }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("5m").sign(secret());
+}
+export async function verifyTicket(t?: string): Promise<number | null> {
+  if (!t) return null;
+  try {
+    const { payload } = await jwtVerify(t, secret());
+    return payload.purpose === "2fa" ? Number(payload.uid) : null;
+  } catch { return null; }
+}
+
 export async function getSession(): Promise<Session | null> {
   return verifySession((await cookies()).get("session")?.value);
 }

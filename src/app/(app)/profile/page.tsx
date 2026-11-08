@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Button, toast } from "@heroui/react";
 import { Activity, CalendarDays, Clock, KeyRound, Save, Upload } from "lucide-react";
@@ -8,6 +8,7 @@ import { StatGrid } from "@/components/StatCard";
 import { SITE_INFO, type Site } from "@/lib/hsp";
 import { areaOf, companyCode, roleLabel, type Role } from "@/lib/workflow";
 import { LogoBadge, LogoPicker } from "@/components/CompanyLogo";
+import { TwoFactorCard } from "@/components/TwoFactorCard";
 
 type Profile = {
   id: number; name: string; email: string; role: Role; created_at: string; last_seen: string | null;
@@ -48,6 +49,8 @@ export default function ProfilePage() {
   const load = () => fetch("/api/profile").then((r) => r.json()).then((d: Profile) => { setP(d); setName(d.name); });
   useEffect(() => { load(); }, []);
 
+  // Llegó aquí porque debe cambiar su contraseña (?cambiar=1)
+  const mustChange = useSyncExternalStore(() => () => {}, () => new URLSearchParams(location.search).has("cambiar"), () => false);
   if (!p) return <div className="p-6 text-sm text-sb-on-surface-variant">Cargando…</div>;
 
   const patch = async (body: object) => {
@@ -67,6 +70,7 @@ export default function ProfilePage() {
     if (await patch({ current: pw.current, password: pw.next })) {
       toast.success("Contraseña cambiada", { description: "Úsala la próxima vez que ingreses." });
       setPw({ current: "", next: "", again: "" });
+      if (mustChange) window.location.replace("/");
     }
     setBusy("");
   };
@@ -165,9 +169,10 @@ export default function ProfilePage() {
             </div>
           </Card>
 
-          <Card className="p-5">
+          <Card className={`p-5 ${mustChange ? "ring-2 ring-amber-500/60" : ""}`}>
             <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); savePw(); }}>
               <h3 className="text-sm font-semibold">Cambiar contraseña</h3>
+              {mustChange && <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400"><b>Debes cambiar tu contraseña</b> antes de seguir usando el sistema (lo pidió tu empresa o The Iceberg Labs).</p>}
               <input type="email" value={p.email} autoComplete="username" readOnly hidden />
               <input className={input} type="password" placeholder="Contraseña actual" aria-label="Contraseña actual" autoComplete="current-password"
                 value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} />
@@ -183,6 +188,7 @@ export default function ProfilePage() {
               </div>
             </form>
           </Card>
+          <TwoFactorCard />
         </div>
       </div>
     </div>

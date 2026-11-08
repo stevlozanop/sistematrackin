@@ -28,7 +28,7 @@ export async function guard(roles: R = STAFF) {
   }
   // Sesión cerrada por The Iceberg Labs, o plataforma en mantenimiento (The Iceberg Labs sigue entrando)
   const acc = await cachedAccess(s.id);
-  if (sessionClosed(s.iat, acc.sessionsAfter)) {
+  if (sessionClosed(s.iat, acc)) {
     const res = NextResponse.json({ error: "Tu sesión fue cerrada. Vuelve a ingresar.", closed: true }, { status: 401 });
     res.cookies.delete("session");
     return { s: null as never, err: res };

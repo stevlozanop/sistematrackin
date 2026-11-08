@@ -203,7 +203,8 @@ function useDevBadges(on: boolean) {
         setB({
           online: { text: String(j.online), tone: j.online ? "live" : "muted" },
           dau: { text: `${j.dau} hoy`, tone: "muted" },
-          fails: j.fails ? { text: `${j.fails} fallidos`, tone: "alert" } : { text: "0", tone: "muted" },
+          // Seguridad: ráfaga de intentos (posible ataque) > supervisor desde un dispositivo nuevo > fallidos del día
+          fails: j.burst > 10 ? { text: "Ataque", tone: "alert" } : j.adminNew ? { text: "Revisar", tone: "warn" } : j.fails ? { text: `${j.fails} fallidos`, tone: "alert" } : { text: "0", tone: "muted" },
           health: { text: H[j.health as keyof typeof H] ?? "—", tone: j.health === "crit" ? "alert" : j.health === "warn" ? "warn" : "muted" },
           db: { text: `${j.dbPct}%`, tone: j.dbPct >= 85 ? "alert" : j.dbPct >= 70 ? "warn" : "muted" },
           control: j.maintenance ? { text: "Mantenimiento", tone: "alert" } : { text: "Normal", tone: "muted" },
@@ -296,11 +297,14 @@ const Heading = ({ children }: { children: React.ReactNode }) => (
   <h3 className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/50">{children}</h3>
 );
 
-export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firstGuide = false, brand = null, own = null, swm = false, isOwner = false, upload = null, licenseNotice = null, children }: {
-  name: string; role: Role; sites?: string[]; fields?: string[]; firstGuide?: boolean; brand?: Co; own?: Co; swm?: boolean; isOwner?: boolean; upload?: UploadMode | null; licenseNotice?: { company: string; days: number; date: string } | null; children: React.ReactNode;
+export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firstGuide = false, brand = null, own = null, swm = false, isOwner = false, upload = null, licenseNotice = null, mustChange = false, children }: {
+  name: string; role: Role; sites?: string[]; fields?: string[]; firstGuide?: boolean; brand?: Co; own?: Co; swm?: boolean; isOwner?: boolean; upload?: UploadMode | null; licenseNotice?: { company: string; days: number; date: string } | null; mustChange?: boolean; children: React.ReactNode;
 }) {
   const [uploadOpen, setUploadOpen] = useState(false);
   const path = usePathname();
+  // Cambio de contraseña obligatorio (lo pidió la empresa o The Iceberg Labs): primero a su perfil
+  const routerTop = useRouter();
+  useEffect(() => { if (mustChange && path !== "/profile") routerTop.replace("/profile?cambiar=1"); }, [mustChange, path, routerTop]);
   // Cada pantalla que se abre queda registrada para la consola The Iceberg Labs (sin esperar respuesta)
   useEffect(() => {
     const body = JSON.stringify({ path });

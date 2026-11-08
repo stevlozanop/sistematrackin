@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!s) redirect("/login");
   // Sesión cerrada por The Iceberg Labs → al login · Mantenimiento → aviso (The Iceberg Labs sigue entrando)
   const acc = await cachedAccess(s.id);
-  if (sessionClosed(s.iat, acc.sessionsAfter)) redirect("/api/auth/closed");
+  if (sessionClosed(s.iat, acc)) redirect("/api/auth/closed");
   if (acc.platform.maintenance && s.role !== "dev") return <MaintenanceWall message={maintenanceText(acc.platform)} until={acc.platform.until} />;
   // Licencia de su empresa: si está suspendida o vencida, no ve nada del sistema (The Iceberg Labs siempre entra)
   const lic = s.role === "dev" ? null : await licenseOfUser(s.id);
@@ -29,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Primera vez: la guía del sistema se abre sola
   // Marca del menú (logo de la transportista) y empresa propia (avatar de la barra): se leen de la base en cada carga
   const [[u], brand, own] = await Promise.all([
-    query<{ guide_seen: number; can_import: number }>("SELECT guide_seen, can_import FROM users WHERE id=?", [s.id]),
+    query<{ guide_seen: number; can_import: number; must_change: number }>("SELECT guide_seen, can_import, must_change_password AS must_change FROM users WHERE id=?", [s.id]),
     brandCompany(s.id, s.role),
     ownCompany(s.id),
   ]);
@@ -41,7 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <>
     <style dangerouslySetInnerHTML={{ __html: themeCss(brand?.color ?? null, swm) }} />
-    <AppShell name={s.name} role={s.role} sites={sites} fields={fields} firstGuide={!!u && !Number(u.guide_seen)} brand={brand} own={own} swm={swm} isOwner={isOwner} upload={upload} licenseNotice={notice}>
+    <AppShell name={s.name} role={s.role} sites={sites} fields={fields} firstGuide={!!u && !Number(u.guide_seen)} brand={brand} own={own} swm={swm} isOwner={isOwner} upload={upload} licenseNotice={notice} mustChange={!!u && !!Number(u.must_change)}>
       {children}
     </AppShell>
     </>

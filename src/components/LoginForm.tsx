@@ -24,6 +24,9 @@ export function LoginForm({ brand, figure }: { brand?: PortalBrand; figure?: Rea
   const [loading, setLoading] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const [shake, setShake] = useState(0);
+  // Doble verificación: tras la contraseña se pide el código de la app
+  const [ticket, setTicket] = useState<string | null>(null);
+  const [code, setCode] = useState("");
   const clients = brand?.audience === "clients";
   // Llegó porque The Iceberg Labs cerró su sesión
   useEffect(() => {
@@ -37,12 +40,17 @@ export function LoginForm({ brand, figure }: { brand?: PortalBrand; figure?: Rea
       method: "POST",
       headers: { "Content-Type": "application/json" },
       // En la entrada de un consorcio, el servidor solo deja pasar a cuentas de esa puerta
-      body: JSON.stringify({ email, password, portal: brand ? { slug: brand.slug, audience: brand.audience } : undefined }),
+      body: JSON.stringify(ticket ? { ticket, code } : { email, password, portal: brand ? { slug: brand.slug, audience: brand.audience } : undefined }),
     });
     setLoading(false);
-    if (r.ok) { router.replace("/"); router.refresh(); }
-    else {
+    if (r.ok) {
+      const j = await r.json().catch(() => ({}));
+      if (j.need2fa) { setTicket(j.ticket); setCode(""); return; }
+      // Cambio de contraseña obligatorio: primero a su perfil
+      router.replace(j.mustChange ? "/profile?cambiar=1" : "/"); router.refresh();
+    } else {
       const data = await r.json().catch(() => null);
+      if (data?.restart) { setTicket(null); setCode(""); }
       toast.danger(data?.error ?? "Error del servidor, intenta de nuevo", data?.entry ? { description: `Tu entrada es ${location.origin}${data.entry}` } : undefined);
       setShake((n) => n + 1);
     }
@@ -78,17 +86,26 @@ export function LoginForm({ brand, figure }: { brand?: PortalBrand; figure?: Rea
               : brand ? <>Ingresa con tu cuenta de {brand.name}<br />para ver el seguimiento de tus unidades</>
               : <>Ingresa tu correo y contraseña<br />para dar seguimiento a las cajas CKD</>}
           </p>
-          <div className="mt-8 flex flex-col gap-3">
-            <Input aria-label="Correo" placeholder="Usuario" className={field} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="username" />
-            <Input aria-label="Contraseña" placeholder="Contraseña" className={field} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
-          </div>
+          {ticket ? (
+            <div className="mt-8 flex flex-col gap-3">
+              <p className="text-center text-sm text-white/70">Escribe el código de 6 dígitos de tu app de verificación (Google Authenticator, Microsoft Authenticator…).</p>
+              <Input aria-label="Código de verificación" placeholder="000 000" className={`${field} text-center text-2xl tracking-[0.4em]`} inputMode="numeric" autoComplete="one-time-code" autoFocus
+                value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} required />
+              <button type="button" onClick={() => { setTicket(null); setCode(""); }} className="text-xs text-white/50 underline underline-offset-2">Volver a ingresar la contraseña</button>
+            </div>
+          ) : (
+            <div className="mt-8 flex flex-col gap-3">
+              <Input aria-label="Correo" placeholder="Usuario" className={field} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="username" />
+              <Input aria-label="Contraseña" placeholder="Contraseña" className={field} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+            </div>
+          )}
           <div className="my-8 flex items-center gap-3 text-xs text-white/30">
             <span className="h-px flex-1 bg-white/10" />
             {clients ? "De la fábrica a tu tienda" : "Iquitos · Pucallpa · Yurimaguas"}
             <span className="h-px flex-1 bg-white/10" />
           </div>
           <button type="submit" hidden />
-          <SlideToSubmit label="Ingresar" loading={loading} onComplete={() => formRef.current?.requestSubmit()}
+          <SlideToSubmit label={ticket ? "Verificar" : "Ingresar"} loading={loading} onComplete={() => formRef.current?.requestSubmit()}
             color={brand ? accent : undefined} trail={brand ? "#ffffff" : undefined} />
           {brand && (
             <p className="mt-6 text-center text-[12px] text-white/40">

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { accountEvent } from "@/lib/security";
 import bcrypt from "bcryptjs";
 import { query, run } from "@/lib/db";
 import { createSession } from "@/lib/auth";
@@ -54,6 +55,8 @@ export async function PATCH(req: Request) {
   if (!u || !bcrypt.compareSync(String(b.current ?? ""), u.password_hash)) {
     return NextResponse.json({ error: "La contraseña actual no es correcta" }, { status: 400 });
   }
-  await run("UPDATE users SET password_hash=? WHERE id=?", [bcrypt.hashSync(password, 10), s.id]);
+  if (bcrypt.compareSync(password, u.password_hash)) return NextResponse.json({ error: "La nueva contraseña tiene que ser distinta de la actual" }, { status: 400 });
+  await run("UPDATE users SET password_hash=?, must_change_password=0 WHERE id=?", [bcrypt.hashSync(password, 10), s.id]);
+  await accountEvent(s.id, s.id, s.email, "Cambió su contraseña");
   return NextResponse.json({ ok: true });
 }

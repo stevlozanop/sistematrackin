@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { accountEvent } from "@/lib/security";
 import { seatsError } from "@/lib/license";
 import bcrypt from "bcryptjs";
 import { query, queryList, run, tx } from "@/lib/db";
@@ -132,6 +133,7 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: "Ese correo ya existe" }, { status: 409 });
   }
+  await accountEvent(s.id, null, email, "Creó una cuenta", `${name} · ${role}`);
   return NextResponse.json({ ok: true }, { status: 201 });
 }
 
@@ -160,10 +162,12 @@ export async function PATCH(req: Request) {
       await c.query("DELETE FROM user_stages WHERE user_id=?", [id]);
       await c.query("INSERT INTO user_stages(user_id, site, field) VALUES ?", [asg.stages.map((st) => [id, st.site, st.field])]);
     });
+    await accountEvent(s.id, id, null, "Cambió etapas o área de una cuenta");
     return NextResponse.json({ ok: true });
   }
   if (String(b.password ?? "").length < 8) return NextResponse.json({ error: "Contraseña mínima de 8 caracteres" }, { status: 400 });
   await run("UPDATE users SET password_hash=? WHERE id=?", [bcrypt.hashSync(String(b.password), 10), id]);
+  await accountEvent(s.id, id, null, "Cambió la contraseña de una cuenta");
   return NextResponse.json({ ok: true });
 }
 
@@ -181,6 +185,8 @@ export async function DELETE(req: Request) {
   if (t?.role === "admin" && s.role !== "dev" && t.company_id !== (await companyOf(s.id))) {
     return NextResponse.json({ error: "No puedes eliminar a ese supervisor" }, { status: 403 });
   }
+  const [gone] = await query<{ name: string; email: string }>("SELECT name, email FROM users WHERE id=?", [id]);
   await queryList("DELETE FROM users WHERE id=? AND role IN (?)", [id, manageable(s.role)]);
+  if (gone) await accountEvent(s.id, null, gone.email, "Borró una cuenta", gone.name);
   return NextResponse.json({ ok: true });
 }
