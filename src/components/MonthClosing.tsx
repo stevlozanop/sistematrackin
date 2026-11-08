@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { Card } from "@/components/ui";
+import { TableLabels } from "@/components/TableLabels";
 import { cn } from "@/lib/cn";
 import { MONTHS, STATUS_LABEL, fmtDate, type Status } from "@/lib/hsp";
 
@@ -46,8 +47,9 @@ export function MonthClosing() {
         </span>
       </div>
 
-      <div className="grid gap-0 xl:grid-cols-[3fr_2fr]">
-        <div className="overflow-x-auto">
+      {/* min-w-0: la tabla no ensancha la tarjeta más allá de la pantalla (en celular cada mes es una tarjeta) */}
+      <div className="grid min-w-0 gap-0 xl:grid-cols-[3fr_2fr]">
+        <TableLabels className="min-w-0">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">
@@ -84,18 +86,19 @@ export function MonthClosing() {
               })}
             </tbody>
           </table>
-        </div>
+        </TableLabels>
 
-        <div className="border-t border-sb-outline-variant/40 px-4 py-3 xl:border-l xl:border-t-0">
+        <div className="min-w-0 border-t border-sb-outline-variant/40 px-4 py-3 xl:border-l xl:border-t-0">
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/60">Las más antiguas sin entregar</p>
           {d.oldest.length ? d.oldest.map((u) => (
             <Link key={u.id} href={`/units/${u.site.toLowerCase()}?q=${encodeURIComponent(u.chassis)}`}
-              className="flex items-center gap-2 border-b border-sb-outline-variant/20 py-1.5 text-xs last:border-0 hover:text-sb-primary">
-              <span className="min-w-0 flex-1 truncate">
+              className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b border-sb-outline-variant/20 py-2 text-xs last:border-0 hover:text-sb-primary sm:flex-nowrap sm:py-1.5">
+              <span className="min-w-0 basis-full truncate sm:flex-1 sm:basis-auto">
                 <b className="font-mono font-medium">{u.chassis}</b>{" "}
-                <span className="text-sb-on-surface-variant">· {u.site} · {STATUS_LABEL[u.status]}{u.dealer ? ` · ${u.dealer}` : ""}</span>
+                <span className="text-sb-on-surface-variant">· {u.site} · {STATUS_LABEL[u.status]}<span className="hidden sm:inline">{u.dealer ? ` · ${u.dealer}` : ""}</span></span>
               </span>
-              <span className="shrink-0 text-[11px] text-sb-on-surface-variant">{fmtDate(u.billing_date)} · {u.age} días</span>
+              {u.dealer && <span className="min-w-0 flex-1 truncate text-[11px] text-sb-on-surface-variant sm:hidden">{u.dealer}</span>}
+              <span className="shrink-0 text-[11px] font-semibold text-sb-late sm:font-normal sm:text-sb-on-surface-variant">{fmtDate(u.billing_date)} · {u.age} días</span>
             </Link>
           )) : <p className="text-xs text-sb-on-surface-variant">Todo entregado.</p>}
         </div>

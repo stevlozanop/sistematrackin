@@ -1,5 +1,6 @@
 "use client";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { XScroll } from "@/components/XScroll";
 import { ListBox, Select } from "@heroui/react";
 import { ChevronRight, MapPinned } from "lucide-react";
 import { Sheet } from "@/components/modal/Sheet";
@@ -251,7 +252,7 @@ function Transit({ site, rows, onPick }: { site: Site; rows: Data["transit"]; on
           <span>Color más intenso = más unidades. Abre un mes para ver a tiempo / fuera de tiempo; haz clic en una cifra para el detalle 2W/3W.</span>
         </div>
       </div>
-      <div className="overflow-x-auto px-2 pb-2">
+      <XScroll className="px-2 pb-2">
         <table className="w-full min-w-[760px] border-separate border-spacing-y-[2px] text-left text-xs">
           <thead>
             <tr className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">
@@ -341,7 +342,7 @@ function Transit({ site, rows, onPick }: { site: Site; rows: Data["transit"]; on
             {!months.length && <tr><td colSpan={statuses.length + 2} className="px-3 py-8 text-center text-sb-on-surface-variant/60">Sin unidades este año.</td></tr>}
           </tbody>
         </table>
-      </div>
+      </XScroll>
     </Card>
   );
 }

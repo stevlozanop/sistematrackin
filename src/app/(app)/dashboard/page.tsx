@@ -1,5 +1,6 @@
 "use client";
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { XScroll } from "@/components/XScroll";
 import Link from "next/link";
 import { ListBox, Select } from "@heroui/react";
 import { CheckCircle2, Clock, Download, Gauge, Ship, Target, Truck } from "lucide-react";
@@ -53,7 +54,7 @@ function StatusPivot({ site, cells, months, year }: { site: Site; cells: Cell[];
         <ServiceBadge s="A TIEMPO" size="xs" /><ServiceBadge s="FUERA DE TIEMPO" size="xs" />
         <span>Color más intenso = más unidades. Pasa el mouse por una celda para ver el detalle; haz clic para ver las unidades.</span>
       </div>
-      <div className="overflow-x-auto">
+      <XScroll>
         <table className="w-full min-w-[760px] border-separate border-spacing-y-[2px] text-left text-xs">
           <thead>
             <tr className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">
@@ -119,7 +120,7 @@ function StatusPivot({ site, cells, months, year }: { site: Site; cells: Cell[];
             )}
           </tbody>
         </table>
-      </div>
+      </XScroll>
     </div>
   );
 }
@@ -247,7 +248,7 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <XScroll>
           <table className="w-full min-w-[760px] text-left text-xs">
             <thead>
               <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">
@@ -294,7 +295,7 @@ export default function DashboardPage() {
               </tr>
             </tbody>
           </table>
-        </div>
+        </XScroll>
         <p className="border-t border-sb-outline-variant/40 px-4 py-2 text-[11px] text-sb-on-surface-variant/70">
           HSP = promedio de PCL y YUR. Azul con ✓ = cumple la meta. Haz clic en un % para ver esas unidades.
         </p>

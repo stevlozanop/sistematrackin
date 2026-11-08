@@ -1,5 +1,6 @@
 "use client";
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { XScroll } from "@/components/XScroll";
 import Link from "next/link";
 import { Switch, toast } from "@heroui/react";
 import { ChevronRight, MapPin, Search, Ship, Truck, X } from "lucide-react";
@@ -173,8 +174,8 @@ export default function DealersPage() {
 
       {total > 0 && (
         <Card className="sb-anim-table-in hidden overflow-hidden md:block">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <XScroll>
+                <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">
                   <th className="px-3 py-2.5 font-semibold">Dealer</th>
@@ -216,7 +217,7 @@ export default function DealersPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </XScroll>
         </Card>
       )}
     </div>

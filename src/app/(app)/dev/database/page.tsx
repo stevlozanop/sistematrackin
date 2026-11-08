@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { XScroll } from "@/components/XScroll";
 import Link from "next/link";
 import { Database, HardDrive, KeyRound, Server, Table2, Terminal, User } from "lucide-react";
 import { Card, PageTitle, Pill } from "@/components/ui";
@@ -102,7 +103,7 @@ export default function DevDatabase() {
                 </p>
               </div>
 
-              <div className="overflow-x-auto">
+              <XScroll>
                 <table className="w-full text-left text-xs">
                   <thead><tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">
                     <th className="py-2 pr-3">Columna</th><th className="py-2 pr-3">Tipo</th><th className="py-2 pr-3">Nulo</th><th className="py-2 pr-3">Default</th><th className="py-2">Nota</th>
@@ -121,7 +122,7 @@ export default function DevDatabase() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </XScroll>
 
               {shown.indexes.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
