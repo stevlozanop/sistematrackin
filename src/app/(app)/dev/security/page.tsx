@@ -105,7 +105,7 @@ export default function DevSecurity() {
           tick={(l, i) => (i % 2 === 0 || i === 13 ? `${l.slice(8)}/${l.slice(5, 7)}` : null)} />
       </Card>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-4">
         <Card className="overflow-hidden">
           <div className="flex flex-wrap items-center gap-2 px-5 pt-4">
             <h3 className="text-sm font-semibold">Intentos fallidos por correo e IP · 7 días</h3>
