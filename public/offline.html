@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sin conexión · System Trackin</title>
+<style>
+  :root{color-scheme:dark}
+  body{margin:0;min-height:100dvh;display:grid;place-items:center;background:#0b0b0b;color:#fff;font:15px/1.5 system-ui,sans-serif;text-align:center;padding:24px}
+  img{width:72px;height:72px;border-radius:18px}
+  h1{font-weight:300;font-size:28px;margin:20px 0 6px}
+  p{color:rgba(255,255,255,.6);margin:0 0 24px}
+  button{border:0;border-radius:999px;background:#078a04;color:#fff;font:inherit;font-weight:600;padding:12px 26px;cursor:pointer}
+</style></head>
+<body><main>
+  <img src="/icons/icon-192.png" alt="">
+  <h1>Sin conexión</h1>
+  <p>No hay internet en este momento.<br>Apenas vuelva, el sistema sigue donde lo dejaste.</p>
+  <button onclick="location.reload()">Reintentar</button>
+</main>
+<script>addEventListener("online",()=>location.reload())</script>
+</body></html>

@@ -9,6 +9,7 @@ import { SITE_INFO, type Site } from "@/lib/hsp";
 import { areaOf, companyCode, roleLabel, type Role } from "@/lib/workflow";
 import { LogoBadge, LogoPicker } from "@/components/CompanyLogo";
 import { TwoFactorCard } from "@/components/TwoFactorCard";
+import { PasswordInput } from "@/components/PasswordInput";
 
 type Profile = {
   id: number; name: string; email: string; role: Role; created_at: string; last_seen: string | null;
@@ -174,11 +175,11 @@ export default function ProfilePage() {
               <h3 className="text-sm font-semibold">Cambiar contraseña</h3>
               {mustChange && <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400"><b>Debes cambiar tu contraseña</b> antes de seguir usando el sistema (lo pidió tu empresa o The Iceberg Labs).</p>}
               <input type="email" value={p.email} autoComplete="username" readOnly hidden />
-              <input className={input} type="password" placeholder="Contraseña actual" aria-label="Contraseña actual" autoComplete="current-password"
+              <PasswordInput className={input} placeholder="Contraseña actual" aria-label="Contraseña actual" autoComplete="current-password"
                 value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} />
-              <input className={input} type="password" placeholder="Nueva contraseña (mín. 8)" aria-label="Nueva contraseña" autoComplete="new-password"
+              <PasswordInput className={input} placeholder="Nueva contraseña (mín. 8)" aria-label="Nueva contraseña" autoComplete="new-password"
                 value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} />
-              <input className={input} type="password" placeholder="Repite la nueva contraseña" aria-label="Repite la nueva contraseña" autoComplete="new-password"
+              <PasswordInput className={input} placeholder="Repite la nueva contraseña" aria-label="Repite la nueva contraseña" autoComplete="new-password"
                 value={pw.again} onChange={(e) => setPw({ ...pw, again: e.target.value })} />
               {pw.again && pw.next !== pw.again && <p className="text-[11px] text-red-500">No coinciden.</p>}
               <div className="flex justify-end">

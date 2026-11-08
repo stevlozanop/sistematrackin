@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { PasswordInput } from "@/components/PasswordInput";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Input, toast } from "@heroui/react";
@@ -96,7 +97,7 @@ export function LoginForm({ brand, figure }: { brand?: PortalBrand; figure?: Rea
           ) : (
             <div className="mt-8 flex flex-col gap-3">
               <Input aria-label="Correo" placeholder="Usuario" className={field} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="username" />
-              <Input aria-label="Contraseña" placeholder="Contraseña" className={field} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+              <PasswordInput aria-label="Contraseña" placeholder="Contraseña" className={field} iconClassName="text-white" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
             </div>
           )}
           <div className="my-8 flex items-center gap-3 text-xs text-white/30">

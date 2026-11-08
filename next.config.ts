@@ -18,7 +18,11 @@ const SECURITY_HEADERS = [
 const nextConfig: NextConfig = {
   serverExternalPackages: ["xlsx"],
   async headers() {
-    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+    return [
+      { source: "/:path*", headers: SECURITY_HEADERS },
+      // El service worker se revisa siempre para que cada versión nueva llegue al instante
+      { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }, { key: "Content-Type", value: "application/javascript; charset=utf-8" }] },
+    ];
   },
 };
 

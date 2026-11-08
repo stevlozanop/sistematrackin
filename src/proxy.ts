@@ -29,6 +29,6 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // Solo páginas: no las APIs, ni los archivos de Next, ni el login
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|login).*)"],
+  // Solo páginas: no las APIs, ni los archivos de Next, ni el login, ni los de la app instalable
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|manifest.webmanifest|sw.js|offline.html|icons/|login).*)"],
 };

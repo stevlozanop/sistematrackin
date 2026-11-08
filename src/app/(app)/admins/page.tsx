@@ -5,7 +5,8 @@ import { Sheet } from "@/components/modal/Sheet";
 import { ChoiceCards } from "@/components/modal/ChoiceCards";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { Selection, SortDescriptor } from "@heroui/react";
-import { Copy, Eye, KeyRound, Store, ListChecks, UserPlus, Plus, Radio, Search, ShieldCheck, Trash2, Users, X } from "lucide-react";
+import { cn } from "@/lib/cn";
+import { Copy, Eye, EyeOff, KeyRound, Store, ListChecks, UserPlus, Plus, Radio, Search, ShieldCheck, Trash2, Users, X } from "lucide-react";
 import { Card, CodeTag, PageTitle } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
 import { Check } from "@/components/Check";
@@ -66,6 +67,7 @@ export default function AdminsPage() {
   const [email, setEmail] = useState("");
   const [emailEdited, setEmailEdited] = useState(false);
   const [auto, setAuto] = useState(true);
+  const [showPw, setShowPw] = useState(false);
   const [password, setPassword] = useState(() => genPassword());
   const [saving, setSaving] = useState(false);
   const [role, setRole] = useState<NewRole>("operator");
@@ -315,9 +317,17 @@ export default function AdminsPage() {
                     </Switch.Content>
                   </Switch>
                   <div className="flex items-end gap-2">
-                    <TextField className="flex-1" type={auto ? "text" : "password"} value={password} onChange={setPassword} isReadOnly={auto} isRequired minLength={8}>
+                    <TextField className="flex-1" type={auto || showPw ? "text" : "password"} value={password} onChange={setPassword} isReadOnly={auto} isRequired minLength={8}>
                       <Label>Contraseña</Label>
-                      <Input className={auto ? "font-mono" : ""} />
+                      <span className="relative block">
+                        <Input className={cn("w-full pr-11", (auto || showPw) && "font-mono")} />
+                        {!auto && (
+                          <button type="button" tabIndex={-1} onClick={() => setShowPw((v) => !v)} aria-label={showPw ? "Ocultar contraseña" : "Ver contraseña"}
+                            className="absolute right-1.5 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full opacity-50 hover:opacity-100">
+                            {showPw ? <EyeOff className="h-[18px] w-[18px]" strokeWidth={1.75} /> : <Eye className="h-[18px] w-[18px]" strokeWidth={1.75} />}
+                          </button>
+                        )}
+                      </span>
                     </TextField>
                     {auto && <Button variant="secondary" className="rounded-full" onPress={() => setPassword(genPassword())}>Otra</Button>}
                   </div>
