@@ -7,7 +7,7 @@ import { healthChecks } from "@/lib/dev-health";
 export async function GET() {
   const { err } = await guard(["dev"]);
   if (err) return err;
-  const [health, unused] = await Promise.all([
+  const [health, unused, sessions, sizes] = await Promise.all([
     healthChecks(),
     query(
       `SELECT s.relname AS "table", s.indexrelname AS "index", pg_relation_size(s.indexrelid)::bigint AS bytes
@@ -15,6 +15,15 @@ export async function GET() {
        WHERE s.schemaname = 'public' AND s.idx_scan = 0 AND NOT i.indisunique AND NOT i.indisprimary
        ORDER BY bytes DESC LIMIT 15`,
     ).catch(() => []),
+    // Conexiones activas o colgadas en una transacción (las que pueden trabar la base)
+    query(
+      `SELECT pid, usename AS "user", COALESCE(NULLIF(application_name, ''), '—') AS app, state,
+         EXTRACT(EPOCH FROM (now() - COALESCE(query_start, backend_start)))::int AS secs, LEFT(regexp_replace(query, '\\s+', ' ', 'g'), 180) AS query
+       FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid() AND backend_type = 'client backend'
+         AND (state <> 'idle' OR state IS NULL) ORDER BY query_start NULLS LAST LIMIT 25`,
+    ).catch(() => []),
+    // Tamaño de cada tabla (datos + índices)
+    query(`SELECT relname AS name, pg_total_relation_size(relid)::bigint AS bytes FROM pg_stat_user_tables WHERE schemaname = 'public'`).catch(() => []),
   ]);
   let slow: unknown[] = [];
   for (const from of ["pg_stat_statements", "extensions.pg_stat_statements"]) {
@@ -27,5 +36,5 @@ export async function GET() {
       break;
     } catch { /* otro esquema */ }
   }
-  return NextResponse.json({ ...health, unused, slow });
+  return NextResponse.json({ ...health, unused, slow, sessions, sizes });
 }
