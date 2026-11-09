@@ -67,9 +67,10 @@ export function ContainerEdit({ site, id, code, nave, loadedOn, guias, naves, on
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-sb-primary/40 bg-sb-primary-soft/30 p-3">
+    <div ref={(el) => { if (el && !el.dataset.seen) { el.dataset.seen = "1"; setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 60); } }}
+      className="flex scroll-mt-2 flex-col gap-3 rounded-xl border border-sb-primary/40 bg-sb-primary-soft/30 p-3">
       <p className="flex items-center gap-2 text-sm font-semibold"><Box className="h-4 w-4" /> Editar contenedor {code}</p>
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <label className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Contenedor
           <input className={cn(field, "uppercase")} value={c} onChange={(e) => setC(e.target.value)} />
         </label>
@@ -77,7 +78,7 @@ export function ContainerEdit({ site, id, code, nave, loadedOn, guias, naves, on
           <input className={cn(field, "uppercase")} list="edit-naves" value={v} onChange={(e) => setV(e.target.value)} />
           <datalist id="edit-naves">{naves.map((x) => <option key={x} value={x} />)}</datalist>
         </label>
-        <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Fecha de embarque
+        <div className="col-span-2 flex flex-col gap-1 text-[11px] text-sb-on-surface-variant sm:col-span-1">Fecha de embarque
           <DatePicker label="Fecha de embarque" value={d} onChange={setD} />
         </div>
       </div>
@@ -109,10 +110,10 @@ export function ContainerEdit({ site, id, code, nave, loadedOn, guias, naves, on
           </div>
         ))}
         <div className="flex gap-2">
-          <SuggestInput inputClassName={field} mono placeholder="Agregar guía (escribe para buscar)" value={input} onChange={setInput}
+          <SuggestInput inputClassName={field} mono placeholder="Agregar guía…" value={input} onChange={setInput}
             onPick={(v) => { setInput(v); lookup(v); }} onEnter={() => lookup()}
             source={(q) => `/api/suggest?${new URLSearchParams({ kind: "guia", site, step: "d_carga", q })}`} />
-          <Button variant="secondary" className="shrink-0 rounded-full" onPress={() => lookup()} isDisabled={looking || !input.trim()}><Plus className="h-4 w-4" /> {looking ? "Buscando…" : "Agregar"}</Button>
+          <Button variant="secondary" className="shrink-0 rounded-full" onPress={() => lookup()} isDisabled={looking || !input.trim()} aria-label="Agregar guía"><Plus className="h-4 w-4" /><span className="hidden sm:inline">{looking ? "Buscando…" : "Agregar"}</span></Button>
         </div>
       </div>
 
@@ -125,7 +126,7 @@ export function ContainerEdit({ site, id, code, nave, loadedOn, guias, naves, on
         </label>
       )}
 
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <div className="sticky bottom-0 -mx-3 -mb-3 grid grid-cols-2 gap-2 rounded-b-xl border-t border-sb-primary/20 bg-sb-surface/95 p-3 backdrop-blur sm:static sm:m-0 sm:flex sm:justify-end sm:border-0 sm:bg-transparent sm:p-0">
         <Button variant="secondary" className="rounded-full" onPress={onCancel} isDisabled={saving}>Cancelar</Button>
         <Button variant="primary" className="rounded-full" onPress={save} isDisabled={saving || !changed}>{saving ? "Guardando…" : "Guardar cambios"}</Button>
       </div>

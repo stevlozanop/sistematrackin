@@ -4,6 +4,7 @@ import { Chip } from "@heroui/react";
 import { Box, ChevronDown, MapPin, Pencil, Search, Trash2, X } from "lucide-react";
 import type { Site } from "@/lib/hsp";
 import { ContainerEdit } from "./ContainerEdit";
+import { XScroll } from "@/components/XScroll";
 import { fmtDate, unitsOf } from "@/lib/hsp";
 import { cn } from "@/lib/cn";
 
@@ -87,7 +88,8 @@ export function NaveContents({ site, nave, rows, canUndo, onUndo, naves = [], on
 
       {/* 2. Contenedores: uno a la vez */}
       {containers.length > 1 && (
-        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+        <XScroll className="-mx-1">
+        <div className="flex gap-1.5 px-1 pb-1">
           {[{ id: "all" as const, code: "Todos", units: rows, place: null }, ...containers].map((c) => (
             <button key={c.id} type="button" onClick={() => setPick(c.id)}
               className={cn("flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
@@ -97,6 +99,7 @@ export function NaveContents({ site, nave, rows, canUndo, onUndo, naves = [], on
             </button>
           ))}
         </div>
+        </XScroll>
       )}
       {(current || containers.length === 1) && (() => {
         const c = current ?? containers[0];
@@ -114,14 +117,21 @@ export function NaveContents({ site, nave, rows, canUndo, onUndo, naves = [], on
           );
         }
         return (
-          <div className="flex items-center justify-between gap-2 rounded-xl border border-sb-outline-variant/50 px-3 py-2 text-xs">
-            <span className="flex items-center gap-2"><Box className="h-4 w-4" /><b className="text-sm">{c.code}</b><span className="text-sb-on-surface-variant">embarcado {fmtDate(c.loaded_on)}</span>{c.place && <span className="rounded-full bg-sb-primary-soft px-2 py-0.5 text-[10px] font-semibold">{c.place}</span>}</span>
+          // Celular: código y lugar arriba, fecha debajo y los botones a lo ancho · computadora: todo en una fila
+          <div className="flex flex-col gap-2 rounded-xl border border-sb-outline-variant/50 px-3 py-2.5 text-xs sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="flex items-center gap-1.5 whitespace-nowrap font-mono text-sm font-bold"><Box className="h-4 w-4 shrink-0" />{c.code}</span>
+                {c.place && <span className="rounded-full bg-sb-primary-soft px-2 py-0.5 text-[10px] font-semibold">{c.place}</span>}
+              </span>
+              <span className="text-[11px] text-sb-on-surface-variant">Embarcado el {fmtDate(c.loaded_on)} · {c.units.length} unidades</span>
+            </div>
             {canUndo && (
-              <span className="flex items-center gap-1">
-                <button type="button" onClick={() => setEditing(c.id)} className="flex items-center gap-1 rounded-full px-2 py-1 font-medium text-sb-on-surface hover:bg-sb-surface-container">
+              <span className="grid shrink-0 grid-cols-2 gap-1.5 sm:flex sm:items-center sm:gap-1">
+                <button type="button" onClick={() => setEditing(c.id)} className="flex h-9 items-center justify-center gap-1 rounded-full bg-sb-surface-container px-3 font-semibold text-sb-on-surface hover:bg-sb-surface-container-high sm:h-auto sm:bg-transparent sm:py-1">
                   <Pencil className="h-3.5 w-3.5" /> Editar
                 </button>
-                <button type="button" onClick={() => onUndo(c.id, c.code)} className="flex items-center gap-1 rounded-full px-2 py-1 text-sb-on-surface-variant hover:bg-sb-late-soft hover:text-sb-late">
+                <button type="button" onClick={() => onUndo(c.id, c.code)} className="flex h-9 items-center justify-center gap-1 rounded-full bg-sb-late-soft/60 px-3 font-semibold text-sb-late hover:bg-sb-late-soft sm:h-auto sm:bg-transparent sm:py-1 sm:font-medium sm:text-sb-on-surface-variant sm:hover:text-sb-late">
                   <Trash2 className="h-3.5 w-3.5" /> Quitar
                 </button>
               </span>
