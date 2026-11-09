@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as k from "@/components/iso/iso-kit";
 import type { Plan, Point3, Projection } from "@/components/iso/iso-kit";
-import { Check, Eye, Minus, Plus, RotateCcw, RotateCw, Scan } from "lucide-react";
+import { Check, Eye, Hand, Minus, Plus, Rotate3d, RotateCcw, RotateCw, Scan } from "lucide-react";
 import { DEFAULT_VESSEL, boxColor, type Slot, type Vessel } from "@/lib/stowage";
 import { cn } from "@/lib/cn";
 import { unitsText } from "@/lib/hsp";
@@ -104,8 +104,11 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
     return () => mo.disconnect();
   }, []);
 
-  // Cámara: giro (azimut), inclinación y zoom con su punto de mira
-  const [cam, setCam] = React.useState({ ...START, zoom: 1, fx: W / 2, fy: H / 2 });
+  // Cámara: giro (azimut), inclinación, zoom y el punto del muelle que se mira (null = el centro).
+  // El punto es del suelo, no de la pantalla: así al girar o acercar la cámara se queda sobre el mismo objeto.
+  const [cam, setCam] = React.useState<{ az: number; el: number; zoom: number; t: { x: number; y: number } | null }>({ ...START, zoom: 1, t: null });
+  // Arrastrar: mover la vista (por defecto) o girarla
+  const [mode, setMode] = React.useState<"move" | "turn">("move");
   const P = React.useMemo(() => k.fitProjection(BOUNDS, W, H, { pad: 8, headroom: 26, azimuth: cam.az, elevation: cam.el }), [cam.az, cam.el]);
   const s: Scene = React.useMemo(() => draw(P), [P]);
   // Celular: el muelle se ve más alto (se recorta a los lados y se gira para ver el resto)
@@ -121,7 +124,18 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
   const narrow = boxW > 0 && boxW < 640;
   const tallH = 300;
   const vw = (narrow ? Math.min(W, H * (boxW / tallH)) : W) / cam.zoom, vh = H / cam.zoom;
-  const vx = Math.min(Math.max(cam.fx - vw / 2, 0), W - vw), vy = Math.min(Math.max(cam.fy - vh / 2, 0), H - vh);
+  const [fx, fy] = cam.t ? s.at([cam.t.x, cam.t.y, 0]) : [W / 2, H / 2];
+  const vx = Math.min(Math.max(fx - vw / 2, 0), W - vw), vy = Math.min(Math.max(fy - vh / 2, 0), H - vh);
+  // Punto de la pantalla → punto del suelo (la proyección es lineal: se resuelve con dos ejes)
+  const unproject = React.useCallback((sx: number, sy: number) => {
+    const [ox, oy] = s.at([0, 0, 0]), [ax, ay] = s.at([1, 0, 0]), [bx, by] = s.at([0, 1, 0]);
+    const ux = ax - ox, uy = ay - oy, wx = bx - ox, wy = by - oy, det = ux * wy - uy * wx || 1;
+    const dx = sx - ox, dy = sy - oy;
+    return { x: (dx * wy - dy * wx) / det, y: (ux * dy - uy * dx) / det };
+  }, [s]);
+  // Lo que se ve ahora (para los gestos, que no se vuelven a crear en cada cuadro)
+  const view = React.useRef({ vx, vy, vw, vh, unproject });
+  React.useLayoutEffect(() => { view.current = { vx, vy, vw, vh, unproject }; });
   const pct = (p: Point3) => { const [sx, sy] = s.at(p); return { left: `${((sx - vx) / vw) * 100}%`, top: `${((sy - vy) / vh) * 100}%` }; };
   // Etiquetas siempre dentro del cuadro (en celular el muelle se ve recortado y quedaban cortadas en el borde)
   const pctIn = (p: Point3) => {
@@ -174,35 +188,45 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
 
   // Arrastrar para girar · rueda / pellizco para acercar
   const ptrs = React.useRef(new Map<number, { x: number; y: number }>());
-  const drag = React.useRef({ moved: 0, pinch: 0 });
+  const drag = React.useRef({ moved: 0, pinch: 0, alt: false });
   const toLocal = (clientX: number, clientY: number) => {
-    const r = box.current!.getBoundingClientRect();
-    return { x: vx + ((clientX - r.left) / r.width) * vw, y: vy + ((clientY - r.top) / r.height) * vh };
+    const r = box.current!.getBoundingClientRect(), v = view.current;
+    return { x: v.vx + ((clientX - r.left) / r.width) * v.vw, y: v.vy + ((clientY - r.top) / r.height) * v.vh };
   };
-  const zoomAt = React.useCallback((factor: number, fx?: number, fy?: number) => setCam((c) => {
+  /** Acerca o aleja dejando quieto el punto que se señala (cursor, dedos o el centro con los botones) */
+  const zoomAt = React.useCallback((factor: number, px?: number, py?: number) => setCam((c) => {
+    const { vx: x0, vy: y0, vw: w0, vh: h0, unproject: un } = view.current;
     const zoom = Math.min(4, Math.max(1, c.zoom * factor));
-    return { ...c, zoom, fx: fx ?? c.fx, fy: fy ?? c.fy };
+    if (zoom === c.zoom) return c;
+    const r = c.zoom / zoom, ax = px ?? x0 + w0 / 2, ay = py ?? y0 + h0 / 2;
+    const nx = ax - (ax - x0) * r, ny = ay - (ay - y0) * r;
+    return { ...c, zoom, t: zoom === 1 ? null : un(nx + (w0 * r) / 2, ny + (h0 * r) / 2) };
+  }), []);
+  /** Mueve la vista: dx, dy en píxeles de la pantalla */
+  const panBy = React.useCallback((dx: number, dy: number) => setCam((c) => {
+    const el = box.current; if (!el) return c;
+    const { vx: x0, vy: y0, vw: w0, vh: h0, unproject: un } = view.current;
+    const r = el.getBoundingClientRect();
+    return { ...c, t: un(x0 + w0 / 2 - (dx / r.width) * w0, y0 + h0 / 2 - (dy / r.height) * h0) };
   }), []);
   React.useEffect(() => {
     const el = box.current;
     if (!el) return;
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
-      const r = el.getBoundingClientRect();
-      setCam((c) => {
-        const cvw = (r.width < 640 ? Math.min(W, H * (r.width / r.height)) : W) / c.zoom, cvh = H / c.zoom;
-        const cvx = Math.min(Math.max(c.fx - cvw / 2, 0), W - cvw), cvy = Math.min(Math.max(c.fy - cvh / 2, 0), H - cvh);
-        const fx = cvx + ((e.clientX - r.left) / r.width) * cvw, fy = cvy + ((e.clientY - r.top) / r.height) * cvh;
-        const zoom = Math.min(4, Math.max(1, c.zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15)));
-        return { ...c, zoom, fx, fy };
-      });
+      // Touchpad: dos dedos de lado o Shift + rueda mueven la vista; la rueda acerca hacia el cursor
+      if (!e.ctrlKey && (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY))) { panBy(-(e.deltaX || e.deltaY), 0); return; }
+      const p = toLocal(e.clientX, e.clientY);
+      zoomAt(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), p.x, p.y);
     };
     el.addEventListener("wheel", wheel, { passive: false });
     return () => el.removeEventListener("wheel", wheel);
-  }, []);
+  }, [zoomAt, panBy]);
   const onDown = (e: React.PointerEvent) => {
     ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     drag.current.moved = 0;
+    // Clic derecho o Shift: hace lo contrario del modo elegido
+    drag.current.alt = e.button === 2 || e.shiftKey;
     if (ptrs.current.size === 2) { const [a, b] = [...ptrs.current.values()]; drag.current.pinch = Math.hypot(a.x - b.x, a.y - b.y); }
   };
   const onMove = (e: React.PointerEvent) => {
@@ -211,17 +235,25 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
     const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
     ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (ptrs.current.size === 2) {
+      // Dos dedos: pellizcar acerca hacia el medio de los dedos y arrastrarlos mueve la vista
       const [a, b] = [...ptrs.current.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y);
       if (drag.current.pinch) { const m = toLocal((a.x + b.x) / 2, (a.y + b.y) / 2); zoomAt(d / drag.current.pinch, m.x, m.y); }
+      panBy(dx / 2, dy / 2);
       drag.current.pinch = d; drag.current.moved += 10;
       return;
     }
     drag.current.moved += Math.abs(dx) + Math.abs(dy);
     if (drag.current.moved < 4) return;
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-    // Con el mouse también se inclina; en celular el gesto vertical sigue moviendo la página
-    setCam((c) => ({ ...c, az: (c.az - dx * 0.45 + 360) % 360, el: e.pointerType === "mouse" ? Math.min(70, Math.max(14, c.el + dy * 0.25)) : c.el }));
+    const touch = e.pointerType !== "mouse";
+    if ((mode === "move") !== drag.current.alt) {
+      // En celular el gesto vertical sigue moviendo la página: se mueve la vista solo de lado
+      panBy(dx, touch ? 0 : dy);
+      return;
+    }
+    // Girar (con el mouse también se inclina)
+    setCam((c) => ({ ...c, az: (c.az - dx * 0.45 + 360) % 360, el: touch ? c.el : Math.min(70, Math.max(14, c.el + dy * 0.25)) }));
   };
   const onUp = (e: React.PointerEvent) => { ptrs.current.delete(e.pointerId); if (ptrs.current.size < 2) drag.current.pinch = 0; };
   // Si fue un arrastre, no cuenta como clic
@@ -243,10 +275,12 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
 
   return (
     <div className="flex flex-col gap-2">
-      <div ref={box} className="iso rf dk relative overflow-hidden rounded-xl select-none" data-theme={theme}
+      <div ref={box} className={cn("iso rf dk relative overflow-hidden rounded-xl select-none", mode === "move" ? "cursor-grab active:cursor-grabbing" : "cursor-ew-resize")} data-theme={theme}
         style={{ ["--dk-dx" as string]: `${s.away.dx}px`, ["--dk-dy" as string]: `${s.away.dy}px`, touchAction: "pan-y", height: narrow ? tallH : undefined }}
         onPointerDownCapture={() => { drag.current.moved = 0; }}
-        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onClickCapture={onClickCapture}>
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onClickCapture={onClickCapture}
+        onContextMenu={(e) => e.preventDefault()}
+        onDoubleClick={(e) => { const p = toLocal(e.clientX, e.clientY); zoomAt(cam.zoom >= 3.5 ? 1 / 4 : 1.8, p.x, p.y); }}>
         <svg className="iso-svg" style={narrow ? { width: "100%", height: "100%" } : undefined} viewBox={`${vx} ${vy} ${vw} ${vh}`} role="img" aria-label="Muelle de Iquitos en 3D: contenedor en armado, grúa y naves cargando">
           <g dangerouslySetInnerHTML={{ __html: s.water }} />
           {!s.bargesInFront && bargesSvg}
@@ -291,7 +325,14 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
         {extra > 0 && <p className="absolute bottom-2 left-3 rounded-full bg-sb-surface/90 px-3 py-1 text-[11px] text-sb-on-surface-variant shadow-sm">+{extra} naves más en la lista de abajo</p>}
 
         {/* Controles de la cámara */}
-        <div className="absolute bottom-2 right-2 flex items-center gap-0.5 rounded-full border border-sb-outline-variant/60 bg-sb-surface/95 p-1 shadow-sm" onPointerDown={(e) => e.stopPropagation()}>
+        <div className="absolute bottom-2 right-2 flex items-center gap-0.5 rounded-full border border-sb-outline-variant/60 bg-sb-surface/95 p-1 shadow-sm" onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+          <div className="flex rounded-full bg-sb-surface-container p-0.5" role="group" aria-label="Al arrastrar">
+            <button type="button" aria-pressed={mode === "move"} title="Arrastrar mueve la vista" onClick={() => setMode("move")}
+              className={cn("grid h-7 w-7 place-items-center rounded-full", mode === "move" ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant")}><Hand className="h-4 w-4" /><span className="sr-only">Mover</span></button>
+            <button type="button" aria-pressed={mode === "turn"} title="Arrastrar gira el muelle" onClick={() => setMode("turn")}
+              className={cn("grid h-7 w-7 place-items-center rounded-full", mode === "turn" ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant")}><Rotate3d className="h-4 w-4" /><span className="sr-only">Girar</span></button>
+          </div>
+          <span className="mx-0.5 h-5 w-px bg-sb-outline-variant/60" />
           <button type="button" aria-label="Girar a la izquierda" onClick={() => setCam((c) => ({ ...c, az: (c.az + 30) % 360 }))} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sb-surface-container"><RotateCcw className="h-4 w-4" /></button>
           <button type="button" aria-label="Girar a la derecha" onClick={() => setCam((c) => ({ ...c, az: (c.az + 330) % 360 }))} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sb-surface-container"><RotateCw className="h-4 w-4" /></button>
           <span className="mx-0.5 h-5 w-px bg-sb-outline-variant/60" />
@@ -299,11 +340,11 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
           <span className="w-9 text-center text-[10px] font-semibold tabular-nums text-sb-on-surface-variant">{Math.round(cam.zoom * 100)}%</span>
           <button type="button" aria-label="Acercar" onClick={() => zoomAt(1.3)} disabled={cam.zoom >= 4} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sb-surface-container disabled:opacity-30"><Plus className="h-4 w-4" /></button>
           <span className="mx-0.5 h-5 w-px bg-sb-outline-variant/60" />
-          <button type="button" aria-label="Vista inicial" title="Vista inicial" onClick={() => setCam({ ...START, zoom: 1, fx: W / 2, fy: H / 2 })} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sb-surface-container"><Scan className="h-4 w-4" /></button>
+          <button type="button" aria-label="Vista inicial" title="Vista inicial" onClick={() => setCam({ ...START, zoom: 1, t: null })} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sb-surface-container"><Scan className="h-4 w-4" /></button>
         </div>
       </div>
       <p className="text-[11px] text-sb-on-surface-variant">
-        Arrastra para girar el muelle 360° · rueda del mouse o pellizca para acercar · toca un contenedor para ver lo que lleva.
+        <b>Arrastra</b> para mover la vista ({mode === "move" ? "✋ activo" : "elige ✋"}) o para girarla 360° (elige el giro) · <b>rueda o pellizca</b> para acercar justo donde apuntas · doble clic acerca ahí · toca un contenedor para ver lo que lleva.
       </p>
     </div>
   );
