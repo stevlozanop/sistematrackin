@@ -133,7 +133,7 @@ function superSteps(role: Role): Step[] {
       title: dev ? "Bienvenido, The Iceberg Labs" : "Bienvenido, Supervisor",
       body: (
         <>
-          <P><b>System Trackin</b> sigue cada moto desde que se factura en Iquitos hasta que llega al dealer, y mide si llegó a tiempo. Reemplaza al Excel <b>HSP-OFICIAL</b>: las mismas hojas PCL, YUR y TABLA, pero en vivo y con cada persona registrando su parte.</P>
+          <P><b>System Tracking</b> sigue cada moto desde que se factura en Iquitos hasta que llega al dealer, y mide si llegó a tiempo. Reemplaza al Excel <b>HSP-OFICIAL</b>: las mismas hojas PCL, YUR y TABLA, pero en vivo y con cada persona registrando su parte.</P>
           <P>En esta guía verás, paso a paso: el recorrido, cómo se calcula el estado, quién hace qué, y para qué sirve cada pantalla.</P>
           <Note>Usa <b>Siguiente</b> para avanzar. Puedes saltar a cualquier paso con los puntos de arriba.</Note>
         </>
@@ -319,7 +319,7 @@ function operatorSteps(me: Me): Step[] {
       title: `Hola, ${me.name.split(" ")[0]}`,
       body: (
         <>
-          <P><b>System Trackin</b> sigue cada moto desde que se factura en Iquitos hasta que llega al dealer. Cada persona del recorrido registra <b>la fecha de su paso</b>, y así todos ven en qué va cada unidad.</P>
+          <P><b>System Tracking</b> sigue cada moto desde que se factura en Iquitos hasta que llega al dealer. Cada persona del recorrido registra <b>la fecha de su paso</b>, y así todos ven en qué va cada unidad.</P>
           <P>Tú eres <b>Encargado</b>{area && area.id !== "CUSTOM" ? <> de <b>{area.label}</b></> : ""}{me.carrier ? <> para la empresa <b>{me.carrier}</b></> : ""}. Esta guía te explica qué te toca hacer.</P>
           <Note>Usa <b>Siguiente</b> para avanzar.</Note>
         </>
@@ -408,7 +408,7 @@ function viewerSteps(me: Me): Step[] {
       title: `Hola, ${me.name.split(" ")[0]}`,
       body: (
         <>
-          <P><b>System Trackin</b> sigue cada moto desde que se factura en Iquitos hasta que llega al dealer. Lo opera la transportista; tú tienes una cuenta de <b>solo lectura</b>: ves todo en vivo, sin poder cambiar nada.</P>
+          <P><b>System Tracking</b> sigue cada moto desde que se factura en Iquitos hasta que llega al dealer. Lo opera la transportista; tú tienes una cuenta de <b>solo lectura</b>: ves todo en vivo, sin poder cambiar nada.</P>
           <Note>Usa <b>Siguiente</b> para avanzar.</Note>
         </>
       ),

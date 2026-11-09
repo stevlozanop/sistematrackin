@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { TrackinMark } from "@/components/TrackinMark";
+import { TrackingMark } from "@/components/TrackingMark";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -377,12 +377,12 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
           ) : brand?.v ? (
             <LogoBadge id={brand.id} name={brand.name} v={brand.v} className="h-8 w-8 rounded-lg border border-sb-outline-variant/40" />
           ) : (
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sb-primary text-sb-on-primary"><TrackinMark className="h-6 w-6" title="System Trackin" /></span>
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sb-primary text-sb-on-primary"><TrackingMark className="h-6 w-6" title="System Tracking" /></span>
           )}
           {open && (
             <span className="flex min-w-0 flex-col leading-tight">
-              <span className="truncate text-[13px] font-semibold tracking-tight">System Trackin</span>
-              <span className="truncate text-[10px] font-medium text-sb-primary">{swm ? "The Iceberg Labs · plataforma" : brand?.name ?? "System Trackin"}</span>
+              <span className="truncate text-[13px] font-semibold tracking-tight">System Tracking</span>
+              <span className="truncate text-[10px] font-medium text-sb-primary">{swm ? "The Iceberg Labs · plataforma" : brand?.name ?? "System Tracking"}</span>
             </span>
           )}
         </div>

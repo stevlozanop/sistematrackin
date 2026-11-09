@@ -145,6 +145,12 @@ export function unitsText(w2: number, w3: number) {
   if (w3) return k;
   return m;
 }
+/** Siempre los dos tipos (aunque uno sea 0) y, si hay, las unidades sin tipo: «119 motos · 0 motokares» */
+export function unitsBoth(list: { category?: string | null }[]) {
+  const f = (v: number) => v.toLocaleString("es-PE");
+  const w2 = list.filter((u) => u.category === "2W").length, w3 = list.filter((u) => u.category === "3W").length, none = list.length - w2 - w3;
+  return [`${f(w2)} moto${w2 === 1 ? "" : "s"}`, `${f(w3)} motokar${w3 === 1 ? "" : "es"}`, ...(none ? [`${f(none)} sin tipo`] : [])].join(" · ");
+}
 /** Igual que unitsText, pero desde una lista con category «2W» / «3W» */
 export const unitsOf = (list: { category?: string | null }[]) =>
   unitsText(list.filter((u) => u.category !== "3W").length, list.filter((u) => u.category === "3W").length);

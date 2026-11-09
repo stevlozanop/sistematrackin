@@ -105,7 +105,7 @@ export default function ReportsPage() {
           <Card className="p-5 print:border-0 print:p-0">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-sb-on-surface-variant"><FileText className="h-3.5 w-3.5" /> Reporte de estados · System Trackin</p>
+                <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-sb-on-surface-variant"><FileText className="h-3.5 w-3.5" /> Reporte de estados · System Tracking</p>
                 <h2 className="mt-1 text-xl font-semibold tracking-tight">{data.title}</h2>
                 <p className="text-[12px] text-sb-on-surface-variant">{data.filters.length ? data.filters.join(" · ") : "Todo el período"}</p>
               </div>

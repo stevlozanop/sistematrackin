@@ -138,7 +138,7 @@ export function ConsortiumCard({ c, onEdit, onDelete, onAddAccount }: {
                           </Tooltip>
                           <Tooltip delay={300}>
                             <Button isIconOnly size="sm" variant="secondary" aria-label={`Compartir entrada de ${e.who.toLowerCase()} por WhatsApp`}
-                              onPress={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Ingresa a System Trackin de ${c.name}: ${url}`)}`, "_blank", "noopener")}>
+                              onPress={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Ingresa a System Tracking de ${c.name}: ${url}`)}`, "_blank", "noopener")}>
                               <ButtonGroup.Separator /><MessageCircle className="h-4 w-4" />
                             </Button>
                             <Tooltip.Content>Compartir por WhatsApp</Tooltip.Content>

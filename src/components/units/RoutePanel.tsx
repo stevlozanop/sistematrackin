@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Button, Chip, Drawer, Spinner } from "@heroui/react";
 import { AlertTriangle, ChevronDown, Clock, Ship } from "lucide-react";
-import { STATUS_LABEL, fmtDate, unitsOf, type Site, type Status } from "@/lib/hsp";
+import { STATUS_LABEL, fmtDate, unitsBoth, unitsOf, type Site, type Status } from "@/lib/hsp";
 import { cn } from "@/lib/cn";
 import type { FlowData, Pick } from "@/components/figures/route/RouteFlow";
 import { MiniRoute } from "./MiniRoute";
@@ -59,7 +59,7 @@ export function RoutePanel({ site, pick, flow, filters, onClose, onOpenUnit }: {
             <Drawer.Header className="flex flex-col gap-2">
               <Drawer.Heading className="flex items-center gap-2">{pick?.kind === "nave" && <Ship className="h-4 w-4" />}{title}</Drawer.Heading>
               <div className="flex flex-wrap gap-1.5">
-                <Chip size="sm" variant="soft">{units ? unitsOf(units as { category?: string | null }[]) : `${(stats?.n ?? nave?.n ?? 0).toLocaleString("es-PE")} unidades`}</Chip>
+                <Chip size="sm" variant="soft">{units ? unitsBoth(units as { category?: string | null }[]) : `${(stats?.n ?? nave?.n ?? 0).toLocaleString("es-PE")} unidades`}</Chip>
                 <Chip size="sm" variant="soft">{groups.length} guías</Chip>
                 {(stats?.late ?? nave?.late ?? 0) > 0 && <Chip size="sm" color="danger" variant="soft">{stats?.late ?? nave?.late} fuera de tiempo</Chip>}
                 {(stats?.soon ?? 0) > 0 && <Chip size="sm" color="warning" variant="soft">{stats?.soon} por vencer</Chip>}
@@ -90,7 +90,7 @@ export function RoutePanel({ site, pick, flow, filters, onClose, onOpenUnit }: {
                               <button type="button" onClick={() => onOpenUnit(u)} className="flex w-full items-center gap-3 px-3 py-2 text-left text-xs transition-colors hover:bg-sb-surface-container-low">
                                 <span className="min-w-0 flex-1">
                                   <span className="block font-mono font-semibold">{u.chassis}</span>
-                                  <span className="block truncate text-[11px] text-sb-on-surface-variant">{u.material ?? "—"} · est. {fmtDate(u.est_date) || "—"}</span>
+                                  <span className="block truncate text-[11px] text-sb-on-surface-variant"><b className="text-sb-on-surface">{u.category === "3W" ? "Motokar" : u.category === "2W" ? "Moto" : "Sin tipo"}</b> · {u.material ?? "—"} · est. {fmtDate(u.est_date) || "—"}</span>
                                   <MiniRoute site={site} unit={u as never} className="mt-1" />
                                 </span>
                                 {u.service === "FUERA DE TIEMPO"

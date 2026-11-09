@@ -74,4 +74,4 @@ export function verifyTotp(secret: string, code: string) {
   return [-1, 0, 1].some((d) => crypto.timingSafeEqual(Buffer.from(totpAt(secret, step + d)), Buffer.from(c)));
 }
 export const otpauthUri = (secret: string, account: string) =>
-  `otpauth://totp/${encodeURIComponent(`System Trackin:${account}`)}?secret=${secret}&issuer=${encodeURIComponent("System Trackin")}&algorithm=SHA1&digits=6&period=30`;
+  `otpauth://totp/${encodeURIComponent(`System Tracking:${account}`)}?secret=${secret}&issuer=${encodeURIComponent("System Tracking")}&algorithm=SHA1&digits=6&period=30`;

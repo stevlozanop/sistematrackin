@@ -1,4 +1,4 @@
--- System Trackin · esquema PostgreSQL (Supabase)
+-- System Tracking · esquema PostgreSQL (Supabase)
 -- Replica el Excel HSP-OFICIAL: módulos PCL (Pucallpa) y YUR (Yurimaguas).
 -- En Supabase: SQL Editor → pega este archivo completo → Run. Se puede ejecutar varias veces.
 -- El esquema anterior (MySQL/MariaDB) está en database/mysql/.

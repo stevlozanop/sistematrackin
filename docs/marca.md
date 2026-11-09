@@ -1,4 +1,4 @@
-# Marca System Trackin
+# Marca System Tracking
 
 **Idea:** la S es la ruta. Sale de un punto lleno (el origen, Iquitos) y llega a un anillo (el destino, Pucallpa o Yurimaguas).
 
@@ -20,7 +20,7 @@
 
 | | HEX | RGB | Uso |
 |---|---|---|---|
-| Verde Trackin | `#078a04` | 7 138 4 | Símbolo, fondo del ícono de app, botones principales |
+| Verde Tracking | `#078a04` | 7 138 4 | Símbolo, fondo del ícono de app, botones principales |
 | Casi negro | `#0b0b0b` | 11 11 11 | Nombre, fondos oscuros (login) |
 | Blanco | `#ffffff` | 255 255 255 | Símbolo sobre verde o sobre oscuro |
 

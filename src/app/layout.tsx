@@ -6,10 +6,10 @@ import { Providers } from "./providers";
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans" });
 
 export const metadata: Metadata = {
-  title: "System Trackin",
+  title: "System Tracking",
   description: "Seguimiento de cajas CKD: Iquitos, Pucallpa y Yurimaguas",
-  applicationName: "System Trackin",
-  appleWebApp: { capable: true, title: "Trackin", statusBarStyle: "black-translucent" },
+  applicationName: "System Tracking",
+  appleWebApp: { capable: true, title: "Tracking", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };
 

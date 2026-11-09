@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { PasswordInput } from "@/components/PasswordInput";
-import { TrackinMark } from "@/components/TrackinMark";
+import { TrackingMark } from "@/components/TrackingMark";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Input, toast } from "@heroui/react";
@@ -78,7 +78,7 @@ export function LoginForm({ brand, figure }: { brand?: PortalBrand; figure?: Rea
               )}
               <span className="flex min-w-0 flex-col text-[11px] leading-tight text-white/50">
                 <span className="truncate font-semibold" style={{ color: brand ? "#fff" : "#bedf3c" }}>{brand?.name ?? "Consorcio Leyva"}</span>
-                <span className="flex items-center gap-1"><TrackinMark className="h-3.5 w-3.5 shrink-0 text-white/70" />{brand ? (clients ? "Clientes · System Trackin" : "Equipo · System Trackin") : "System Trackin"}</span>
+                <span className="flex items-center gap-1"><TrackingMark className="h-3.5 w-3.5 shrink-0 text-white/70" />{brand ? (clients ? "Clientes · System Tracking" : "Equipo · System Tracking") : "System Tracking"}</span>
               </span>
             </span>
             <h1 className="shrink-0 text-4xl font-extralight tracking-tight">Ingresar</h1>

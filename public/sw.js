@@ -1,7 +1,7 @@
-// System Trackin · service worker
+// System Tracking · service worker
 // Solo guarda lo que no cambia (archivos de Next con huella, íconos) y una página «sin conexión».
 // Los datos (/api) y las páginas siempre vienen de la red: nunca se muestran datos viejos.
-const CACHE = "trackin-v2";
+const CACHE = "tracking-v3";
 const SHELL = ["/offline.html", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (e) => {
