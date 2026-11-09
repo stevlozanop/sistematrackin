@@ -4,7 +4,7 @@ import { TrackingMark } from "@/components/TrackingMark";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Sparkles, Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, Forklift, PackageCheck, Boxes, MapPinned, Power, type LucideIcon } from "lucide-react";
+import { Receipt, Sparkles, Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, Forklift, PackageCheck, Boxes, MapPinned, Power, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
@@ -180,6 +180,8 @@ function useOpsBadges(on: boolean) {
           pcl: late(j.pcl), yur: late(j.yur),
           alerts: due ? { text: due.toLocaleString("es-PE"), tone: "alert" } : j.soon ? { text: `${j.soon} por vencer`, tone: "warn" } : { text: "0", tone: "muted" },
           online: { text: String(j.online), tone: j.online ? "live" : "muted" },
+          license: j.license?.overdue ? { text: "Vencido", tone: "alert" } : j.license?.pending ? { text: "Por pagar", tone: "warn" }
+            : j.license?.reported ? { text: "Avisado", tone: "muted" } : { text: "Al día", tone: "muted" },
         });
       }).catch(() => {});
     };
@@ -224,6 +226,8 @@ function useDevBadges(on: boolean) {
 }
 
 const PROFILE: Item = { title: "Mi perfil", href: "/profile", icon: CircleUser };
+/** La empresa (supervisores): su licencia del sistema, lo que tiene por pagar y avisar sus pagos. Va en «Cuenta» para estar siempre a la vista */
+const LICENSE: Item = { title: "Licencia y pagos", href: "/licencia", icon: Receipt, badge: "license" };
 
 const SPRING ={ type: "spring", stiffness: 400, damping: 32, mass: 0.7 } as const;
 
@@ -371,9 +375,9 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
     .filter((s) => s.items.length);
   // Título: la opción con la ruta más larga que coincide (/dev/database antes que /dev)
   // Opción activa: la de ruta más larga que coincide (/portal/resumen antes que /portal, /dev/database antes que /dev)
-  const activeHref = [...sections.flatMap((s) => s.items), PROFILE].filter((i) => path === i.href || path.startsWith(i.href + "/"))
+  const activeHref = [...sections.flatMap((s) => s.items), ...(role === "admin" ? [LICENSE] : []), PROFILE].filter((i) => path === i.href || path.startsWith(i.href + "/"))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? "";
-  const pageName = [...sections.flatMap((s) => s.items), PROFILE].filter((i) => path === i.href || path.startsWith(i.href + "/"))
+  const pageName = [...sections.flatMap((s) => s.items), ...(role === "admin" ? [LICENSE] : []), PROFILE].filter((i) => path === i.href || path.startsWith(i.href + "/"))
     .sort((a, b) => b.href.length - a.href.length)[0]?.title ?? "";
   const initials = name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
@@ -460,6 +464,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
           </div>
           <div className="flex flex-col gap-px border-t border-sb-outline-variant/60 pt-2">
             {open && <Heading>Cuenta</Heading>}
+            {role === "admin" && <NavLink item={LICENSE} active={path.startsWith(LICENSE.href)} open={open} badge={badges.license} />}
             <NavLink item={PROFILE} active={path.startsWith(PROFILE.href)} open={open} />
             <ToolButton open={open} label="Salir" onClick={logout}>
               <LogOut className="h-[16px] w-[16px] shrink-0" />
@@ -521,7 +526,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
           </AnimatePresence>
         </main>
 
-        <MobileNav items={[...sections.flatMap((x) => x.items), PROFILE]} activeHref={activeHref} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} onGuide={hasGuide ? () => setGuide(true) : undefined}
+        <MobileNav items={[...sections.flatMap((x) => x.items), ...(role === "admin" ? [LICENSE] : []), PROFILE]} activeHref={activeHref} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} onGuide={hasGuide ? () => setGuide(true) : undefined}
           onUpload={upload ? () => setUploadOpen(true) : undefined} />
         {upload && <UploadCenter open={uploadOpen} onClose={() => setUploadOpen(false)} mode={upload} />}
         {hasGuide && <GuideModal open={guide} onClose={closeGuide} />}

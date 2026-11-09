@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { adminIds, pushReady, pushToUsers } from "@/lib/push";
 import { stageLabel } from "@/lib/workflow";
+import { remindPayments } from "@/lib/billing";
 import type { Site } from "@/lib/hsp";
 
 /**
@@ -21,7 +22,8 @@ export async function GET(req: Request) {
   const [done] = await query<{ n: number }>("SELECT COUNT(*) n FROM push_log WHERE kind = 'diario' AND at >= CURRENT_DATE");
   if (Number(done?.n) > 0) return NextResponse.json({ ok: true, skipped: "ya se envió hoy" });
 
-  let sent = 0;
+  // Pagos de licencia que vencen en 3 días o menos (o vencidos): a los supervisores de la empresa
+  let sent = await remindPayments().catch(() => 0);
   // Empresa
   const [t] = await query<{ hoy: number; pronto: number; sin_motivo: number }>(
     `SELECT SUM(CASE WHEN est_date = CURRENT_DATE THEN 1 ELSE 0 END) hoy,

@@ -7,7 +7,7 @@ import { verifySession } from "@/lib/auth";
  * - viewer (solo lectura, Honda): ve todo menos las pantallas de administración y de encargados.
  */
 const DEALER_PAGES = ["/portal", "/profile", "/recepcion"];
-const VIEWER_BLOCKED = ["/admins", "/companies", "/settings", "/dealers", "/my", "/portal"];
+const VIEWER_BLOCKED = ["/admins", "/companies", "/settings", "/dealers", "/my", "/portal", "/licencia"];
 const STAFF_BLOCKED = ["/portal"];
 /** The Iceberg Labs (dev): solo la consola de la plataforma, las empresas y su perfil. La operación es de Leyva. */
 const DEV_PAGES = ["/dev", "/companies", "/profile"];
@@ -23,7 +23,7 @@ export async function proxy(req: NextRequest) {
   if (s.role === "dev") return starts(path, DEV_PAGES) ? NextResponse.next() : go("/dev");
   if (s.role === "viewer") return starts(path, VIEWER_BLOCKED) ? go("/board") : NextResponse.next();
   if (starts(path, STAFF_BLOCKED)) return go("/");
-  if (s.role === "operator" && starts(path, ["/companies", "/clients", "/reports"])) return go("/"); // Empresas / consorcios: The Iceberg Labs y supervisores
+  if (s.role === "operator" && starts(path, ["/companies", "/clients", "/reports", "/licencia"])) return go("/"); // Empresas / consorcios: The Iceberg Labs y supervisores
   if (starts(path, ["/dev"])) return go("/"); // Consola The Iceberg Labs: solo dev
   return NextResponse.next();
 }

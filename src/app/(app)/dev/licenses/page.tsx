@@ -3,6 +3,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button, toast } from "@heroui/react";
 import { LicenseEditor, type LicenseForm } from "@/components/dev/LicenseEditor";
+import { LicenseBilling, type Pay } from "@/components/dev/LicenseBilling";
 import { AlertTriangle, CalendarClock, CheckCircle2, History, KeyRound, Lock, Pencil, Unlock, Users, XCircle } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -15,6 +16,7 @@ type Lic = {
   starts_at: string | null; expires_at: string | null; days_left: number | null; max_users: number | null; note: string | null;
   registered: boolean; updated_at: string | null; updated_by: string | null; accounts: number; online: number;
   consortia: number; consortia_names: string | null; last_seen: string | null;
+  fee: number | null; currency: string; cycle: string; pay_info: string | null;
 };
 type Ev = { id: number; company: string; action: string; detail: string | null; user: string | null; at: string };
 
@@ -25,7 +27,7 @@ function stateOf(l: Lic) {
   if (l.days_left !== null && l.days_left <= 15) return { key: "soon", label: `Vence en ${l.days_left} ${l.days_left === 1 ? "día" : "días"}`, icon: AlertTriangle, cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400" };
   return { key: "active", label: "Activa", icon: CheckCircle2, cls: "bg-sb-ontime-soft text-sb-ontime" };
 }
-const ACTION: Record<string, string> = { suspend: "Suspendió", activate: "Reactivó", update: "Editó" };
+const ACTION: Record<string, string> = { suspend: "Suspendió", activate: "Reactivó", update: "Editó", pago: "Registró un pago en" };
 
 async function send(body: Record<string, unknown>) {
   const r = await fetch("/api/dev/licenses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -37,7 +39,7 @@ async function send(body: Record<string, unknown>) {
 
 /** Consola The Iceberg Labs · Licencias: activar, suspender, vencimiento y cupo de cuentas de cada empresa, en tiempo real. */
 export default function DevLicenses() {
-  const { data, at } = useLive<{ companies: Lic[]; events: Ev[] }>("/api/dev/licenses", 5000);
+  const { data, at } = useLive<{ companies: Lic[]; events: Ev[]; payments: Record<number, Pay[]> }>("/api/dev/licenses", 5000);
   const [ask, setAsk] = useState<{ lic: Lic; action: "suspend" | "activate" } | null>(null);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -104,6 +106,8 @@ export default function DevLicenses() {
                   </div>
                 ) : null}
                 {l.note && <p className="rounded-xl bg-sb-surface-container-low px-3 py-2 text-[11px] text-sb-on-surface-variant">Nota: {l.note}</p>}
+                <LicenseBilling companyId={l.id} company={l.name} payments={data.payments?.[l.id] ?? []}
+                  billing={{ fee: l.fee === null ? null : Number(l.fee), currency: l.currency, cycle: l.cycle, pay_info: l.pay_info }} />
 
                 <div className="mt-auto flex flex-wrap items-center gap-2">
                   {l.status === "suspended"
