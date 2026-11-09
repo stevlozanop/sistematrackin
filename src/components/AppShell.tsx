@@ -382,7 +382,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
   const initials = name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--page-bg)] text-sb-on-background">
+    <div className="relative flex h-screen overflow-hidden bg-[var(--page-bg)] text-sb-on-background">
       <LiveSync />
       <PushNudge />
       {/* Sidebar */}
@@ -509,7 +509,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
           </div>
         </header>
 
-        <main className="scroll-hidden flex-1 overflow-auto px-4 pb-28 sm:px-6 md:pb-6">
+        <main className="scroll-hidden relative flex-1 overflow-auto px-4 pb-28 sm:px-6 md:pb-6">
           {licenseNotice && (
             <div role="status" className="mb-4 flex items-center gap-2.5 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-xs">
               <CalendarClock className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
