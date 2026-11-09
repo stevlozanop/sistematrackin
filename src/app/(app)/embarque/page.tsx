@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button, toast } from "@heroui/react";
 import { Sheet } from "@/components/modal/Sheet";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
-import { ArrowDown, Box, Eye, Plus, Ship, X } from "lucide-react";
+import { ArrowRight, Box, ChevronUp, Eye, Plus, Ship, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { cn } from "@/lib/cn";
@@ -39,12 +39,13 @@ const n = (v: number) => Number(v ?? 0).toLocaleString("es-PE");
 /** Estado actual → estado siguiente (como en el boceto). */
 function StateChange({ from, to }: { from: string; to: string }) {
   return (
-    <div className="flex flex-col items-start gap-1 text-xs">
-      <span className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">Estado</span>
-      <span className="rounded-full border border-sb-outline-variant px-3 py-1 font-semibold">{from}</span>
-      <ArrowDown className="ml-4 h-3.5 w-3.5 text-sb-on-surface-variant" />
-      <span className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">Estado siguiente</span>
-      <span className="rounded-full bg-sb-primary px-3 py-1 font-semibold text-sb-on-primary">{to}</span>
+    <div className="flex flex-col gap-1 text-xs">
+      <span className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">Cambia de estado</span>
+      <span className="flex flex-wrap items-center gap-1.5">
+        <span className="rounded-full border border-sb-outline-variant px-3 py-1 font-semibold">{from}</span>
+        <ArrowRight className="h-3.5 w-3.5 text-sb-on-surface-variant" aria-label="pasa a" />
+        <span className="rounded-full bg-sb-primary px-3 py-1 font-semibold text-sb-on-primary">{to}</span>
+      </span>
     </div>
   );
 }
@@ -145,6 +146,15 @@ export default function EmbarquePage() {
   const [boxPick, setBoxPick] = useState<{ id: number; code: string; nave: string } | null>(null);
 
   useEffect(() => { fetch("/api/me").then((r) => r.json()).then(setMe); }, []);
+  const formRef = useRef<HTMLDivElement>(null);
+  const [formSeen, setFormSeen] = useState(false);
+  useEffect(() => {
+    const el = formRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setFormSeen(e.isIntersecting), { threshold: 0.15 });
+    io.observe(el);
+    return () => io.disconnect();
+  });
   const sites = useMemo<Site[]>(() => {
     if (!me) return [];
     if (me.role !== "operator") return ["PCL", "YUR"];
@@ -175,6 +185,7 @@ export default function EmbarquePage() {
     if (!r.ok) return toast.danger(j.error);
     setGuias((x) => [...x, j]);
     setGuiaInput("");
+    toast.success(`Guía ${j.guia} agregada`, { description: `${n(j.total)} unidades al contenedor`, timeout: 2500 });
     if (j.skipped) toast.warning(`${j.skipped} unidades de esa guía ya no están en IQT-Port y no se agregan`);
   }
 
@@ -250,18 +261,18 @@ export default function EmbarquePage() {
           onAdd={(g) => addGuia(g)} onChanged={() => setReload((x) => x + 1)} />
 
         {/* 1. Embarque de un contenedor */}
-        <Card className="overflow-hidden">
-          <div className="border-b border-sb-outline-variant/40 px-4 py-3">
+        <Card className="scroll-mt-4 overflow-hidden">
+          <div ref={formRef} id="armar" className="border-b border-sb-outline-variant/40 px-4 py-3">
             <h3 className="flex items-center gap-2 text-sm font-semibold"><Box className="h-4 w-4" /> 1. Embarque · arma el contenedor</h3>
           </div>
           <div className="grid gap-4 p-4 lg:grid-cols-[1fr_17rem]">
             <div className="flex min-w-0 flex-col gap-3">
               <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); addGuia(); }}>
-                <SuggestInput inputClassName={field} mono placeholder="Guía de remisión (escribe para buscar)" value={guiaInput} onChange={setGuiaInput}
+                <SuggestInput inputClassName={field} mono placeholder="Buscar guía…" value={guiaInput} onChange={setGuiaInput}
                   ariaLabel="Guía de remisión" disabled={!data?.canEmbark} onPick={(v) => { setGuiaInput(v); addGuia(v); }} onEnter={() => addGuia()}
                   source={(q) => `/api/suggest?${new URLSearchParams({ kind: "guia", site: current, step: "d_carga", q })}`} />
-                <Button type="submit" variant="primary" className="shrink-0 rounded-full" isDisabled={adding || !guiaInput.trim() || !data?.canEmbark}>
-                  <Plus className="h-4 w-4" /> {adding ? "Buscando…" : "Agregar"}
+                <Button type="submit" variant="primary" className="shrink-0 rounded-full" isDisabled={adding || !guiaInput.trim() || !data?.canEmbark} aria-label="Agregar guía">
+                  <Plus className="h-4 w-4" /><span className="hidden sm:inline">{adding ? "Buscando…" : "Agregar"}</span>
                 </Button>
               </form>
               {/* Celular: una fila compacta por guía */}
@@ -275,7 +286,7 @@ export default function EmbarquePage() {
                         <p className="font-mono font-semibold">{g.guia}</p>
                         <p className="truncate text-[11px] text-sb-on-surface-variant">{g.district} · {g.dealer}</p>
                       </div>
-                      <span className="shrink-0 text-right tabular-nums"><b>{g.total}</b><span className="block text-[10px] text-sb-on-surface-variant">2W {g.w2 || 0} · 3W {g.w3 || 0}</span></span>
+                      <span className="shrink-0 text-right tabular-nums"><b>{g.total}</b><span className="block text-[10px] text-sb-on-surface-variant">{unitsText(g.w2, g.w3)}</span></span>
                       <button type="button" onClick={() => setGuias((x) => x.filter((y) => y.guia !== g.guia))} aria-label={`Quitar ${g.guia}`} className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sb-on-surface-variant hover:bg-sb-surface-container hover:text-sb-late"><X className="h-4 w-4" /></button>
                     </motion.div>
                   ))}
@@ -324,11 +335,20 @@ export default function EmbarquePage() {
             </div>
             <div className="flex flex-col gap-3 border-t border-sb-outline-variant/40 pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
               <StateChange from="IQT-Port" to="Embarque" />
-              <Label t="Contenedor"><input className={cn(field, "uppercase")} placeholder="Ej. SKU-007358" value={container} onChange={(e) => setContainer(e.target.value)} disabled={!data?.canEmbark} /></Label>
-              <Label t="Nave">
-                <input className={cn(field, "uppercase")} list="naves-emb" placeholder="Ej. HENRY 3" value={nave} onChange={(e) => setNave(e.target.value)} disabled={!data?.canEmbark} />
-                <datalist id="naves-emb">{naveOptions.map((v) => <option key={v} value={v} />)}</datalist>
-              </Label>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+                <Label t="Contenedor"><input className={cn(field, "uppercase")} placeholder="Ej. SKU-007358" value={container} onChange={(e) => setContainer(e.target.value)} disabled={!data?.canEmbark} autoCapitalize="characters" /></Label>
+                <Label t="Nave">
+                  <input className={cn(field, "uppercase")} list="naves-emb" placeholder="Ej. HENRY 3" value={nave} onChange={(e) => setNave(e.target.value)} disabled={!data?.canEmbark} autoCapitalize="characters" />
+                  <datalist id="naves-emb">{naveOptions.map((v) => <option key={v} value={v} />)}</datalist>
+                </Label>
+              </div>
+              {naveOptions.length > 0 && data?.canEmbark && (
+                <div className="flex flex-wrap gap-1.5">
+                  {naveOptions.slice(0, 6).map((v) => (
+                    <button key={v} type="button" onClick={() => setNave(v)} className={cn("sbf-chip", nave.toUpperCase() === v.toUpperCase() && "active")}><Ship className="h-3 w-3" />{v}</button>
+                  ))}
+                </div>
+              )}
               <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Fecha de embarque
                 <DatePicker label="Fecha de embarque" value={date} onChange={setDate} disabled={!data?.canEmbark} quick={pastQuick(null, today())} /></div>
               {tot.need > 0 && (
@@ -347,7 +367,7 @@ export default function EmbarquePage() {
         {/* 2. Embarcación · detalle y zarpe */}
         <Card className="overflow-hidden">
           <div className="border-b border-sb-outline-variant/40 px-4 py-3">
-            <h3 className="flex items-center gap-2 text-sm font-semibold"><Ship className="h-4 w-4" /> 2. Embarcación · detalle (naves cargando, aún sin zarpar)</h3>
+            <h3 className="flex items-center gap-2 text-sm font-semibold"><Ship className="h-4 w-4" /> 2. Zarpe · naves cargando</h3>
           </div>
           <div className="grid gap-4 p-4 lg:grid-cols-[1fr_17rem]">
             {/* Celular: una tarjeta por nave */}
@@ -361,7 +381,7 @@ export default function EmbarquePage() {
                       onChange={() => setChecked((st) => { const y = new Set(st); if (y.has(x.nave)) y.delete(x.nave); else y.add(x.nave); return y; })} />
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold">{x.nave}</p>
-                      <p className="text-[11px] text-sb-on-surface-variant">{x.containers} contenedor(es) · {n(x.total)} unid. (2W {n(x.w2)} · 3W {n(x.w3)})</p>
+                      <p className="text-[11px] text-sb-on-surface-variant">{x.containers} contenedor(es) · {n(x.total)} unid. · {unitsText(x.w2, x.w3)}</p>
                       <p className="text-[10px] text-sb-on-surface-variant">embarque {fmtDate(x.first)}{x.last !== x.first ? ` – ${fmtDate(x.last)}` : ""}</p>
                     </div>
                     <Button size="sm" variant="secondary" isIconOnly aria-label={`Ver ${x.nave}`} onPress={() => setView(x.nave)}><Eye className="h-4 w-4" /></Button>
@@ -423,6 +443,21 @@ export default function EmbarquePage() {
           </div>
         </Card>
       </div>
+      <AnimatePresence>
+        {guias.length > 0 && !formSeen && (
+          <motion.button type="button" initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} transition={{ duration: 0.25, ease: EASE }}
+            onClick={() => document.getElementById("armar")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="fixed inset-x-3 z-40 flex items-center gap-3 rounded-2xl bg-sb-on-surface px-4 py-3 text-left text-sb-surface shadow-2xl sm:hidden"
+            style={{ bottom: "calc(6.25rem + env(safe-area-inset-bottom))" }}>
+            <Box className="h-5 w-5 shrink-0" />
+            <span className="min-w-0 flex-1 text-[13px] leading-tight">
+              <b>Contenedor en armado</b>
+              <span className="block truncate text-[11px] opacity-75">{guias.length} guía(s) · {n(tot.total)} unid. · {unitsText(tot.w2, tot.w3)}</span>
+            </span>
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-sb-primary px-3 py-1.5 text-[12px] font-semibold text-sb-on-primary">Registrar <ChevronUp className="h-3.5 w-3.5 rotate-180" /></span>
+          </motion.button>
+        )}
+      </AnimatePresence>
       <ContainerPanel site={current} pick={boxPick} onClose={() => setBoxPick(null)} onOpenNave={setView} />
       <NaveDetail key={view ?? "none"} site={current} nave={view} naves={naveOptions} canUndo={!!data?.canEmbark} onClose={() => setView(null)} onChanged={() => setReload((x) => x + 1)} />
     </MotionConfig>

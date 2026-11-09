@@ -123,6 +123,13 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
   const vw = (narrow ? Math.min(W, H * (boxW / tallH)) : W) / cam.zoom, vh = H / cam.zoom;
   const vx = Math.min(Math.max(cam.fx - vw / 2, 0), W - vw), vy = Math.min(Math.max(cam.fy - vh / 2, 0), H - vh);
   const pct = (p: Point3) => { const [sx, sy] = s.at(p); return { left: `${((sx - vx) / vw) * 100}%`, top: `${((sy - vy) / vh) * 100}%` }; };
+  // Etiquetas siempre dentro del cuadro (en celular el muelle se ve recortado y quedaban cortadas en el borde)
+  const pctIn = (p: Point3) => {
+    const [sx, sy] = s.at(p);
+    const x = ((sx - vx) / vw) * 100, y = ((sy - vy) / vh) * 100;
+    const m = narrow ? 24 : 12;
+    return { left: `${Math.min(100 - m, Math.max(m, x))}%`, top: `${Math.min(92, Math.max(narrow ? 30 : 22, y))}%` };
+  };
 
   const shown = naves.slice(0, SLOTS.length);
   const extra = naves.length - shown.length;
@@ -250,13 +257,13 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
         </svg>
 
         {/* Contenedor en armado */}
-        <div className="rf-tag dk-tag" style={pct([BUILD[0], BUILD[1], 46])}>
+        <div className="rf-tag dk-tag" style={pctIn([BUILD[0], BUILD[1], 46])}>
           <span className="rf-tag-n">{building.guias ? (building.w2 !== undefined ? unitsText(building.w2, building.w3 ?? 0) : `${building.units} unidades`) : "Contenedor vacío"}</span>
           <span className="rf-tag-l">{building.guias ? `${building.guias} guía(s)${building.container ? ` · ${building.container.toUpperCase()}` : ""}${building.nave ? ` → ${building.nave.toUpperCase()}` : ""}` : "Agrega guías abajo"}</span>
         </div>
         {/* Naves cargando */}
         {shown.map((v, i) => (
-          <div key={v.nave} className={cn("rf-tag dk-tag dk-nave", checked.has(v.nave) && "is-on", leaving.has(v.nave) && "is-leaving")} style={pct([SLOTS[i], 12, 34])}>
+          <div key={v.nave} className={cn("rf-tag dk-tag dk-nave", checked.has(v.nave) && "is-on", leaving.has(v.nave) && "is-leaving")} style={pctIn([SLOTS[i], 12, 34])}>
             <button type="button" className="flex flex-col items-center" onClick={() => onOpen(v.nave)} aria-label={`Ver detalle de ${v.nave}`}>
               <span className="rf-tag-n flex items-center gap-1">{v.nave}<Eye className="h-3 w-3 opacity-60" /></span>
               <span className="rf-tag-l">{v.containers} cont. · {v.w2 !== undefined ? unitsText(v.w2, v.w3 ?? 0) : `${v.total.toLocaleString("es-PE")} unidades`}{(v.list ?? []).some((c) => !c.slot) ? ` · ${(v.list ?? []).filter((c) => !c.slot).length} sin ubicar` : ""}</span>
@@ -276,7 +283,7 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
             onClick={() => (onPickContainer ?? (() => onOpen(b.v.nave)))({ id: c.id, code: c.code, nave: b.v.nave })}>{c.code}</button>
         )))}
         {!naves.length && (
-          <div className="rf-tag dk-tag is-empty" style={pct([90, 12, 6])}>
+          <div className="rf-tag dk-tag is-empty" style={pctIn([90, 12, 6])}>
             <span className="rf-tag-n">Sin naves cargando</span>
             <span className="rf-tag-l">Registra un embarque para amarrar una nave</span>
           </div>

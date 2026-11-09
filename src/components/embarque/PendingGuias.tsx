@@ -67,17 +67,56 @@ export function PendingGuias({ site, inBox, canEmbark, onAdd, onChanged }: {
       {open && (
         <>
           <div className="flex flex-wrap items-center gap-2 px-4 py-3">
-            <label className="relative min-w-[12rem] flex-1">
+            <label className="relative min-w-0 basis-full sm:min-w-[12rem] sm:flex-1 sm:basis-auto">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sb-on-surface-variant" />
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar guía, dealer, distrito o modelo"
                 className="h-10 w-full rounded-xl border border-sb-outline-variant bg-sb-surface pl-9 pr-3 text-sm outline-none focus:border-sb-on-surface" />
             </label>
-            <div className="flex rounded-full bg-sb-surface-container p-0.5">
+            <div className="flex max-w-full overflow-x-auto rounded-full bg-sb-surface-container p-0.5">
               <button type="button" onClick={() => setOnlyDup(false)} className={cn("rounded-full px-3 py-1 text-[11px] font-semibold", !onlyDup ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant")}>Todas</button>
               <button type="button" onClick={() => setOnlyDup(true)} className={cn("rounded-full px-3 py-1 text-[11px] font-semibold", onlyDup ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant")}>Posibles duplicadas ({dups.length})</button>
             </div>
           </div>
-          <TableLabels className="max-h-[28rem] overflow-y-auto border-t border-sb-outline-variant/30">
+          {/* Celular: una tarjeta compacta por guía, con su propio scroll */}
+          <div className="max-h-[62vh] overflow-y-auto overscroll-contain border-t border-sb-outline-variant/30 sm:hidden">
+            {shown.map((r) => {
+              const late = r.overdue > 0, added = inBox.includes(r.guia);
+              const left = r.est ? daysBetween(today, parseISO(String(r.est).slice(0, 10))) : null;
+              return (
+                <div key={r.guia} className={cn("flex flex-col gap-1.5 border-b border-sb-outline-variant/20 px-4 py-3", r.flags.length > 0 && "bg-amber-500/10", added && "bg-sb-primary-soft")}>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className={cn("font-mono text-[13px] font-semibold", late ? "text-sb-late" : "text-sb-ontime")}>{r.guia}</p>
+                    {left !== null && (
+                      <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold", late ? "bg-sb-late-soft text-sb-late" : "bg-sb-ontime-soft text-sb-ontime")}>
+                        {late ? `Vencida hace ${-left} d` : left === 0 ? "Vence hoy" : `Quedan ${left} d`}
+                      </span>
+                    )}
+                  </div>
+                  <p className="truncate text-[12px] text-sb-on-surface-variant">{r.dealer ?? "—"}{r.district ? ` · ${r.district}` : ""}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="min-w-0 flex-1 text-[12px]">
+                      <b className="text-[14px]">{n(r.total)}</b> unid. · {unitsText(r.w2, r.w3)}
+                      <span className="block truncate text-[10px] text-sb-on-surface-variant">Facturada {fmtDate(r.billing) || "—"}{r.models ? ` · ${r.models}` : ""}</span>
+                    </p>
+                    {added ? <span className="shrink-0 rounded-full bg-sb-primary px-3 py-1.5 text-[11px] font-semibold text-sb-on-primary">En el contenedor</span>
+                      : canEmbark && (
+                        <button type="button" onClick={() => onAdd(r.guia)} className="flex h-9 shrink-0 items-center gap-1 rounded-full bg-sb-primary px-4 text-[12px] font-semibold text-sb-on-primary active:scale-95">
+                          <Plus className="h-4 w-4" /> Agregar
+                        </button>
+                      )}
+                  </div>
+                  {r.flags.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {r.flags.map((f) => <span key={f} className="flex items-center gap-1 rounded-full bg-sb-surface px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400"><AlertTriangle className="h-3 w-3" />{f}</span>)}
+                      {canDelete && <button type="button" onClick={() => setAsk(r)} className="ml-auto flex items-center gap-1 rounded-full px-2 py-1 text-[11px] text-sb-late"><Trash2 className="h-3 w-3" /> Eliminar</button>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {rows && !shown.length && <p className="px-4 py-8 text-center text-xs text-sb-on-surface-variant">{rows.length ? "Nada coincide." : "No hay guías pendientes de embarque."}</p>}
+          </div>
+          <TableLabels className="hidden max-h-[28rem] overflow-y-auto border-t border-sb-outline-variant/30 sm:block">
             <table className="w-full min-w-[900px] text-left text-xs">
               <thead className="sticky top-0 z-10 bg-sb-surface">
                 <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
