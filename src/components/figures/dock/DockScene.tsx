@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as k from "@/components/iso/iso-kit";
 import type { Plan, Point3, Projection } from "@/components/iso/iso-kit";
-import { Check, Eye, Hand, Minus, Plus, Rotate3d, RotateCcw, RotateCw, Scan } from "lucide-react";
+import { Check, Eye, Hand, LocateFixed, Maximize2, Minimize2, Minus, Plus, Rotate3d, RotateCcw, RotateCw } from "lucide-react";
 import { DEFAULT_VESSEL, boxColor, type Slot, type Vessel } from "@/lib/stowage";
 import { cn } from "@/lib/cn";
 import { unitsText } from "@/lib/hsp";
@@ -114,16 +114,54 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
   // Celular: el muelle se ve más alto (se recorta a los lados y se gira para ver el resto)
   const box = React.useRef<HTMLDivElement>(null);
   const [boxW, setBoxW] = React.useState(0);
+  const [boxH, setBoxH] = React.useState(0);
   React.useEffect(() => {
     const el = box.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => setBoxW(e.contentRect.width));
+    const ro = new ResizeObserver(([e]) => { setBoxW(e.contentRect.width); setBoxH(e.contentRect.height); });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+  // Pantalla completa: la del navegador si se puede; si no (iPhone), el muelle ocupa toda la ventana
+  const [full, setFull] = React.useState<"off" | "native" | "window">("off");
+  const toggleFull = React.useCallback(async () => {
+    const el = box.current;
+    if (!el) return;
+    if (full === "native") { await document.exitFullscreen?.().catch(() => {}); return; }
+    if (full === "window") { setFull("off"); return; }
+    try {
+      if (!el.requestFullscreen) throw new Error("sin pantalla completa");
+      await el.requestFullscreen({ navigationUI: "hide" });
+      setFull("native");
+      // En celular, mejor acostado (si el navegador lo permite)
+      (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> })?.lock?.("landscape").catch(() => {});
+    } catch { setFull("window"); }
+  }, [full]);
+  React.useEffect(() => {
+    const onChange = () => { if (!document.fullscreenElement) setFull((f) => (f === "native" ? "off" : f)); };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+  React.useEffect(() => {
+    if (full !== "window") return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setFull("off"); };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
+  }, [full]);
+  const isFull = full !== "off";
+  const leaveFull = React.useCallback(() => {
+    if (full === "native") document.exitFullscreen?.().catch(() => {});
+    if (full !== "off") setFull("off");
+  }, [full]);
+  const openNave = (n: string) => { leaveFull(); onOpen(n); };
+  const pickBox = (c: { id: number; code: string; nave: string }) => { leaveFull(); (onPickContainer ?? ((x) => onOpen(x.nave)))(c); };
   const narrow = boxW > 0 && boxW < 640;
   const tallH = 300;
-  const vw = (narrow ? Math.min(W, H * (boxW / tallH)) : W) / cam.zoom, vh = H / cam.zoom;
+  // Lo que se ve del muelle según la forma del cuadro (en pantalla completa, la de la pantalla)
+  const aspect = isFull && boxW && boxH ? boxW / boxH : narrow ? boxW / tallH : W / H;
+  const vw = Math.min(W, H * aspect) / cam.zoom, vh = Math.min(H, W / aspect) / cam.zoom;
   const [fx, fy] = cam.t ? s.at([cam.t.x, cam.t.y, 0]) : [W / 2, H / 2];
   const vx = Math.min(Math.max(fx - vw / 2, 0), W - vw), vy = Math.min(Math.max(fy - vh / 2, 0), H - vh);
   // Punto de la pantalla → punto del suelo (la proyección es lineal: se resuelve con dos ejes)
@@ -262,26 +300,27 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
   const bargeSvg = (b: (typeof barges)[number]) => (b.tugFirst ? b.tugSvg + b.hullSvg : b.hullSvg + b.tugSvg);
   const bargesSvg = barges.map((b) => (
     <g key={b.v.nave} className={cn("dk-barge", checked.has(b.v.nave) && "is-on", leaving.has(b.v.nave) && "is-leaving")}>
-      <g className="rf-pick" role="button" tabIndex={-1} aria-label={`Nave ${b.v.nave}`} onClick={() => onOpen(b.v.nave)} dangerouslySetInnerHTML={{ __html: bargeSvg(b) + (b.cabinFront ? "" : b.cabinSvg) }} />
+      <g className="rf-pick" role="button" tabIndex={-1} aria-label={`Nave ${b.v.nave}`} onClick={() => openNave(b.v.nave)} dangerouslySetInnerHTML={{ __html: bargeSvg(b) + (b.cabinFront ? "" : b.cabinSvg) }} />
       {b.boxes.map(({ c, cx, cy, cz }) => (
         <g key={`${c.id}-${c.slot!.bay}${c.slot!.row}${c.slot!.tier}`} className={cn("rf-pick dk-box", selectedContainer === c.id && "is-on")} role="button" tabIndex={-1} aria-label={`Contenedor ${c.code}`}
-          onClick={(e) => { e.stopPropagation(); (onPickContainer ?? (() => onOpen(b.v.nave)))({ id: c.id, code: c.code, nave: b.v.nave }); }}
+          onClick={(e) => { e.stopPropagation(); pickBox({ id: c.id, code: c.code, nave: b.v.nave }); }}
           style={{ ["--box" as string]: boxColor(c.code) }}
           dangerouslySetInnerHTML={{ __html: s.crate(cx, cy, cz, selectedContainer === c.id, b.g.cl - 1.5, b.g.cw - 1.5, b.g.ch - 0.6) }} />
       ))}
-      {b.cabinFront && <g className="rf-pick" onClick={() => onOpen(b.v.nave)} dangerouslySetInnerHTML={{ __html: b.cabinSvg }} />}
+      {b.cabinFront && <g className="rf-pick" onClick={() => openNave(b.v.nave)} dangerouslySetInnerHTML={{ __html: b.cabinSvg }} />}
     </g>
   ));
 
   return (
     <div className="flex flex-col gap-2">
-      <div ref={box} className={cn("iso rf dk relative overflow-hidden rounded-xl select-none", mode === "move" ? "cursor-grab active:cursor-grabbing" : "cursor-ew-resize")} data-theme={theme}
-        style={{ ["--dk-dx" as string]: `${s.away.dx}px`, ["--dk-dy" as string]: `${s.away.dy}px`, touchAction: "pan-y", height: narrow ? tallH : undefined }}
+      <div ref={box} className={cn("iso rf dk relative overflow-hidden rounded-xl select-none", mode === "move" ? "cursor-grab active:cursor-grabbing" : "cursor-ew-resize",
+          isFull && "!rounded-none", full === "native" && "h-full w-full", full === "window" && "fixed inset-0 z-[90] h-dvh w-screen")} data-theme={theme}
+        style={{ ["--dk-dx" as string]: `${s.away.dx}px`, ["--dk-dy" as string]: `${s.away.dy}px`, touchAction: isFull ? "none" : "pan-y", height: isFull ? undefined : narrow ? tallH : undefined, ...(isFull ? { background: "var(--sb-surface-container-low, #f4f6f2)" } : {}) }}
         onPointerDownCapture={() => { drag.current.moved = 0; }}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onClickCapture={onClickCapture}
         onContextMenu={(e) => e.preventDefault()}
         onDoubleClick={(e) => { const p = toLocal(e.clientX, e.clientY); zoomAt(cam.zoom >= 3.5 ? 1 / 4 : 1.8, p.x, p.y); }}>
-        <svg className="iso-svg" style={narrow ? { width: "100%", height: "100%" } : undefined} viewBox={`${vx} ${vy} ${vw} ${vh}`} role="img" aria-label="Muelle de Iquitos en 3D: contenedor en armado, grúa y naves cargando">
+        <svg className="iso-svg" style={narrow || isFull ? { width: "100%", height: "100%" } : undefined} viewBox={`${vx} ${vy} ${vw} ${vh}`} role="img" aria-label="Muelle de Iquitos en 3D: contenedor en armado, grúa y naves cargando">
           <g dangerouslySetInnerHTML={{ __html: s.water }} />
           {!s.bargesInFront && bargesSvg}
           <g dangerouslySetInnerHTML={{ __html: s.quay + s.build + crates }} />
@@ -298,7 +337,7 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
         {/* Naves cargando */}
         {shown.map((v, i) => (
           <div key={v.nave} className={cn("rf-tag dk-tag dk-nave", checked.has(v.nave) && "is-on", leaving.has(v.nave) && "is-leaving")} style={pctIn([SLOTS[i], 12, 34])}>
-            <button type="button" className="flex flex-col items-center" onClick={() => onOpen(v.nave)} aria-label={`Ver detalle de ${v.nave}`}>
+            <button type="button" className="flex flex-col items-center" onClick={() => openNave(v.nave)} aria-label={`Ver detalle de ${v.nave}`}>
               <span className="rf-tag-n flex items-center gap-1">{v.nave}<Eye className="h-3 w-3 opacity-60" /></span>
               <span className="rf-tag-l">{v.containers} cont. · {v.w2 !== undefined ? unitsText(v.w2, v.w3 ?? 0) : `${v.total.toLocaleString("es-PE")} unidades`}{(v.list ?? []).some((c) => !c.slot) ? ` · ${(v.list ?? []).filter((c) => !c.slot).length} sin ubicar` : ""}</span>
             </button>
@@ -314,7 +353,7 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
         {/* Código de los contenedores cuando se acerca la cámara */}
         {cam.zoom >= 1.8 && barges.flatMap((b) => b.boxes.map(({ c, cx, cy, cz }) => (
           <button key={`t${c.id}`} type="button" className={cn("dk-code", selectedContainer === c.id && "is-on")} style={pct([cx, cy, cz + b.g.ch])}
-            onClick={() => (onPickContainer ?? (() => onOpen(b.v.nave)))({ id: c.id, code: c.code, nave: b.v.nave })}>{c.code}</button>
+            onClick={() => pickBox({ id: c.id, code: c.code, nave: b.v.nave })}>{c.code}</button>
         )))}
         {!naves.length && (
           <div className="rf-tag dk-tag is-empty" style={pctIn([90, 12, 6])}>
@@ -324,6 +363,11 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
         )}
         {extra > 0 && <p className="absolute bottom-2 left-3 rounded-full bg-sb-surface/90 px-3 py-1 text-[11px] text-sb-on-surface-variant shadow-sm">+{extra} naves más en la lista de abajo</p>}
 
+        {isFull && (
+          <p className="absolute left-3 top-3 rounded-full bg-sb-surface/95 px-3 py-1.5 text-[12px] font-semibold shadow-sm" style={{ marginTop: "env(safe-area-inset-top)" }}>
+            Muelle de Iquitos <span className="font-normal text-sb-on-surface-variant">· Esc o ⤡ para salir</span>
+          </p>
+        )}
         {/* Controles de la cámara */}
         <div className="absolute bottom-2 right-2 flex items-center gap-0.5 rounded-full border border-sb-outline-variant/60 bg-sb-surface/95 p-1 shadow-sm" onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
           <div className="flex rounded-full bg-sb-surface-container p-0.5" role="group" aria-label="Al arrastrar">
@@ -340,7 +384,9 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
           <span className="w-9 text-center text-[10px] font-semibold tabular-nums text-sb-on-surface-variant">{Math.round(cam.zoom * 100)}%</span>
           <button type="button" aria-label="Acercar" onClick={() => zoomAt(1.3)} disabled={cam.zoom >= 4} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sb-surface-container disabled:opacity-30"><Plus className="h-4 w-4" /></button>
           <span className="mx-0.5 h-5 w-px bg-sb-outline-variant/60" />
-          <button type="button" aria-label="Vista inicial" title="Vista inicial" onClick={() => setCam({ ...START, zoom: 1, t: null })} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sb-surface-container"><Scan className="h-4 w-4" /></button>
+          <button type="button" aria-label="Vista inicial" title="Vista inicial" onClick={() => setCam({ ...START, zoom: 1, t: null })} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sb-surface-container"><LocateFixed className="h-4 w-4" /></button>
+          <button type="button" aria-label={isFull ? "Salir de pantalla completa" : "Pantalla completa"} title={isFull ? "Salir de pantalla completa (Esc)" : "Pantalla completa"} onClick={toggleFull}
+            className={cn("grid h-8 w-8 place-items-center rounded-full", isFull ? "bg-sb-primary text-sb-on-primary" : "hover:bg-sb-surface-container")}>{isFull ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}</button>
         </div>
       </div>
       <p className="text-[11px] text-sb-on-surface-variant">
