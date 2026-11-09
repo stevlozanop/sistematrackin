@@ -98,9 +98,23 @@ export function PushCard() {
             <Button variant="secondary" className="rounded-full" isDisabled={busy} onPress={() => act(async () => {
               const r = await fetch("/api/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "test" }) });
               if (!r.ok) throw new Error((await r.json().catch(() => null))?.error ?? "No se pudo enviar");
-            }, "Aviso de prueba enviado")}><Send className="h-4 w-4" /> Enviar prueba</Button>
+            }, "Aviso enviado por internet: debe aparecer en unos segundos")}><Send className="h-4 w-4" /> Enviar prueba</Button>
+            <Button variant="ghost" className="rounded-full" isDisabled={busy} onPress={() => act(async () => {
+              // Sin pasar por internet: si este tampoco aparece, lo está bloqueando el navegador o el sistema del equipo
+              const reg = await registration();
+              await reg.showNotification("Prueba en este equipo", { body: "Si ves esto, tu equipo sí muestra los avisos de System Tracking.", icon: "/icons/icon-192.png", badge: "/icons/badge-96.png", tag: "prueba-local" });
+            }, "Aviso mostrado en este equipo")}><Bell className="h-4 w-4" /> Probar sin internet</Button>
             <Button variant="ghost" className="rounded-full" isDisabled={busy} onPress={() => act(forgetPushDevice, "Notificaciones desactivadas en este equipo")}><BellOff className="h-4 w-4" /> Desactivar</Button>
           </div>
+          <details className="rounded-xl bg-sb-surface-container-low px-3 py-2 text-[12px]">
+            <summary className="cursor-pointer font-semibold">¿No te aparecen?</summary>
+            <ul className="mt-1.5 list-disc space-y-1 pl-4 text-sb-on-surface-variant">
+              <li><b>Computadora:</b> el navegador debe estar abierto (aunque sea minimizado). Revisa que el modo «No molestar» esté apagado y que Chrome tenga permiso en la configuración de notificaciones del sistema (Windows: Configuración → Notificaciones · Linux: Configuración → Notificaciones → Google Chrome · Mac: Ajustes → Notificaciones → Chrome).</li>
+              <li><b>Android:</b> Ajustes → Apps → Chrome (o la app instalada) → Notificaciones: activadas. Quita el ahorro de batería extremo.</li>
+              <li><b>iPhone:</b> solo funciona desde la app agregada al inicio (no desde Safari) y con iOS 16.4 o más nuevo.</li>
+              <li>Si «Probar sin internet» tampoco aparece, el bloqueo es del navegador o del equipo, no del sistema.</li>
+            </ul>
+          </details>
         </>
       )}
       {state === "off" && (
