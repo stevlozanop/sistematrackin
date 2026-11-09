@@ -158,6 +158,8 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
   const openNave = (n: string) => { leaveFull(); onOpen(n); };
   const pickBox = (c: { id: number; code: string; nave: string }) => { leaveFull(); (onPickContainer ?? ((x) => onOpen(x.nave)))(c); };
   const narrow = boxW > 0 && boxW < 640;
+  // Celular: etiquetas y controles más chicos, sin encimarse
+  const compact = boxW > 0 && boxW < 520;
   const tallH = 300;
   // Lo que se ve del muelle según la forma del cuadro (en pantalla completa, la de la pantalla)
   const aspect = isFull && boxW && boxH ? boxW / boxH : narrow ? boxW / tallH : W / H;
@@ -176,14 +178,31 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
   React.useLayoutEffect(() => { view.current = { vx, vy, vw, vh, unproject }; });
   const pct = (p: Point3) => { const [sx, sy] = s.at(p); return { left: `${((sx - vx) / vw) * 100}%`, top: `${((sy - vy) / vh) * 100}%` }; };
   // Etiquetas siempre dentro del cuadro (en celular el muelle se ve recortado y quedaban cortadas en el borde)
-  const pctIn = (p: Point3) => {
+  const posIn = (p: Point3) => {
     const [sx, sy] = s.at(p);
     const x = ((sx - vx) / vw) * 100, y = ((sy - vy) / vh) * 100;
-    const m = narrow ? 24 : 12;
-    return { left: `${Math.min(100 - m, Math.max(m, x))}%`, top: `${Math.min(92, Math.max(narrow ? 30 : 22, y))}%` };
+    const m = compact ? 25 : narrow ? 24 : 12;
+    return { x: Math.min(100 - m, Math.max(m, x)), y: Math.min(80, Math.max(narrow ? 30 : 22, y)) };
   };
+  const pctIn = (p: Point3) => { const { x, y } = posIn(p); return { left: `${x}%`, top: `${y}%` }; };
 
   const shown = naves.slice(0, SLOTS.length);
+  // Etiquetas de las naves que no se tapen entre sí: si dos caen muy cerca, la siguiente sube
+  const navePos = (() => {
+    const w = compact ? 34 : narrow ? 30 : 16, h = compact ? 13 : 16;
+    const out: { x: number; y: number }[] = [];
+    for (let i = 0; i < shown.length; i++) {
+      const q = posIn([SLOTS[i], 12, 34]);
+      for (let guard = 0; guard < 6; guard++) {
+        const hit = out.find((o) => Math.abs(o.x - q.x) < w && Math.abs(o.y - q.y) < h);
+        if (!hit) break;
+        q.y = hit.y - h;
+        if (q.y < 14) { q.y = hit.y + h; }
+      }
+      out.push(q);
+    }
+    return out;
+  })();
   const extra = naves.length - shown.length;
   const crates = React.useMemo(() => {
     let out = "";
@@ -336,13 +355,16 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
         </div>
         {/* Naves cargando */}
         {shown.map((v, i) => (
-          <div key={v.nave} className={cn("rf-tag dk-tag dk-nave", checked.has(v.nave) && "is-on", leaving.has(v.nave) && "is-leaving")} style={pctIn([SLOTS[i], 12, 34])}>
+          <div key={v.nave} className={cn("rf-tag dk-tag dk-nave", compact && "dk-tag-sm", checked.has(v.nave) && "is-on", leaving.has(v.nave) && "is-leaving")}
+            style={{ left: `${navePos[i].x}%`, top: `${navePos[i].y}%`, zIndex: 2 + i }}>
             <button type="button" className="flex flex-col items-center" onClick={() => openNave(v.nave)} aria-label={`Ver detalle de ${v.nave}`}>
               <span className="rf-tag-n flex items-center gap-1">{v.nave}<Eye className="h-3 w-3 opacity-60" /></span>
-              <span className="rf-tag-l">{v.containers} cont. · {v.w2 !== undefined ? unitsText(v.w2, v.w3 ?? 0) : `${v.total.toLocaleString("es-PE")} unidades`}{(v.list ?? []).some((c) => !c.slot) ? ` · ${(v.list ?? []).filter((c) => !c.slot).length} sin ubicar` : ""}</span>
+              {/* En celular, al acercar se quita el detalle: el nombre basta (el detalle se ve al tocarla) */}
+              {!(compact && cam.zoom > 1.3) && <span className="rf-tag-l">{v.containers} cont. · {v.w2 !== undefined ? unitsText(v.w2, v.w3 ?? 0) : `${v.total.toLocaleString("es-PE")} unidades`}{(v.list ?? []).some((c) => !c.slot) ? ` · ${(v.list ?? []).filter((c) => !c.slot).length} sin ubicar` : ""}</span>}
             </button>
             {v.need > 0 && <span className="rf-tag-late">{v.need} tarde</span>}
-            {canSail && (
+            {/* En celular el zarpe se marca en la lista de abajo (aquí solo se muestra si ya está marcada) */}
+            {canSail && (!compact || checked.has(v.nave)) && (
               <button type="button" onClick={() => onToggle(v.nave)} aria-pressed={checked.has(v.nave)}
                 className={cn("mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold", checked.has(v.nave) ? "border-white/70" : "border-sb-outline-variant")}>
                 <Check className="h-3 w-3" /> {checked.has(v.nave) ? "Zarpa" : "Marcar zarpe"}
@@ -351,7 +373,7 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
           </div>
         ))}
         {/* Código de los contenedores cuando se acerca la cámara */}
-        {cam.zoom >= 1.8 && barges.flatMap((b) => b.boxes.map(({ c, cx, cy, cz }) => (
+        {cam.zoom >= (compact ? 2.6 : 1.8) && barges.flatMap((b) => b.boxes.map(({ c, cx, cy, cz }) => (
           <button key={`t${c.id}`} type="button" className={cn("dk-code", selectedContainer === c.id && "is-on")} style={pct([cx, cy, cz + b.g.ch])}
             onClick={() => pickBox({ id: c.id, code: c.code, nave: b.v.nave })}>{c.code}</button>
         )))}
@@ -369,27 +391,30 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
           </p>
         )}
         {/* Controles de la cámara */}
-        <div className="absolute bottom-2 right-2 flex items-center gap-0.5 rounded-full border border-sb-outline-variant/60 bg-sb-surface/95 p-1 shadow-sm" onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+        <div className={cn("absolute bottom-2 right-2 flex max-w-[calc(100%-1rem)] items-center gap-0.5 overflow-x-auto rounded-full border border-sb-outline-variant/60 bg-sb-surface/95 p-1 shadow-sm [scrollbar-width:none]", compact && "[&_button]:!h-8 [&_button]:!w-8")} onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
           <div className="flex rounded-full bg-sb-surface-container p-0.5" role="group" aria-label="Al arrastrar">
             <button type="button" aria-pressed={mode === "move"} title="Arrastrar mueve la vista" onClick={() => setMode("move")}
               className={cn("grid h-7 w-7 place-items-center rounded-full", mode === "move" ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant")}><Hand className="h-4 w-4" /><span className="sr-only">Mover</span></button>
             <button type="button" aria-pressed={mode === "turn"} title="Arrastrar gira el muelle" onClick={() => setMode("turn")}
               className={cn("grid h-7 w-7 place-items-center rounded-full", mode === "turn" ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant")}><Rotate3d className="h-4 w-4" /><span className="sr-only">Girar</span></button>
           </div>
-          <span className="mx-0.5 h-5 w-px bg-sb-outline-variant/60" />
+          {!compact && <><span className="mx-0.5 h-5 w-px bg-sb-outline-variant/60" />
           <button type="button" aria-label="Girar a la izquierda" onClick={() => setCam((c) => ({ ...c, az: (c.az + 30) % 360 }))} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sb-surface-container"><RotateCcw className="h-4 w-4" /></button>
-          <button type="button" aria-label="Girar a la derecha" onClick={() => setCam((c) => ({ ...c, az: (c.az + 330) % 360 }))} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sb-surface-container"><RotateCw className="h-4 w-4" /></button>
+          <button type="button" aria-label="Girar a la derecha" onClick={() => setCam((c) => ({ ...c, az: (c.az + 330) % 360 }))} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sb-surface-container"><RotateCw className="h-4 w-4" /></button></>}
           <span className="mx-0.5 h-5 w-px bg-sb-outline-variant/60" />
           <button type="button" aria-label="Alejar" onClick={() => zoomAt(1 / 1.3)} disabled={cam.zoom <= 1} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sb-surface-container disabled:opacity-30"><Minus className="h-4 w-4" /></button>
-          <span className="w-9 text-center text-[10px] font-semibold tabular-nums text-sb-on-surface-variant">{Math.round(cam.zoom * 100)}%</span>
+          {!compact && <span className="w-9 text-center text-[10px] font-semibold tabular-nums text-sb-on-surface-variant">{Math.round(cam.zoom * 100)}%</span>}
           <button type="button" aria-label="Acercar" onClick={() => zoomAt(1.3)} disabled={cam.zoom >= 4} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sb-surface-container disabled:opacity-30"><Plus className="h-4 w-4" /></button>
-          <span className="mx-0.5 h-5 w-px bg-sb-outline-variant/60" />
+          {!compact && <span className="mx-0.5 h-5 w-px bg-sb-outline-variant/60" />}
           <button type="button" aria-label="Vista inicial" title="Vista inicial" onClick={() => setCam({ ...START, zoom: 1, t: null })} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sb-surface-container"><LocateFixed className="h-4 w-4" /></button>
           <button type="button" aria-label={isFull ? "Salir de pantalla completa" : "Pantalla completa"} title={isFull ? "Salir de pantalla completa (Esc)" : "Pantalla completa"} onClick={toggleFull}
             className={cn("grid h-8 w-8 place-items-center rounded-full", isFull ? "bg-sb-primary text-sb-on-primary" : "hover:bg-sb-surface-container")}>{isFull ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}</button>
         </div>
       </div>
-      <p className="text-[11px] text-sb-on-surface-variant">
+      <p className="text-[11px] text-sb-on-surface-variant sm:hidden">
+        <b>Desliza</b> para mover · <b>pellizca</b> para acercar · elige el giro para dar la vuelta · toca una nave o un contenedor para verlo.
+      </p>
+      <p className="hidden text-[11px] text-sb-on-surface-variant sm:block">
         <b>Arrastra</b> para mover la vista ({mode === "move" ? "✋ activo" : "elige ✋"}) o para girarla 360° (elige el giro) · <b>rueda o pellizca</b> para acercar justo donde apuntas · doble clic acerca ahí · toca un contenedor para ver lo que lleva.
       </p>
     </div>

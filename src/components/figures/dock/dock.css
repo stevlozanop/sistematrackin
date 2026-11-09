@@ -24,3 +24,9 @@
 .dk .dk-box .iso-fill{fill:color-mix(in oklab,var(--box,#888) 88%,#fff)}
 .dk .dk-box .iso-shade{fill:color-mix(in oklab,var(--box,#888) 78%,#000)}
 .dk .dk-box.is-on .iso-top{fill:var(--sb-primary)}
+
+/* Celular: etiquetas de nave más chicas */
+.dk .dk-tag-sm{padding:3px 8px;gap:0;border-radius:10px}
+.dk .dk-tag-sm .rf-tag-n{font-size:12px}
+.dk .dk-tag-sm .rf-tag-l{font-size:9px}
+.dk .dk-tag-sm .rf-tag-late{font-size:9px}
