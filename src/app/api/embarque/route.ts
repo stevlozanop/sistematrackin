@@ -4,6 +4,7 @@ import { getScope, guard } from "@/lib/guard";
 import { isSite, type Site } from "@/lib/hsp";
 import { isSuper, today } from "@/lib/workflow";
 import { defaultVessel, floating, inside, nextFree, same, slotName, type Slot, type Vessel, type VesselKind } from "@/lib/stowage";
+import { notifyNextStage, pushLater } from "@/lib/push";
 
 /**
  * Embarque y zarpe en Iquitos (pasos 1.1 y 2).
@@ -379,6 +380,8 @@ export async function POST(req: Request) {
       }
       for (let i = 0; i < ev.length; i += 1000) await q.query("INSERT INTO unit_events(unit_id, user_id, field, old_value, new_value) VALUES ?", [ev.slice(i, i + 1000)]);
     });
+    // Zarpó: avisa a quienes reciben la nave (arribo en Pucallpa / Yurimaguas)
+    pushLater(() => notifyNextStage(units.map((u) => u.id), s.id));
     return NextResponse.json({ ok: true, units: units.length, naves: naves.length, late: late.length });
   }
 

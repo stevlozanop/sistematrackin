@@ -97,7 +97,7 @@ export async function saveExcel(rows: UnitRow[], onProgress: (p: number) => void
     created += j.created; updated += j.updated;
     onProgress(Math.min(1, (i + SAVE_CHUNK) / rows.length));
   }
-  await post({ step: "finish" });
+  await post({ step: "finish", batchId });
   return { created, updated };
 }
 

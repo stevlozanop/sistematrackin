@@ -3,6 +3,7 @@ import { queryList, tx } from "@/lib/db";
 import { getScope, guard } from "@/lib/guard";
 import { isSite, type Site } from "@/lib/hsp";
 import { isSuper, today } from "@/lib/workflow";
+import { notifyDispatched, notifyNextStage, pushLater } from "@/lib/push";
 
 /**
  * 5. Despacho de almacén: se arma el viaje del camión con las guías que lleva, el chofer, la placa y la fecha
@@ -133,6 +134,11 @@ export async function POST(req: Request) {
     }
     for (let i = 0; i < ev.length; i += 1000) await q.query("INSERT INTO unit_events(unit_id, user_id, field, old_value, new_value) VALUES ?", [ev.slice(i, i + 1000)]);
     return did;
+  });
+  pushLater(async () => {
+    const ids = units.map((u) => u.id);
+    await notifyNextStage(ids, s.id);
+    await notifyDispatched(ids);
   });
   return NextResponse.json({ ok: true, id, units: units.length, late: late.length, driver });
 }

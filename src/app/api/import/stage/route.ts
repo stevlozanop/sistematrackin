@@ -5,6 +5,7 @@ import { getScope, guard } from "@/lib/guard";
 import { DATE_FIELDS, SITE_INFO, type DateField, type Site } from "@/lib/hsp";
 import { parseStageWorkbook } from "@/lib/stage-import";
 import { checkDateEdit, needsDelayReason } from "@/lib/workflow";
+import { notifyNextStage, pushLater } from "@/lib/push";
 
 export const maxDuration = 120;
 
@@ -37,6 +38,7 @@ export async function POST(req: Request) {
     const p = saved && (Array.isArray(saved) ? { updates: saved as Update[], name: null } : (saved as { updates: Update[]; name: string | null }));
     if (!p) return NextResponse.json({ error: "La vista previa expiró. Vuelve a subir el Excel." }, { status: 400 });
     let units = 0, dates = 0;
+    const touched: number[] = [];
     await tx(async (c) => {
       const [b] = await c.query("INSERT INTO import_batches(kind, file_name, user_id) VALUES ('stage', ?, ?) RETURNING id", [p.name, s.id]);
       const batchId = (b as { id: number }[])[0].id;
@@ -52,7 +54,7 @@ export async function POST(req: Request) {
           [...vals, u.id],
         );
         if (!(r as { affectedRows: number }).affectedRows) continue;
-        units++; dates += fields.length;
+        units++; dates += fields.length; touched.push(u.id);
         const ev = [
           ...fields.map((f) => [u.id, s.id, f, null, u.changes[f]]),
           ...(u.reason ? [[u.id, s.id, "delay_reason", null, u.reason]] : []),
@@ -62,6 +64,7 @@ export async function POST(req: Request) {
       }
       await c.query("UPDATE import_batches SET updated = ?, dates = ? WHERE id = ?", [units, dates, batchId]);
     });
+    pushLater(() => notifyNextStage(touched, s.id));
     return NextResponse.json({ units, dates });
   }
 

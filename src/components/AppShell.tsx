@@ -17,6 +17,7 @@ import { companyCode, roleLabel, type Role } from "@/lib/workflow";
 import { UploadCenter, type UploadMode } from "@/components/UploadCenter";
 import { CodeTag } from "@/components/ui";
 import { LiveSync } from "@/components/LiveSync";
+import { PushNudge, forgetPushDevice } from "@/components/PushNotifications";
 import { DATA_EVENT } from "@/components/UploadCenter";
 
 type Item = { title: string; href: string; icon: LucideIcon; roles?: Role[]; fields?: string[]; badge?: string };
@@ -338,6 +339,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
     setDark(next);
   };
   const logout = async () => {
+    await forgetPushDevice(); // este equipo deja de recibir los avisos de esta cuenta
     await fetch("/api/auth/logout", { method: "POST" });
     router.replace("/login");
   };
@@ -368,6 +370,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--page-bg)] text-sb-on-background">
       <LiveSync />
+      <PushNudge />
       {/* Sidebar */}
       <aside className={cn("z-10 hidden h-screen shrink-0 flex-col overflow-hidden bg-sb-surface transition-[width] duration-200 ease-out md:flex", open ? "w-[240px]" : "w-[64px]")}>
         <div className={cn("flex h-14 shrink-0 items-center", open ? "gap-2.5 px-4" : "justify-center")}>

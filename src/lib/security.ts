@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { headers } from "next/headers";
 import { query } from "./db";
+import { notifySecurity, pushLater } from "./push";
 
 /**
  * Seguridad del ingreso:
@@ -40,6 +41,7 @@ export async function autoBlock(email: string | null, ip: string | null) {
     if (await activeBlock(kind === "email" ? value : null, kind === "ip" ? value : null)) return;
     await query(`INSERT INTO auth_blocks(kind, value, until, reason, auto) VALUES (?, ?, LOCALTIMESTAMP(0) + INTERVAL '${AUTO_BLOCK_MIN} minutes', ?, 1)`,
       [kind, value, `${AUTO_LIMIT} o más intentos fallidos en ${AUTO_WINDOW_MIN} min`]).catch(() => {});
+    pushLater(() => notifySecurity("Bloqueo automático", `${kind === "email" ? "Cuenta" : "IP"} ${value}: ${AUTO_LIMIT * (kind === "ip" ? 2 : 1)} o más intentos fallidos. Bloqueada ${AUTO_BLOCK_MIN} min.`));
   };
   let blocked = false;
   if (email && Number(c?.by_email) >= AUTO_LIMIT) { await add("email", email); blocked = true; }

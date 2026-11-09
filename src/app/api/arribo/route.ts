@@ -3,6 +3,7 @@ import { queryList, tx } from "@/lib/db";
 import { getScope, guard } from "@/lib/guard";
 import { isSite, type Site } from "@/lib/hsp";
 import { isSuper, today } from "@/lib/workflow";
+import { notifyNextStage, pushLater } from "@/lib/push";
 
 /**
  * Arribo e ingreso a almacén en destino (pasos 3 y 4), igual que el embarque y zarpe de Iquitos:
@@ -128,5 +129,6 @@ export async function POST(req: Request) {
     }
     for (let i = 0; i < ev.length; i += 1000) await q.query("INSERT INTO unit_events(unit_id, user_id, field, old_value, new_value) VALUES ?", [ev.slice(i, i + 1000)]);
   });
+  pushLater(() => notifyNextStage(units.map((u) => u.id), s.id));
   return NextResponse.json({ ok: true, units: units.length, late: late.length });
 }

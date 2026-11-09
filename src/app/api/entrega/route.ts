@@ -4,6 +4,7 @@ import { getScope, guard } from "@/lib/guard";
 import { isSite, type Site } from "@/lib/hsp";
 import { dealerScope } from "@/lib/clients";
 import { isSuper, today } from "@/lib/workflow";
+import { notifyDelivered, notifyObservation, pushLater } from "@/lib/push";
 
 /**
  * 6. Entrega al dealer, desde dos lados:
@@ -140,7 +141,7 @@ export async function POST(req: Request) {
   if (!date) return NextResponse.json({ error: "Indica la fecha" }, { status: 400 });
 
   type U = { id: number; d_despacho: string | null; est_date: string | null; delay_reason: string | null };
-  async function deliver(units: U[], lateReason: string | null, needReason: boolean) {
+  async function deliver(units: U[], lateReason: string | null, needReason: boolean, notify = true) {
     const prev = units.reduce((m, u) => (u.d_despacho && u.d_despacho > m ? u.d_despacho : m), "");
     if (prev && date! < prev) return `La fecha no puede ser anterior al despacho (${prev})`;
     const late = units.filter((u) => u.est_date && !u.delay_reason && (date! > u.est_date || today() > u.est_date));
@@ -155,6 +156,8 @@ export async function POST(req: Request) {
       }
       for (let i = 0; i < ev.length; i += 1000) await q.query("INSERT INTO unit_events(unit_id, user_id, field, old_value, new_value) VALUES ?", [ev.slice(i, i + 1000)]);
     });
+    // El transporte entregó: el cliente confirma. Si quien registra es la recepción misma, no hace falta avisar
+    if (notify) pushLater(() => notifyDelivered(units.map((u) => u.id)));
     return null;
   }
 
@@ -196,10 +199,16 @@ export async function POST(req: Request) {
     if (s.role === "operator" && !(await canDeliver(s, site)).ok) return NextResponse.json({ error: "La entrega no es una etapa asignada a ti" }, { status: 403 });
     const pending = all.filter((u) => u.next_step === "d_entrega");
     if (pending.length) {
-      const r = await deliver(pending, null, false);
+      const r = await deliver(pending, null, false, false);
       if (typeof r === "string") return NextResponse.json({ error: r }, { status: 400 });
     }
     await query("INSERT INTO receptions(site, guia, kind, note, received_on, units, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)", [site, guia, kind, note, date, all.length, s.id]);
+    if (kind === "observacion" && note) {
+      pushLater(async () => {
+        const [d] = await queryList<{ dealer: string | null }>("SELECT MAX(dealer) dealer FROM v_units WHERE id IN (?)", [all.map((u) => u.id)]);
+        await notifyObservation(guia, d?.dealer ?? null, note);
+      });
+    }
     return NextResponse.json({ ok: true, units: all.length, delivered: pending.length, kind });
   }
 

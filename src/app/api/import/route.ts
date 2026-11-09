@@ -6,6 +6,7 @@ import { existing, movable, saveRows, TEXT_FIELDS, type UnitRow } from "@/lib/im
 import { fillDealerClients } from "@/lib/clients";
 import { readJson } from "@/lib/gzip-json";
 import { clientConsortiumOf } from "@/lib/companies";
+import { notifyNewUnits, pushLater } from "@/lib/push";
 
 export const maxDuration = 300;
 
@@ -83,6 +84,11 @@ export async function POST(req: Request) {
 
     if (body?.step === "finish") {
       await fillDealerClients();
+      const batchId = Number(body.batchId) || 0;
+      if (batchId) {
+        const [b] = await queryList<{ created: number }>("SELECT created FROM import_batches WHERE id = ? AND user_id = ?", [batchId, s.id]);
+        if (Number(b?.created) > 0) pushLater(() => notifyNewUnits(Number(b.created), s.id));
+      }
       return NextResponse.json({ ok: true });
     }
 

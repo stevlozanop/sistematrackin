@@ -4,6 +4,7 @@ import { getScope, guard, READ } from "@/lib/guard";
 import { DATE_FIELDS, isSite, type DateField, type Site } from "@/lib/hsp";
 import { checkDateEdit, isSuper, needsDelayReason, seesAll } from "@/lib/workflow";
 import { unitFilters } from "@/lib/unit-filters";
+import { notifyDelivered, notifyDispatched, notifyNextStage, pushLater } from "@/lib/push";
 
 const SORTABLE = new Set([
   "days_left", "chassis", "material", "guia", "nave", "dealer", "zone", "billing_date", "est_date", "status", "service", "delay_reason", "real_days",
@@ -194,6 +195,16 @@ export async function PATCH(req: Request) {
     }
   });
 
+  // Avisos push: a los encargados de la etapa siguiente y, si fue despacho o entrega, al cliente
+  const doneIds = ok.map((u) => u.id as number);
+  const setDates = vals.filter(([k, v]) => (DATE_FIELDS as string[]).includes(k) && v).map(([k]) => k);
+  if (setDates.length) {
+    pushLater(async () => {
+      await notifyNextStage(doneIds, s.id);
+      if (setDates.includes("d_despacho")) await notifyDispatched(doneIds);
+      if (setDates.includes("d_entrega")) await notifyDelivered(doneIds);
+    });
+  }
   const rows = await queryList(`SELECT * FROM v_units WHERE id IN (?)`, [ok.slice(0, 500).map((u) => u.id)]);
   return NextResponse.json({ ok: true, count: ok.length, late: late.length, skipped: skipped.length, skipReason: skipped[0]?.reason ?? null, rows });
 }

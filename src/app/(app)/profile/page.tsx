@@ -9,6 +9,7 @@ import { SITE_INFO, type Site } from "@/lib/hsp";
 import { areaOf, companyCode, roleLabel, type Role } from "@/lib/workflow";
 import { LogoBadge, LogoPicker } from "@/components/CompanyLogo";
 import { TwoFactorCard } from "@/components/TwoFactorCard";
+import { PushCard } from "@/components/PushNotifications";
 import { PasswordInput } from "@/components/PasswordInput";
 
 type Profile = {
@@ -189,6 +190,7 @@ export default function ProfilePage() {
               </div>
             </form>
           </Card>
+          <PushCard />
           <TwoFactorCard />
         </div>
       </div>
