@@ -4,11 +4,12 @@ import { TrackingMark } from "@/components/TrackingMark";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, Forklift, PackageCheck, Boxes, MapPinned, Power, type LucideIcon } from "lucide-react";
+import { Sparkles, Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, Forklift, PackageCheck, Boxes, MapPinned, Power, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
 import { GuideModal } from "@/components/GuideModal";
+import { AssistantPanel } from "@/components/AssistantPanel";
 import { LogoBadge } from "@/components/CompanyLogo";
 
 type Co = { id: number; name: string; v: string | null; color?: string | null; kind?: string; code?: string | null } | null;
@@ -303,6 +304,15 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
   name: string; role: Role; sites?: string[]; fields?: string[]; firstGuide?: boolean; brand?: Co; own?: Co; swm?: boolean; isOwner?: boolean; upload?: UploadMode | null; licenseNotice?: { company: string; days: number; date: string } | null; mustChange?: boolean; children: React.ReactNode;
 }) {
   const [uploadOpen, setUploadOpen] = useState(false);
+  // Asistente: para la operación (no para la consola The Iceberg Labs). Atajo: Ctrl/⌘ + J
+  const hasAssistant = role !== "dev";
+  const [assistant, setAssistant] = useState(false);
+  useEffect(() => {
+    if (!hasAssistant) return;
+    const onKey = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "j") { e.preventDefault(); setAssistant((v) => !v); } };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [hasAssistant]);
   const path = usePathname();
   // Cambio de contraseña obligatorio (lo pidió la empresa o The Iceberg Labs): primero a su perfil
   const routerTop = useRouter();
@@ -402,6 +412,18 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
           </div>
         )}
 
+        {/* Asistente: siempre a mano, debajo de la acción principal */}
+        {hasAssistant && (
+          <div className={cn("shrink-0 px-2 pb-1", !open && "flex justify-center")}>
+            <motion.button type="button" onClick={() => setAssistant(true)} title={open ? "Pregúntale al asistente (Ctrl+J)" : "Asistente (Ctrl+J)"}
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.96 }} transition={SPRING}
+              className={cn("flex items-center gap-2 border border-sb-primary/40 bg-sb-primary-soft font-medium text-sb-primary",
+                open ? "h-9 w-full justify-start rounded-full px-3 text-[13px]" : "h-10 w-10 justify-center rounded-2xl")}>
+              <Sparkles className="h-4 w-4 shrink-0" />{open && <><span className="flex-1 truncate text-left">Asistente</span><kbd className="rounded-md bg-sb-surface px-1.5 py-0.5 text-[9px] font-semibold text-sb-on-surface-variant">Ctrl J</kbd></>}
+            </motion.button>
+          </div>
+        )}
+
         <nav className={cn("flex flex-1 flex-col overflow-y-auto overflow-x-hidden px-2 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", open ? "gap-4" : "gap-2")}>
           {sections.map((s) => (
             <div key={s.title} className="flex flex-col gap-px">
@@ -457,6 +479,12 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
                 <BookOpen className="h-3.5 w-3.5" /><span className="hidden sm:inline">Guía</span>
               </button>
             )}
+            {hasAssistant && (
+              <button type="button" onClick={() => setAssistant(true)} title="Asistente (Ctrl+J)" aria-label="Abrir asistente"
+                className="flex h-8 items-center gap-1.5 rounded-full bg-sb-primary px-3 text-[11px] font-semibold text-sb-on-primary md:hidden">
+                <Sparkles className="h-3.5 w-3.5" />Asistente
+              </button>
+            )}
             {role !== "dev" && <AlertBell href={role === "operator" ? "/my" : role === "dealer" ? "/portal" : "/alerts"} />}
             <Link href="/profile" title="Mi perfil" className="flex items-center gap-2 rounded-full bg-sb-surface-container-high px-3 py-1.5 transition-colors hover:bg-sb-surface-container-highest">
               {own?.v ? (
@@ -497,6 +525,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
           onUpload={upload ? () => setUploadOpen(true) : undefined} />
         {upload && <UploadCenter open={uploadOpen} onClose={() => setUploadOpen(false)} mode={upload} />}
         {hasGuide && <GuideModal open={guide} onClose={closeGuide} />}
+        {hasAssistant && <AssistantPanel open={assistant} onClose={() => setAssistant(false)} dealer={role === "dealer"} />}
       </div>
     </div>
   );
