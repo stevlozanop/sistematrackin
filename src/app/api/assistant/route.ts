@@ -17,6 +17,7 @@ export const maxDuration = 120;
 
 const MODEL = "claude-opus-5-5";
 const DAILY_LIMIT = 150;
+let fallback = true;
 const MAX_STEPS = 8;
 
 // Se crea al primer uso: sin la clave configurada, el resto del sistema sigue funcionando
@@ -76,22 +77,33 @@ export async function POST(req: Request) {
     async start(ctrl) {
       const send = (o: object) => ctrl.enqueue(enc.encode(JSON.stringify(o) + "\n"));
       const used: string[] = [];
-      let tin = 0, tout = 0, ok = 1;
+      let tin = 0, tout = 0, ok = 1, fail: string | null = null;
       try {
         for (let step = 0; step < MAX_STEPS; step++) {
-          const st = claude().beta.messages.stream({
-            model: MODEL,
-            max_tokens: 16000,
-            betas: ["server-side-fallback-2026-07-01"],
-            fallbacks: "default",
-            cache_control: { type: "ephemeral" },
-            output_config: { effort: "medium" },
-            system: system(s, sc),
-            tools: TOOL_LIST,
-            messages,
-          });
-          st.on("text", (d) => send({ t: "text", d }));
-          const msg = await st.finalMessage();
+          const ask = (withFallback: boolean) => {
+            const st = claude().beta.messages.stream({
+              model: MODEL,
+              max_tokens: 16000,
+              // Respaldo: si Claude rechaza la pregunta, el servidor la reintenta con otro modelo
+              ...(withFallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
+              cache_control: { type: "ephemeral" },
+              output_config: { effort: "medium" },
+              system: system(s, sc),
+              tools: TOOL_LIST,
+              messages,
+            });
+            st.on("text", (d) => send({ t: "text", d }));
+            return st.finalMessage();
+          };
+          let msg: Anthropic.Beta.BetaMessage;
+          try {
+            msg = await ask(fallback);
+          } catch (e) {
+            // Si la cuenta no tiene habilitado el respaldo, se pregunta sin él (y ya no se vuelve a intentar)
+            if (!(fallback && e instanceof Anthropic.BadRequestError && /fallback/i.test(e.message))) throw e;
+            fallback = false;
+            msg = await ask(false);
+          }
           tin += msg.usage.input_tokens + (msg.usage.cache_read_input_tokens ?? 0) + (msg.usage.cache_creation_input_tokens ?? 0);
           tout += msg.usage.output_tokens;
           messages.push({ role: "assistant", content: msg.content });
@@ -115,14 +127,18 @@ export async function POST(req: Request) {
       } catch (e) {
         ok = 0;
         console.error("[assistant]", e);
-        const msg = e instanceof Anthropic.RateLimitError ? "Hay muchas consultas en este momento. Intenta en un minuto."
-          : e instanceof Anthropic.AuthenticationError ? "La clave de Claude del servidor no es válida."
-          : e instanceof Anthropic.APIError ? "El asistente no pudo responder. Intenta de nuevo."
+        const text = e instanceof Error ? e.message : String(e);
+        fail = `${e instanceof Anthropic.APIError ? e.status : "x"} ${text}`.slice(0, 400);
+        const msg = e instanceof Anthropic.AuthenticationError ? "La clave de Claude del servidor no es válida (revisa ANTHROPIC_API_KEY en Vercel: debe empezar con sk-ant-api)."
+          : e instanceof Anthropic.PermissionDeniedError ? "La clave de Claude no tiene permiso para usar este modelo."
+          : /credit balance|billing/i.test(text) ? "La cuenta de Claude no tiene saldo. Carga saldo en console.anthropic.com → Billing."
+          : e instanceof Anthropic.RateLimitError ? "Hay muchas consultas en este momento. Intenta en un minuto."
+          : e instanceof Anthropic.APIError ? `El asistente no pudo responder (error ${e.status ?? "de conexión"}). Intenta de nuevo.`
           : "Error del servidor";
         send({ t: "error", error: msg });
       } finally {
         await query("INSERT INTO assistant_log(user_id, question, tools, tokens_in, tokens_out, ok) VALUES (?, ?, ?, ?, ?, ?)",
-          [s.id, question.slice(0, 500), used.join(",") || null, tin, tout, ok]).catch(() => {});
+          [s.id, question.slice(0, 500), fail ? `ERROR ${fail}` : used.join(",") || null, tin, tout, ok]).catch(() => {});
         ctrl.close();
       }
     },
