@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, toast } from "@heroui/react";
 import { ArrowLeftRight, Box, Inbox, Ruler, X } from "lucide-react";
+import { XScroll } from "@/components/XScroll";
 import type { Site } from "@/lib/hsp";
 import { KIND_LABEL, bayName, defaultVessel, floating, rowName, same, slotName, tierName, type Slot, type Vessel } from "@/lib/stowage";
 import { cn } from "@/lib/cn";
@@ -141,7 +142,7 @@ export function StowagePlan({ site, nave, onChanged }: { site: Site; nave: strin
       )}
 
       {/* Cuadrícula del nivel: bahías × filas, con la forma de la nave */}
-      <div className={cn("-mx-1 overflow-x-auto px-1 pb-1", mode === "3d" && "hidden")}>
+      <XScroll className={cn("-mx-1 px-1 pb-1", mode === "3d" && "hidden")}>
         <div className="relative min-w-max rounded-[1.5rem_0.75rem_0.75rem_1.5rem] border-2 border-sb-outline-variant/70 bg-sb-surface-container-low/60 p-2 sm:p-3">
           <div className="grid gap-1.5" style={{ gridTemplateColumns: `3.4rem repeat(${vessel.bays}, minmax(4.6rem, 1fr))` }}>
             <span />
@@ -177,7 +178,7 @@ export function StowagePlan({ site, nave, onChanged }: { site: Site; nave: strin
           </div>
           <span className="mt-1 block text-[9px] font-semibold uppercase tracking-widest text-sb-on-surface-variant">← Proa · Popa →</span>
         </div>
-      </div>
+      </XScroll>
 
       {/* Sin ubicar */}
       {(loose.length > 0 || picked?.slot) && (

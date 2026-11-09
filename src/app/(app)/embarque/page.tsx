@@ -356,7 +356,7 @@ export default function EmbarquePage() {
                   <select className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
                 </Label>
               )}
-              <Button variant="primary" className="rounded-full" onPress={embark} isDisabled={saving || !guias.length || !data?.canEmbark}>
+              <Button variant="primary" className="w-full rounded-full lg:w-auto" onPress={embark} isDisabled={saving || !guias.length || !data?.canEmbark}>
                 {saving ? "Registrando…" : "Registrar embarque"}
               </Button>
               {data && !data.canEmbark && <p className="text-[11px] text-sb-on-surface-variant">Solo lectura: el embarque no es tu etapa.</p>}
@@ -377,13 +377,15 @@ export default function EmbarquePage() {
                 const on = checked.has(x.nave);
                 return (
                   <div key={x.nave} className={cn("flex items-center gap-3 border-b border-sb-outline-variant/20 px-3 py-3 text-xs transition-colors last:border-0", on && "bg-sb-primary-soft")}>
-                    <input type="checkbox" className="h-5 w-5 shrink-0 accent-[var(--sb-primary)]" aria-label={`Marcar zarpe de ${x.nave}`} checked={on} disabled={!data?.canSail}
+                    <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+                    <input type="checkbox" className="h-6 w-6 shrink-0 accent-[var(--sb-primary)]" aria-label={`Marcar zarpe de ${x.nave}`} checked={on} disabled={!data?.canSail}
                       onChange={() => setChecked((st) => { const y = new Set(st); if (y.has(x.nave)) y.delete(x.nave); else y.add(x.nave); return y; })} />
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold">{x.nave}</p>
+                      <p className="flex items-center gap-1.5 text-sm font-semibold">{x.nave}{on && <span className="rounded-full bg-sb-primary px-2 py-0.5 text-[10px] text-sb-on-primary">Zarpa</span>}</p>
                       <p className="text-[11px] text-sb-on-surface-variant">{x.containers} contenedor(es) · {n(x.total)} unid. · {unitsText(x.w2, x.w3)}</p>
-                      <p className="text-[10px] text-sb-on-surface-variant">embarque {fmtDate(x.first)}{x.last !== x.first ? ` – ${fmtDate(x.last)}` : ""}</p>
+                      <p className="text-[10px] text-sb-on-surface-variant">embarque {fmtDate(x.first)}{x.last !== x.first ? ` – ${fmtDate(x.last)}` : ""}{x.need > 0 ? ` · ${x.need} tarde` : ""}</p>
                     </div>
+                    </label>
                     <Button size="sm" variant="secondary" isIconOnly aria-label={`Ver ${x.nave}`} onPress={() => setView(x.nave)}><Eye className="h-4 w-4" /></Button>
                   </div>
                 );
@@ -434,10 +436,11 @@ export default function EmbarquePage() {
                   <select className={field} value={sailReason} onChange={(e) => setSailReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
                 </Label>
               )}
-              <Button variant="primary" className="rounded-full" onPress={sail} isDisabled={sailing || !checkedNaves.length || !data?.canSail}>
+              <Button variant="primary" className="w-full rounded-full lg:w-auto" onPress={sail} isDisabled={sailing || !checkedNaves.length || !data?.canSail}>
                 {sailing ? "Registrando…" : checkedNaves.length ? `Registrar zarpe (${checkedNaves.length})` : "Registrar zarpe"}
               </Button>
-              {checkedNaves.length > 0 && <p className="text-[11px] text-sb-on-surface-variant">{n(checkedNaves.reduce((t, x) => t + x.total, 0))} unidades pasan a Tránsito fluvial.</p>}
+              {checkedNaves.length > 0 ? <p className="text-[11px] text-sb-on-surface-variant">{n(checkedNaves.reduce((t, x) => t + x.total, 0))} unidades pasan a Tránsito fluvial.</p>
+                : data?.canSail && !!data.naves.length && <p className="text-[11px] text-sb-on-surface-variant">Marca la nave que zarpa para registrar su zarpe.</p>}
               {data && !data.canSail && <p className="text-[11px] text-sb-on-surface-variant">Solo lectura: el zarpe no es tu etapa.</p>}
             </div>
           </div>

@@ -68,12 +68,13 @@ export function NaveContents({ site, nave, rows, canUndo, onUndo, naves = [], on
   if (!rows.length) return <p className="py-6 text-center text-xs text-sb-on-surface-variant">Esta nave ya no tiene contenedores pendientes.</p>;
 
   return (
-    <div className="flex max-h-[66vh] flex-col gap-3 overflow-y-auto pr-1 [&>*]:shrink-0">
+    <div className="flex flex-col gap-3 sm:max-h-[66vh] sm:overflow-y-auto sm:pr-1 [&>*]:shrink-0">
       {/* 1. Resumen */}
-      <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+      <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-5 sm:gap-2">
         {[
           ["Unidades", n(scope.length)],
-          ["2W · 3W", `${n(w2)} · ${n(scope.length - w2)}`],
+          ["Motos", n(w2)],
+          ["Motokares", n(scope.length - w2)],
           ["Guías", n(new Set(scope.map((u) => `${u.cid}|${u.guia}`)).size)],
           ["Dealers", n(dealers)],
         ].map(([l, v]) => (
@@ -149,7 +150,7 @@ export function NaveContents({ site, nave, rows, canUndo, onUndo, naves = [], on
             <div key={g.key} className="overflow-hidden rounded-xl border border-sb-outline-variant/50">
               <button type="button" onClick={() => toggle(g.key)} aria-expanded={isOpen} className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-sb-surface-container-low">
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold">{g.dealer}</span>
+                  <span className="line-clamp-2 block text-sm font-semibold leading-snug">{g.dealer}</span>
                   <span className="flex flex-wrap items-center gap-x-2 text-[11px] text-sb-on-surface-variant">
                     <span className="inline-flex items-center gap-0.5"><MapPin className="h-3 w-3" />{g.district}</span>
                     <span className="font-mono">{g.guia}</span>
