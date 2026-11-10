@@ -157,8 +157,9 @@ export default function EmbarquePage() {
   });
   const sites = useMemo<Site[]>(() => {
     if (!me) return [];
-    if (me.role !== "operator") return ["PCL", "YUR"];
-    return (["PCL", "YUR"] as Site[]).filter((s) => me.stages.some((st) => st.site === s && (st.field === "d_carga" || st.field === "d_zarpe")));
+    // Solo Pucallpa: Yurimaguas tiene sus propias pantallas (sin contenedores, con despacho por ruta)
+    if (me.role !== "operator") return ["PCL"];
+    return (["PCL"] as Site[]).filter((s) => me.stages.some((st) => st.site === s && (st.field === "d_carga" || st.field === "d_zarpe")));
   }, [me]);
   const current = site ?? sites[0] ?? null;
 

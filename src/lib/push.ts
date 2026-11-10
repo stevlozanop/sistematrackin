@@ -72,6 +72,12 @@ export const devIds = () => ids(`SELECT id FROM users WHERE role = 'dev' AND ${A
 
 /** Pantalla donde se registra cada etapa */
 function stagePage(site: Site, field: string) {
+  // Yurimaguas tiene sus propias pantallas (chata sin contenedores y despacho por ruta de carretera)
+  if (site === "YUR") {
+    if (field === "d_carga" || field === "d_zarpe") return "/yur/carga";
+    if (field === "d_arribo" || field === "d_almacen") return "/yur/llegada";
+    if (field === "d_despacho") return "/yur/despacho";
+  }
   if (field === "d_carga" || field === "d_zarpe") return `/embarque?site=${site}`;
   if (field === "d_arribo" || field === "d_almacen") return `/arribo?site=${site}`;
   if (field === "d_despacho") return `/despacho?site=${site}`;

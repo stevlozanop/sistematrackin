@@ -22,6 +22,7 @@ import {
   type DateField, type Service, type Site, type Status,
 } from "@/lib/hsp";
 import { allowedNext, areaOf, isSuper, previousDate, stageLabel, today, type Role, type Stage } from "@/lib/workflow";
+import { YurTramos } from "@/components/units/YurTramos";
 
 type Unit = {
   id: number; site: Site; chassis: string; motor: string | null; lote: string | null; material: string | null;
@@ -718,6 +719,7 @@ export default function SitePage({ params, searchParams }: {
                       </span>
                     </div>
                     <ProcessRoute site={site} current={STATUS_STEP[editing.status]} dates={editing} viaLima={site === "PCL" ? !!Number(editing.via_lima) || !!editing.d_alm_lima || !!editing.d_sal_lima : undefined} />
+                    {site === "YUR" && <YurTramos unit={editing} onUseReason={sup ? (r) => patch([editing.id], { delay_reason: r }) : undefined} />}
                     <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-3">
                       {[
                         ["Motor", editing.motor], ["Modelo", editing.material], ["Tipo", editing.category], ["Lote", editing.lote],
@@ -747,7 +749,7 @@ export default function SitePage({ params, searchParams }: {
                       </label>
                       {(site === "PCL"
                         ? [["nave", "Nave"], ["container", "Contenedor"], ["carrier", "Tramo final (transportista)"], ["plan_almacen", "Plan almacén"]]
-                        : [["nave", "Nave"], ["container", "CTN"], ["driver", "Chofer"]]
+                        : [["nave", "Chata"], ["driver", "Chofer"]]
                       ).map(([k, label]) => (
                         <label key={k} className="flex flex-col gap-1 text-xs">
                           {label}

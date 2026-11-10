@@ -38,8 +38,9 @@ export default function StockPage() {
   useEffect(() => { fetch("/api/me").then((r) => r.json()).then(setMe); }, []);
   const sites = useMemo<Site[]>(() => {
     if (!me) return [];
-    if (me.role !== "operator") return ["PCL", "YUR"];
-    return (["PCL", "YUR"] as Site[]).filter((s) => me.stages.some((st) => st.site === s && (st.field === "d_almacen" || st.field === "d_despacho")));
+    // Solo Pucallpa: Yurimaguas tiene sus propias pantallas (sin contenedores, con despacho por ruta)
+    if (me.role !== "operator") return ["PCL"];
+    return (["PCL"] as Site[]).filter((s) => me.stages.some((st) => st.site === s && (st.field === "d_almacen" || st.field === "d_despacho")));
   }, [me]);
   const current = site ?? sites[0] ?? null;
   useEffect(() => {

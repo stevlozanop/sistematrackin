@@ -25,7 +25,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // El encargado solo ve los módulos (PCL / YUR) donde tiene etapas asignadas
   const stages = s.role === "operator" ? await getStages(s.id) : [];
   const sites = s.role === "operator" ? [...new Set(stages.map((st) => st.site))] : ["PCL", "YUR"];
-  const fields = [...new Set(stages.map((st) => st.field))];
+  // Etapas: «d_carga» y también «YUR:d_carga» (para las pantallas que son de una sola ruta)
+  const fields = [...new Set(stages.flatMap((st) => [st.field, `${st.site}:${st.field}`]))];
   // Primera vez: la guía del sistema se abre sola
   // Marca del menú (logo de la transportista) y empresa propia (avatar de la barra): se leen de la base en cada carga
   const [[u], brand, own] = await Promise.all([

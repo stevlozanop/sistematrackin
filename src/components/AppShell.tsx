@@ -4,7 +4,7 @@ import { TrackingMark } from "@/components/TrackingMark";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Receipt, Sparkles, Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, Forklift, PackageCheck, Boxes, MapPinned, Power, type LucideIcon } from "lucide-react";
+import { Receipt, Route, Sparkles, Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, Forklift, PackageCheck, Boxes, MapPinned, Power, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertBell } from "@/components/AlertBell";
@@ -41,12 +41,15 @@ const SECTIONS: Section[] = [
     roles: ["operator"],
     items: [
       { title: "Mi trabajo", href: "/my", icon: ClipboardCheck },
-      // Solo quien embarca o zarpa en Iquitos
-      { title: "Embarque y zarpe", href: "/embarque", icon: Container, fields: ["d_carga", "d_zarpe"] },
-      // Solo quien recibe la nave o la ingresa al almacén en destino
-      { title: "Arribo e ingreso", href: "/arribo", icon: Warehouse, fields: ["d_arribo", "d_almacen"] },
-      { title: "Stock en almacén", href: "/stock", icon: Boxes, fields: ["d_almacen", "d_despacho"] },
-      { title: "Despacho", href: "/despacho", icon: Forklift, fields: ["d_despacho"] },
+      // Ruta Pucallpa (río con contenedores): solo quien tiene esas etapas en PCL
+      { title: "PCL · Embarque y zarpe", href: "/embarque", icon: Container, fields: ["PCL:d_carga", "PCL:d_zarpe"] },
+      { title: "PCL · Arribo e ingreso", href: "/arribo", icon: Warehouse, fields: ["PCL:d_arribo", "PCL:d_almacen"] },
+      { title: "PCL · Stock en almacén", href: "/stock", icon: Boxes, fields: ["PCL:d_almacen", "PCL:d_despacho"] },
+      { title: "PCL · Despacho", href: "/despacho", icon: Forklift, fields: ["PCL:d_despacho"] },
+      // Ruta Yurimaguas (chata sin contenedores y luego carretera)
+      { title: "YUR · Carga a chata", href: "/yur/carga", icon: Ship, fields: ["YUR:d_carga", "YUR:d_zarpe"] },
+      { title: "YUR · Llegada a Yurimaguas", href: "/yur/llegada", icon: Warehouse, fields: ["YUR:d_arribo", "YUR:d_almacen"] },
+      { title: "YUR · Despacho por ruta", href: "/yur/despacho", icon: Route, fields: ["YUR:d_despacho"] },
       { title: "Entrega · Conductor", href: "/conductor", icon: Truck, fields: ["d_entrega"] },
       { title: "Carga por guía", href: "/guias", icon: FileStack },
       { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship },
@@ -85,11 +88,28 @@ const SECTIONS: Section[] = [
     roles: SUPER,
     items: [
       { title: "Encargados en vivo", href: "/live", icon: Activity, badge: "online" },
-      { title: "Embarque y zarpe", href: "/embarque", icon: Container },
-      { title: "Arribo e ingreso", href: "/arribo", icon: Warehouse },
-      { title: "Stock en almacén", href: "/stock", icon: Boxes },
-      { title: "Despacho", href: "/despacho", icon: Forklift },
       { title: "Carga por guía", href: "/guias", icon: FileStack },
+    ],
+  },
+  {
+    // Pucallpa: río en contenedores (embarque con plano de estiba) → arribo → almacén → despacho
+    title: "Ruta Pucallpa · río",
+    roles: SUPER,
+    items: [
+      { title: "PCL · Embarque y zarpe", href: "/embarque", icon: Container },
+      { title: "PCL · Arribo e ingreso", href: "/arribo", icon: Warehouse },
+      { title: "PCL · Stock en almacén", href: "/stock", icon: Boxes },
+      { title: "PCL · Despacho", href: "/despacho", icon: Forklift },
+    ],
+  },
+  {
+    // Yurimaguas: chata sin contenedores hasta Yurimaguas, ENAPU y luego camión por carretera a 6 rutas
+    title: "Ruta Yurimaguas · río y carretera",
+    roles: SUPER,
+    items: [
+      { title: "YUR · Carga a chata", href: "/yur/carga", icon: Ship },
+      { title: "YUR · Llegada a Yurimaguas", href: "/yur/llegada", icon: Warehouse },
+      { title: "YUR · Despacho por ruta", href: "/yur/despacho", icon: Route },
     ],
   },
   {
