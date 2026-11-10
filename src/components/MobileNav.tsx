@@ -92,7 +92,7 @@ export function MobileNav({
 
           <div className="relative bottom-0">
             <div ref={morph} className="t-morph" data-open={open ? "true" : "false"} style={open ? { height } : undefined}>
-              <div ref={menu} className="t-morph-menu max-h-[70vh] overflow-y-auto" role="menu">
+              <div ref={menu} className="t-morph-menu scroll-hidden max-h-[70vh] overflow-y-auto overscroll-contain" role="menu">
                 <div className="p-2">
                   {extra.map((i) => (
                     <button key={i.href} type="button" onClick={() => { setOpen(false); router.push(i.href); }}
