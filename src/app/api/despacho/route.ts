@@ -4,6 +4,7 @@ import { getScope, guard } from "@/lib/guard";
 import { isSite, type Site } from "@/lib/hsp";
 import { isSuper, today } from "@/lib/workflow";
 import { notifyDispatched, notifyNextStage, pushLater } from "@/lib/push";
+import { orderStops, planEtas } from "@/lib/yur-road";
 
 /**
  * 5. Despacho de almacén: se arma el viaje del camión con las guías que lleva, el chofer, la placa y la fecha
@@ -13,7 +14,8 @@ import { notifyDispatched, notifyNextStage, pushLater } from "@/lib/push";
  * GET  ?site=PCL&guia=…        -> unidades de esa guía listas para despachar
  * GET  ?site=PCL&trip=12       -> detalle del viaje: destino, dealer, factura, guía, cantidad y tipo
  * GET  ?site=PCL&stock=1       -> stock en almacén (ingresó y aún no se despacha), por guía
- * POST { action: "dispatch", site, guias: [], driver, plate, date, lateReason? }
+ * POST { action: "dispatch", site, guias: [], driver, plate, date, lateReason?, stops?: [distrito, …] }
+ *      YUR: guarda las paradas del viaje en ese orden (o en el de la carretera), con su llegada estimada.
  */
 
 type Who = { id: number; role: string };
@@ -114,8 +116,8 @@ export async function POST(req: Request) {
   if (!guias.length) return NextResponse.json({ error: "Agrega al menos una guía" }, { status: 400 });
   const lateReason = typeof b.lateReason === "string" && b.lateReason.trim() ? b.lateReason.trim().toUpperCase().slice(0, 60) : null;
 
-  const units = await queryList<{ id: number; d_almacen: string | null; est_date: string | null; delay_reason: string | null; driver: string | null }>(
-    `SELECT id, d_almacen, est_date, delay_reason, driver FROM v_units WHERE site = ? AND guia IN (?) AND next_step = 'd_despacho'${perm.carrier ? " AND carrier = ?" : ""}`,
+  const units = await queryList<{ id: number; d_almacen: string | null; est_date: string | null; delay_reason: string | null; driver: string | null; district: string | null; route: string | null }>(
+    `SELECT id, d_almacen, est_date, delay_reason, driver, district, route FROM v_units WHERE site = ? AND guia IN (?) AND next_step = 'd_despacho'${perm.carrier ? " AND carrier = ?" : ""}`,
     perm.carrier ? [site, guias, perm.carrier] : [site, guias]);
   if (!units.length) return NextResponse.json({ error: "Esas guías no tienen unidades en almacén para despachar" }, { status: 409 });
   const prev = units.reduce((m, u) => (u.d_almacen && u.d_almacen > m ? u.d_almacen : m), "");
@@ -133,6 +135,16 @@ export async function POST(req: Request) {
       ev.push(...late.map((u) => [u.id, s.id, "delay_reason", null, lateReason]));
     }
     for (let i = 0; i < ev.length; i += 1000) await q.query("INSERT INTO unit_events(unit_id, user_id, field, old_value, new_value) VALUES ?", [ev.slice(i, i + 1000)]);
+    // Yurimaguas: paradas del viaje (orden del planificador; lo que falte, en el orden de la carretera)
+    if (site === "YUR") {
+      const present = [...new Set(units.map((u) => u.district ?? "").filter(Boolean))];
+      const asked = Array.isArray(b.stops) ? (b.stops as unknown[]).map((x) => String(x).trim().toUpperCase()) : [];
+      const order = [...asked.filter((d) => present.some((p) => p.toUpperCase() === d)).map((d) => present.find((p) => p.toUpperCase() === d)!), ...orderStops(present)]
+        .filter((d, i, a) => a.findIndex((x) => x.toUpperCase() === d.toUpperCase()) === i);
+      const etas = planEtas(date, order.map((d) => ({ district: d, route: units.find((x) => x.district === d)?.route })));
+      const rows = order.map((d, i) => [did, i + 1, d, etas[i]]);
+      if (rows.length) await q.query("INSERT INTO dispatch_stops(dispatch_id, seq, district, eta) VALUES ?", [rows]);
+    }
     return did;
   });
   pushLater(async () => {

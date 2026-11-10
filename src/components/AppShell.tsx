@@ -50,6 +50,7 @@ const SECTIONS: Section[] = [
       { title: "YUR · Carga a chata", href: "/yur/carga", icon: Ship, fields: ["YUR:d_carga", "YUR:d_zarpe"] },
       { title: "YUR · Llegada a Yurimaguas", href: "/yur/llegada", icon: Warehouse, fields: ["YUR:d_arribo", "YUR:d_almacen"] },
       { title: "YUR · Despacho por ruta", href: "/yur/despacho", icon: Route, fields: ["YUR:d_despacho"] },
+      { title: "YUR · Camiones en ruta", href: "/yur/viajes", icon: MapPinned, fields: ["YUR:d_despacho", "YUR:d_entrega"] },
       { title: "Entrega · Conductor", href: "/conductor", icon: Truck, fields: ["d_entrega"] },
       { title: "Carga por guía", href: "/guias", icon: FileStack },
       { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship },
@@ -110,6 +111,7 @@ const SECTIONS: Section[] = [
       { title: "YUR · Carga a chata", href: "/yur/carga", icon: Ship },
       { title: "YUR · Llegada a Yurimaguas", href: "/yur/llegada", icon: Warehouse },
       { title: "YUR · Despacho por ruta", href: "/yur/despacho", icon: Route },
+      { title: "YUR · Camiones en ruta", href: "/yur/viajes", icon: MapPinned },
     ],
   },
   {

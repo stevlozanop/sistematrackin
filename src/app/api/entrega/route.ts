@@ -155,6 +155,10 @@ export async function POST(req: Request) {
         ev.push(...late.map((u) => [u.id, s.id, "delay_reason", null, lateReason]));
       }
       for (let i = 0; i < ev.length; i += 1000) await q.query("INSERT INTO unit_events(unit_id, user_id, field, old_value, new_value) VALUES ?", [ev.slice(i, i + 1000)]);
+      // Si entregó en una parada sin marcar «Llegué», la parada queda como llegada ese día
+      await q.query(`UPDATE dispatch_stops ds SET arrived_on = ?, arrived_at = LOCALTIMESTAMP(0), arrived_by = ?
+        FROM units u WHERE u.id IN (?) AND ds.dispatch_id = u.dispatch_id AND upper(ds.district::text) = upper(u.district::text) AND ds.arrived_on IS NULL`,
+        [date, s.id, ids.slice(0, 5000)]);
     });
     // El transporte entregó: el cliente confirma. Si quien registra es la recepción misma, no hace falta avisar
     if (notify) pushLater(() => notifyDelivered(units.map((u) => u.id)));

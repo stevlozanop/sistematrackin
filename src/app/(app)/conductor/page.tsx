@@ -10,6 +10,7 @@ import { DATA_EVENT } from "@/components/UploadCenter";
 import { DELAY_REASONS, SITE_INFO, fmtDate, unitsText, type Site } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
+import { TripCard, type Trip } from "@/components/yur/YurTrips";
 
 /**
  * 6. Entrega · Conductor: escribe su nombre, ve las guías que lleva (en «Tránsito dealer»),
@@ -34,6 +35,9 @@ export default function ConductorPage() {
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [reload, setReload] = useState(0);
+  // Yurimaguas: viajes del conductor con sus paradas (Llegué / Entregar parada por parada)
+  const [trips, setTrips] = useState<{ canArrive: boolean; canDeliver: boolean; trips: Trip[] } | null>(null);
+  const [openTrip, setOpenTrip] = useState<number | null>(null);
   useEffect(() => {
     const again = () => setReload((x) => x + 1);
     window.addEventListener(DATA_EVENT, again);
@@ -56,6 +60,18 @@ export default function ConductorPage() {
     if (!current || !searched) return;
     let alive = true;
     fetch(`/api/entrega?${new URLSearchParams({ site: current, driver: searched })}`).then((r) => r.json()).then((j) => { if (alive) setRows(j.rows ?? []); });
+    return () => { alive = false; };
+  }, [current, searched, reload]);
+
+  useEffect(() => {
+    if (current !== "YUR" || !searched) return;
+    let alive = true;
+    fetch(`/api/yur?${new URLSearchParams({ view: "viajes", driver: searched })}`).then((r) => r.json()).then((j) => {
+      if (!alive) return;
+      const live = { ...j, trips: (j.trips ?? []).filter((t: Trip) => t.delivered < t.total) };
+      setTrips(live);
+      setOpenTrip((o) => o ?? live.trips[0]?.id ?? null);
+    }).catch(() => {});
     return () => { alive = false; };
   }, [current, searched, reload]);
 
@@ -102,6 +118,17 @@ export default function ConductorPage() {
           </div>
         )}
       </PageTitle>
+
+      {current === "YUR" && searched && trips && trips.trips.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 className="flex items-center gap-2 text-sm font-semibold"><Truck className="h-4 w-4" /> Tu viaje · paradas en orden</h3>
+          <p className="-mt-1 text-[11px] text-sb-on-surface-variant">Al llegar a cada pueblo pulsa «Llegué»; al dejar las motos, «Entregar». Así la empresa ve dónde vas y el dealer recibe su aviso.</p>
+          {trips.trips.map((t) => (
+            <TripCard key={t.id} t={t} open={openTrip === t.id} onToggle={() => setOpenTrip(openTrip === t.id ? null : t.id)}
+              canArrive={trips.canArrive} canDeliver={trips.canDeliver} onChanged={() => setReload((x) => x + 1)} />
+          ))}
+        </div>
+      )}
 
       <Card className="overflow-hidden">
         <div className="border-b border-sb-outline-variant/40 px-4 py-3">

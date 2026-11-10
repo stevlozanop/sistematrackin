@@ -1,0 +1,33 @@
+/* Carretera de Yurimaguas en 3D (camiones en ruta) */
+.rd .rd-ground .iso-top{fill:color-mix(in oklab,var(--sb-primary,#078a04) 6%,var(--anatomy-top))}
+.rd .rd-sea{fill:color-mix(in oklab,#2a78d6 18%,var(--anatomy-paper));stroke:none}
+.rd .rd-river{fill:none;stroke:color-mix(in oklab,#2a78d6 45%,var(--anatomy-paper));stroke-width:3.5px;stroke-linecap:round;stroke-linejoin:round}
+.rd .rd-road{fill:none;stroke:var(--anatomy-mid);stroke-width:5px;stroke-linecap:round;stroke-linejoin:round;opacity:.55}
+.rd .rd-road.is-on{stroke:var(--sb-primary);opacity:.9}
+.rd .rd-lane{fill:none;stroke:var(--anatomy-paper);stroke-width:1px;stroke-dasharray:3 4;opacity:.9}
+/* Camiones: el color dice su estado */
+.rd .rd-truck{cursor:pointer}
+.rd .rd-truck .iso-top{fill:color-mix(in oklab,var(--tk) 55%,#fff)}
+.rd .rd-truck .iso-fill{fill:color-mix(in oklab,var(--tk) 85%,#fff)}
+.rd .rd-truck .iso-shade{fill:color-mix(in oklab,var(--tk) 75%,#000)}
+.rd .rd-truck:hover .iso-edge,.rd .rd-truck.is-on .iso-edge{stroke:var(--sb-on-surface)}
+.rd .rd-truck.is-on{filter:drop-shadow(0 0 4px var(--tk))}
+.rd .rd-truck.is-moving{animation:rd-hum 1.8s ease-in-out infinite}
+@keyframes rd-hum{0%,100%{transform:translateY(0)}50%{transform:translateY(-.8px)}}
+.rd-tk-camino{--tk:var(--sb-primary,#078a04)}
+.rd-tk-parada{--tk:#e0a106}
+.rd-tk-atrasado{--tk:var(--sb-late,#e5484d)}
+.rd-tk-entregado{--tk:#8a8a8f}
+.rd .rd-town .iso-top{fill:var(--anatomy-top)}
+.rd .rd-town.is-stop .iso-edge{stroke:var(--sb-primary)}
+/* Etiquetas */
+.rd-tag{position:absolute;transform:translate(-50%,-115%);display:flex;align-items:center;gap:4px;padding:2px 8px 2px 4px;border-radius:999px;
+  background:var(--sb-surface);border:1px solid var(--sb-outline-variant);box-shadow:0 4px 12px -6px rgb(0 0 0/.3);
+  font-size:10px;line-height:1.3;color:var(--sb-on-surface);white-space:nowrap;cursor:pointer}
+.rd-tag i{width:8px;height:8px;border-radius:999px;background:var(--tk);flex:none}
+.rd-tag.is-on{border-color:var(--tk);box-shadow:0 0 0 2px color-mix(in oklab,var(--tk) 35%,transparent)}
+.rd-town-tag{position:absolute;transform:translate(-50%,6px);font-size:10px;font-weight:600;color:var(--sb-on-surface-variant);white-space:nowrap;pointer-events:none;
+  text-shadow:0 0 3px var(--sb-surface),0 0 3px var(--sb-surface)}
+.rd-town-tag.is-hub{font-size:12px;color:var(--sb-on-surface)}
+.rd-town-tag.is-minor{font-size:9px;font-weight:500;opacity:.75}
+@media (prefers-reduced-motion:reduce){.rd .rd-truck.is-moving{animation:none}}

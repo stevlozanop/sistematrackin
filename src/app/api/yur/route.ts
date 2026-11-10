@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { queryList, run, tx } from "@/lib/db";
 import { getScope, guard } from "@/lib/guard";
 import { isSuper, today } from "@/lib/workflow";
-import { YUR_CHATAS, YUR_ROUTES, roadRoute } from "@/lib/yur";
+import { YUR_CHATAS, YUR_ROUTES, roadRoute, routeInfo } from "@/lib/yur";
 import { notifyNextStage, pushLater } from "@/lib/push";
 
 /**
@@ -13,6 +13,9 @@ import { notifyNextStage, pushLater } from "@/lib/push";
  * POST { action: "load", guias: [], nave, date, lateReason? }   -> 1.1 carga a la chata (IQT-Port → Embarque)
  * POST { action: "unload", nave, guia }                         -> saca una guía de la chata (vuelve a IQT-Port)
  * POST { action: "sail", naves: [], date, lateReason? }         -> 2. zarpe de la chata (→ Tránsito fluvial)
+ * GET  ?view=viajes[&driver=…] -> camiones en la carretera (y los entregados hace poco) con sus paradas, para el mapa
+ * POST { action: "route", guia, route, note }                   -> el planificador cambia la ruta de una guía (con motivo)
+ * POST { action: "arrive", trip, district, date }               -> el camión llegó a esa parada
  * El despacho del camión y la entrega usan /api/despacho y /api/entrega.
  */
 const SITE = "YUR";
@@ -42,8 +45,8 @@ export async function GET(req: Request) {
   const sargs = perm.carrier ? [perm.carrier] : [];
 
   if (view === "ruta") {
-    const rows = await queryList<{ route: string | null; district: string | null; dealer: string | null; guia: string | null; w2: number; w3: number; total: number; since: string | null; est: string | null; need: number; overdue: number; nave: string | null }>(
-      `SELECT COALESCE(route, '') route, district, dealer, guia, SUM(category = '2W') w2, SUM(category = '3W') w3, COUNT(*) total,
+    const rows = await queryList<{ route: string | null; district: string | null; dealer: string | null; guia: string | null; w2: number; w3: number; total: number; since: string | null; est: string | null; need: number; overdue: number; nave: string | null; note: string | null }>(
+      `SELECT COALESCE(route, '') route, district, dealer, guia, MAX(route_note) note, SUM(category = '2W') w2, SUM(category = '3W') w3, COUNT(*) total,
          MIN(d_almacen) since, MIN(est_date) est, SUM(est_date < CURDATE() AND delay_reason IS NULL) need, SUM(est_date < CURDATE()) overdue, MAX(nave) nave
        FROM v_units WHERE site = ? AND next_step = 'd_despacho'${scope}
        GROUP BY COALESCE(route, ''), district, dealer, guia ORDER BY MIN(est_date), district, dealer, guia`, [SITE, ...sargs]);
@@ -71,6 +74,44 @@ export async function GET(req: Request) {
       }))
       .filter((r) => r.route || r.guias.length);
     return NextResponse.json({ canDispatch: perm.dispatch, canDeliver: perm.deliver, drivers: drivers.map((d) => d.v), inPort: num(port?.total), routes });
+  }
+
+  // Camiones en la carretera: los que no terminaron y los que terminaron hace pocos días
+  if (view === "viajes") {
+    const driver = new URL(req.url).searchParams.get("driver")?.trim();
+    const trips = await queryList<{ id: number; dispatched_on: string; driver: string; plate: string | null; total: number; delivered: number; w2: number; w3: number; last: string | null }>(
+      `SELECT d.id, d.dispatched_on, d.driver, d.plate, COUNT(v.id) total, SUM(v.d_entrega IS NOT NULL) delivered,
+         SUM(v.category = '2W') w2, SUM(v.category = '3W') w3, MAX(v.d_entrega) last
+       FROM dispatches d JOIN v_units v ON v.dispatch_id = d.id
+       WHERE d.site = ?${perm.carrier ? " AND v.carrier = ?" : ""}${driver ? " AND d.driver ILIKE ?" : ""}
+       GROUP BY d.id, d.dispatched_on, d.driver, d.plate
+       HAVING SUM(v.d_entrega IS NULL) > 0 OR MAX(v.d_entrega) >= CURDATE() - 3
+       ORDER BY d.dispatched_on DESC, d.id DESC LIMIT 80`, [SITE, ...sargs, ...(driver ? [`%${driver}%`] : [])]);
+    const ids = trips.map((t) => t.id);
+    const [stops, guias] = ids.length ? await Promise.all([
+      queryList<{ dispatch_id: number; seq: number; district: string; eta: string | null; arrived_on: string | null }>(
+        "SELECT dispatch_id, seq, district, eta, arrived_on FROM dispatch_stops WHERE dispatch_id IN (?) ORDER BY dispatch_id, seq", [ids]),
+      queryList<{ dispatch_id: number; district: string | null; dealer: string | null; guia: string | null; route: string | null; total: number; delivered: number; w2: number; w3: number }>(
+        `SELECT dispatch_id, district, dealer, guia, MAX(route) route, COUNT(*) total, SUM(d_entrega IS NOT NULL) delivered, SUM(category = '2W') w2, SUM(category = '3W') w3
+         FROM v_units WHERE dispatch_id IN (?) GROUP BY dispatch_id, district, dealer, guia ORDER BY dispatch_id, district, guia`, [ids]),
+    ]) : [[], []];
+    const out = trips.map((t) => {
+      const mine = guias.filter((g) => g.dispatch_id === t.id).map((g) => ({ ...g, total: num(g.total), delivered: num(g.delivered), w2: num(g.w2), w3: num(g.w3) }));
+      let st = stops.filter((x) => x.dispatch_id === t.id);
+      // Viajes de antes de las paradas: una parada por distrito, sin fecha estimada
+      if (!st.length) st = [...new Set(mine.map((g) => g.district ?? "—"))].map((d, i) => ({ dispatch_id: t.id, seq: i + 1, district: d, eta: null, arrived_on: null }));
+      const routes = [...new Set(mine.map((g) => routeInfo(g.route || roadRoute(g.district))?.label ?? "Sin ruta"))];
+      return {
+        ...t, total: num(t.total), delivered: num(t.delivered), w2: num(t.w2), w3: num(t.w3), routes,
+        stops: st.map((x) => {
+          const gs = mine.filter((g) => (g.district ?? "—").toUpperCase() === x.district.toUpperCase());
+          return { district: x.district, seq: num(x.seq), eta: x.eta, arrived_on: x.arrived_on, guias: gs,
+            total: gs.reduce((a, g) => a + g.total, 0), delivered: gs.reduce((a, g) => a + g.delivered, 0) };
+        }),
+      };
+    });
+    const [enapu] = await queryList<{ total: number }>(`SELECT COUNT(*) total FROM v_units WHERE site = ? AND next_step = 'd_despacho'${scope}`, [SITE, ...sargs]);
+    return NextResponse.json({ canArrive: perm.deliver || perm.dispatch, canDeliver: perm.deliver, trips: out, enapu: num(enapu?.total) });
   }
 
   // Carga a chata: chatas con carga en Iquitos que aún no zarpan
@@ -168,6 +209,42 @@ export async function POST(req: Request) {
     // Zarpó: avisa a quienes reciben en Yurimaguas
     pushLater(() => notifyNextStage(units.map((u) => u.id), s.id));
     return NextResponse.json({ ok: true, units: units.length, naves: naves.length, late: lateReason ? 0 : late.length });
+  }
+
+  // El planificador cambia la ruta de una guía que aún no sale (ej.: «va en el camión de Tarapoto, hay espacio»)
+  if (b.action === "route") {
+    if (!perm.dispatch) return NextResponse.json({ error: "Planificar rutas no es una etapa asignada a ti" }, { status: 403 });
+    const guia = String(b.guia ?? "").trim(), route = text(b.route, 40), note = String(b.note ?? "").trim().slice(0, 200) || null;
+    if (!guia) return NextResponse.json({ error: "Indica la guía" }, { status: 400 });
+    if (!routeInfo(route)) return NextResponse.json({ error: "Elige una ruta" }, { status: 400 });
+    const units = await queryList<{ id: number; route: string | null; district: string | null }>(
+      `SELECT id, route, district FROM v_units WHERE site = ? AND guia = ? AND d_despacho IS NULL${scope}`, [SITE, guia, ...sargs]);
+    if (!units.length) return NextResponse.json({ error: "Esa guía ya salió o no está en Yurimaguas" }, { status: 409 });
+    const normal = roadRoute(units[0].district);
+    if (route !== normal && !note) return NextResponse.json({ error: "Escribe por qué cambia de ruta" }, { status: 400 });
+    await tx(async (q) => {
+      await q.query("UPDATE units SET route = ?, route_note = ? WHERE id IN (?)", [route, route === normal ? null : note, units.map((u) => u.id)]);
+      const ev = units.filter((u) => (u.route ?? "") !== route).map((u) => [u.id, s.id, "route", u.route, route]);
+      if (ev.length) await q.query("INSERT INTO unit_events(unit_id, user_id, field, old_value, new_value) VALUES ?", [ev]);
+    });
+    return NextResponse.json({ ok: true, units: units.length, route });
+  }
+
+  // El camión llegó a una parada (lo marca el conductor o el planificador)
+  if (b.action === "arrive") {
+    if (!perm.deliver && !perm.dispatch) return NextResponse.json({ error: "Sin permiso para registrar la llegada" }, { status: 403 });
+    const trip = Number(b.trip), district = String(b.district ?? "").trim();
+    if (!trip || !district || !date) return NextResponse.json({ error: "Faltan datos de la parada" }, { status: 400 });
+    const [d] = await queryList<{ dispatched_on: string }>("SELECT dispatched_on FROM dispatches WHERE id = ? AND site = ?", [trip, SITE]);
+    if (!d) return NextResponse.json({ error: "No se encontró ese viaje" }, { status: 404 });
+    if (date < String(d.dispatched_on).slice(0, 10)) return NextResponse.json({ error: "La llegada no puede ser antes del despacho" }, { status: 400 });
+    const r = await run("UPDATE dispatch_stops SET arrived_on = ?, arrived_at = LOCALTIMESTAMP(0), arrived_by = ? WHERE dispatch_id = ? AND district = ?", [date, s.id, trip, district]);
+    if (!r.affectedRows) {
+      // Viaje de antes de las paradas: se crea la parada al llegar
+      const [m] = await queryList<{ n: number }>("SELECT COALESCE(MAX(seq), 0) n FROM dispatch_stops WHERE dispatch_id = ?", [trip]);
+      await run("INSERT INTO dispatch_stops(dispatch_id, seq, district, arrived_on, arrived_at, arrived_by) VALUES (?, ?, ?, ?, LOCALTIMESTAMP(0), ?)", [trip, num(m?.n) + 1, district, date, s.id]);
+    }
+    return NextResponse.json({ ok: true });
   }
 
   return NextResponse.json({ error: "Acción inválida" }, { status: 400 });
