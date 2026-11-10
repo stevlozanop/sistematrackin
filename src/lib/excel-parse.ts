@@ -4,6 +4,7 @@
  */
 import * as XLSX from "xlsx";
 import { DATE_FIELDS, type DateField, type Site } from "./hsp";
+import { roadRoute } from "./yur";
 
 /** Una fila del Excel ya normalizada al formato de la tabla `units`. */
 export type UnitRow = {
@@ -207,6 +208,13 @@ export function routeOf(routes: DistrictRoute[], district: string | null, depart
 
 /** Facturación (PCL-FACT / FACT HSP-DATA): cada fila toma la ruta de su distrito. */
 export function applyRoutes(rows: UnitRow[], routes: DistrictRoute[]) {
-  for (const r of rows) r.site = routeOf(routes, r.fields.district, r.fields.department);
+  for (const r of rows) {
+    r.site = routeOf(routes, r.fields.district, r.fields.department);
+    // Yurimaguas: la ruta de carretera (Oriente 1…5, Norte 1) se deduce del distrito
+    if (r.site === "YUR" && !r.fields.route) {
+      const road = roadRoute(r.fields.district);
+      if (road) r.fields.route = road;
+    }
+  }
   return rows;
 }

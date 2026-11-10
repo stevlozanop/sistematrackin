@@ -24,6 +24,31 @@ export const YUR_ROUTES: { route: string; label: string; places: string; days: n
 ];
 export const routeInfo = (route?: string | null) => YUR_ROUTES.find((r) => r.route === String(route ?? "").toUpperCase()) ?? null;
 
+/**
+ * Ruta de carretera de cada distrito, sacada del historial (Excel HSP-OFICIAL, hoja YUR): cada distrito
+ * siempre salió por la misma ruta. La facturación trae el distrito pero no la ruta, así que se pone sola.
+ */
+const DISTRICT_ROUTE: Record<string, string> = {
+  YURIMAGUAS: "RUTA ORIENTE 1",
+  TARAPOTO: "RUTA ORIENTE 2",
+  JUANJUI: "RUTA ORIENTE 3",
+  MOYOBAMBA: "RUTA ORIENTE 4", "NVA. CAJAMARCA": "RUTA ORIENTE 4", "NUEVA CAJAMARCA": "RUTA ORIENTE 4", RIOJA: "RUTA ORIENTE 4",
+  JAEN: "RUTA ORIENTE 5", BAGUA: "RUTA ORIENTE 5", "BAGUA GRANDE": "RUTA ORIENTE 5", CHACHAPOYAS: "RUTA ORIENTE 5",
+  PIURA: "RUTA NORTE 1", CHICLAYO: "RUTA NORTE 1", SULLANA: "RUTA NORTE 1", CHOTA: "RUTA NORTE 1", PAITA: "RUTA NORTE 1",
+  PARINAS: "RUTA NORTE 1", TRUJILLO: "RUTA NORTE 1", CHIMBOTE: "RUTA NORTE 1", HUARAZ: "RUTA NORTE 1", CHEPEN: "RUTA NORTE 1",
+  PACASMAYO: "RUTA NORTE 1", "LA VICTORIA": "RUTA NORTE 1",
+};
+const key = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().replace(/\s+/g, " ").toUpperCase();
+
+/** Ruta que le toca a un distrito (null si el distrito no se conoce) */
+export function roadRoute(district?: string | null) {
+  if (!district) return null;
+  return DISTRICT_ROUTE[key(district)] ?? null;
+}
+
+/** Distritos conocidos de una ruta (para mostrarlos) */
+export const routeDistricts = (route: string) => Object.entries(DISTRICT_ROUTE).filter(([, r]) => r === route).map(([d]) => d);
+
 /** Metas de días por tramo */
 export const YUR_TARGET = { iquitos: 3, rio: 6, puerto: 5 };
 

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { queryList, tx } from "@/lib/db";
+import { queryList, run, tx } from "@/lib/db";
 import { getScope, guard } from "@/lib/guard";
 import { isSuper, today } from "@/lib/workflow";
-import { YUR_CHATAS, YUR_ROUTES } from "@/lib/yur";
+import { YUR_CHATAS, YUR_ROUTES, roadRoute } from "@/lib/yur";
 import { notifyNextStage, pushLater } from "@/lib/push";
 
 /**
@@ -50,8 +50,20 @@ export async function GET(req: Request) {
     // Lo que va llegando: en el puerto sin ingresar a ENAPU (para que el almacén vea lo que viene)
     const [port] = await queryList<{ total: number }>(`SELECT COUNT(*) total FROM v_units WHERE site = ? AND next_step = 'd_almacen'${scope}`, [SITE, ...sargs]);
     const drivers = await queryList<{ v: string }>("SELECT DISTINCT driver v FROM dispatches WHERE site = ? ORDER BY v LIMIT 200", [SITE]);
+    // Guías sin ruta: se deduce del distrito (Jaén → Oriente 5, Tarapoto → Oriente 2…) y se guarda en sus unidades
+    const fill = new Map<string, string[]>();
+    for (const x of rows) {
+      if (x.route) continue;
+      const road = roadRoute(x.district);
+      if (!road) continue;
+      x.route = road;
+      if (x.district) fill.set(road, [...(fill.get(road) ?? []), x.district]);
+    }
+    for (const [road, districts] of fill) {
+      await run(`UPDATE units SET route = ? WHERE site = ? AND COALESCE(route, '') = '' AND district IN (?) AND d_despacho IS NULL`, [road, SITE, [...new Set(districts)]]).catch(() => {});
+    }
     const known = new Set(YUR_ROUTES.map((r) => r.route));
-    const routes = [...YUR_ROUTES.map((r) => ({ ...r })), { route: "", label: "Sin ruta", places: "Revisa su distrito en Dealers", days: 2, local: false }]
+    const routes = [...YUR_ROUTES.map((r) => ({ ...r })), { route: "", label: "Sin ruta", places: "Distrito sin ruta conocida: revisa el distrito en Dealers", days: 2, local: false }]
       .map((r) => ({
         ...r,
         guias: rows.filter((x) => (r.route ? x.route === r.route : !known.has(String(x.route))))
