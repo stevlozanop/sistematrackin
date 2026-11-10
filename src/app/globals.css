@@ -13,18 +13,23 @@
   --sb-background: #ffffff;
   --sb-on-background: #161618;
   --sb-surface: #ffffff;
-  --sb-surface-container-low: #fbfbfc;
-  --sb-surface-container: #f6f6f7;
-  --sb-surface-container-high: #ececee;
-  --sb-surface-container-highest: #e1e1e4;
+  --sb-surface-container-low: #f9f9fa;
+  --sb-surface-container: #f3f3f5;
+  --sb-surface-container-high: #ebebee;
+  --sb-surface-container-highest: #e2e2e6;
   --sb-on-surface: #161618;
   --sb-on-surface-variant: #52525b;
   --sb-outline: #a1a1aa;
-  --sb-outline-variant: #e4e4e7;
+  --sb-outline-variant: #ececef;
   --sb-primary: #078a04;
   --sb-on-primary: #ffffff;
   --sb-primary-soft: color-mix(in oklab, #09ae04 12%, transparent);
-  --page-bg: #f4f6f1;
+  --page-bg: #f6f6f7;
+  /* Diseño suave: tarjetas sin borde, muy redondeadas y con sombra casi invisible */
+  --sb-radius-card: 22px;
+  --sb-shadow-card: 0 1px 2px rgb(16 16 24 / 0.03), 0 6px 24px -14px rgb(16 16 24 / 0.10);
+  --sb-shadow-float: 0 2px 6px rgb(16 16 24 / 0.04), 0 24px 64px -20px rgb(16 16 24 / 0.22);
+  --sb-ease: cubic-bezier(0.22, 1, 0.36, 1);
   /* Nivel de servicio (par azul/rojo validado para daltonismo y contraste) */
   --sb-ontime: #2a78d6;
   --sb-late: #e34948;
@@ -34,19 +39,21 @@
 html.dark {
   --sb-background: #0a0a0b;
   --sb-on-background: #f4f4f5;
-  --sb-surface: #0a0a0b;
-  --sb-surface-container-low: #101013;
-  --sb-surface-container: #17171a;
-  --sb-surface-container-high: #1f1f23;
-  --sb-surface-container-highest: #27272b;
+  --sb-surface: #111113;
+  --sb-surface-container-low: #16161a;
+  --sb-surface-container: #1b1b1f;
+  --sb-surface-container-high: #232328;
+  --sb-surface-container-highest: #2c2c31;
   --sb-on-surface: #f4f4f5;
   --sb-on-surface-variant: #a1a1aa;
   --sb-outline: #3f3f46;
-  --sb-outline-variant: #27272b;
+  --sb-outline-variant: #26262b;
   --sb-primary: #4fd24a;
   --sb-on-primary: #0a0a0b;
   --sb-primary-soft: color-mix(in oklab, #4fd24a 16%, transparent);
-  --page-bg: #000000;
+  --page-bg: #0a0a0b;
+  --sb-shadow-card: 0 0 0 1px rgb(255 255 255 / 0.04), 0 8px 28px -16px rgb(0 0 0 / 0.6);
+  --sb-shadow-float: 0 0 0 1px rgb(255 255 255 / 0.06), 0 28px 70px -20px rgb(0 0 0 / 0.75);
   --sb-ontime: #3987e5;
   --sb-late: #e66767;
   --sb-ontime-soft: color-mix(in oklab, #3987e5 18%, transparent);
@@ -251,19 +258,19 @@ html.dark {
   .h-screen { height: auto !important; overflow: visible !important; }
 }
 
-/* Textos secundarios (antes gris claro, se perdían): negros y en negrita en todo el sistema.
-   En modo oscuro, casi blancos. Los textos de ayuda dentro de los campos (placeholder) siguen tenues. */
+/* Textos secundarios: gris suave pero legible (contraste 7:1 sobre blanco), un poco más gruesos que el texto normal.
+   En modo oscuro, gris claro. Los textos de ayuda dentro de los campos (placeholder) siguen tenues. */
 :root {
-  --sb-on-surface-variant: #18181b;
-  --muted: #18181b;
+  --sb-on-surface-variant: #4a4a52;
+  --muted: #4a4a52;
   --field-placeholder: oklch(0.5517 0.0138 285.94);
 }
 html.dark {
-  --sb-on-surface-variant: #e4e4e7;
-  --muted: #e4e4e7;
+  --sb-on-surface-variant: #c4c4cc;
+  --muted: #c4c4cc;
   --field-placeholder: oklch(70.5% 0.015 286.067);
 }
-:where([class*="text-sb-on-surface-variant"], .text-muted) { font-weight: 600; }
+:where([class*="text-sb-on-surface-variant"], .text-muted) { font-weight: 500; }
 /* Las variantes con transparencia (/40, /60, /70…) también quedan con el color pleno */
 [class*="text-sb-on-surface-variant/"] { color: var(--sb-on-surface-variant) !important; }
 
@@ -291,4 +298,47 @@ html.dark {
   .sb-stack td[colspan] { text-align: center !important; }
   .sb-stack td span.flex, .sb-stack td div.flex { flex-wrap: wrap; justify-content: flex-end; }
   .sb-stack td input[type="checkbox"] { float: left; }
+}
+
+/* ===== Diseño suave y minimal (todo el sistema) ===== */
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; letter-spacing: -0.005em; }
+/* Ventanas y paneles: tarjeta flotante con sombra amplia; el fondo se nubla suave */
+:root { --overlay-shadow: var(--sb-shadow-float); }
+.modal__dialog, .drawer__content { border: 0 !important; }
+.modal__backdrop--opaque, .drawer__backdrop--opaque, .modal__backdrop--blur, .drawer__backdrop--blur {
+  background: color-mix(in oklab, var(--page-bg) 55%, transparent) !important; backdrop-filter: blur(8px) saturate(1.1); -webkit-backdrop-filter: blur(8px) saturate(1.1);
+}
+html.dark .modal__backdrop--opaque, html.dark .drawer__backdrop--opaque, html.dark .modal__backdrop--blur, html.dark .drawer__backdrop--blur { background: rgb(0 0 0 / 0.55) !important; }
+.dropdown__popover, .popover { box-shadow: var(--sb-shadow-float) !important; border-radius: 18px !important; }
+/* Campos: relleno gris claro, sin borde marcado; al escribir, anillo del color de la empresa */
+.input, .textarea, .select__trigger, .search-field__group, .date-input__group, .number-field__group {
+  border-color: transparent !important; box-shadow: none !important; transition: background-color .2s var(--sb-ease), box-shadow .2s var(--sb-ease) !important;
+}
+.input:focus-visible, .textarea:focus-visible, .input[data-focused="true"] { box-shadow: 0 0 0 3px color-mix(in oklab, var(--sb-primary) 22%, transparent) !important; }
+
+/* ===== Animaciones suaves ===== */
+/* Al abrir una pantalla, sus bloques aparecen en cascada */
+.sb-page > div > * { animation: sb-rise 520ms var(--sb-ease) both; }
+.sb-page > div > *:nth-child(2) { animation-delay: 40ms; }
+.sb-page > div > *:nth-child(3) { animation-delay: 80ms; }
+.sb-page > div > *:nth-child(4) { animation-delay: 120ms; }
+.sb-page > div > *:nth-child(5) { animation-delay: 160ms; }
+.sb-page > div > *:nth-child(n + 6) { animation-delay: 200ms; }
+@keyframes sb-rise { from { opacity: 0; transform: translateY(10px) scale(0.995); } to { opacity: 1; transform: none; } }
+/* Filas de las tablas: entran en cascada (solo las primeras, para no demorar listas largas) */
+tbody > .sb-row { animation: sb-fade 380ms var(--sb-ease) both; }
+tbody > .sb-row:nth-child(2) { animation-delay: 20ms; } tbody > .sb-row:nth-child(3) { animation-delay: 40ms; }
+tbody > .sb-row:nth-child(4) { animation-delay: 60ms; } tbody > .sb-row:nth-child(5) { animation-delay: 80ms; }
+tbody > .sb-row:nth-child(6) { animation-delay: 100ms; } tbody > .sb-row:nth-child(n + 7) { animation-delay: 120ms; }
+@keyframes sb-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+/* Tarjetas que se pueden tocar: se elevan apenas */
+a.sb-card, button.sb-card, .sb-card[role="button"] { transition: transform .25s var(--sb-ease), box-shadow .25s var(--sb-ease); }
+a.sb-card:hover, button.sb-card:hover, .sb-card[role="button"]:hover { transform: translateY(-2px); box-shadow: var(--sb-shadow-float); }
+@media (prefers-reduced-motion: reduce) {
+  .sb-page > div > *, tbody > .sb-row { animation: none !important; }
+  a.sb-card, button.sb-card { transition: none !important; }
+}
+/* Bloques armados a mano como tarjeta (borde gris + fondo blanco): también sin borde y con sombra suave */
+.rounded-2xl.border.bg-sb-surface:not(input):not(select):not(textarea):not([class*="border-sb-primary"]):not([class*="border-sb-late"]):not([class*="border-amber"]) {
+  border-color: transparent; box-shadow: var(--sb-shadow-card);
 }

@@ -11,6 +11,7 @@ import { DATA_EVENT } from "@/components/UploadCenter";
 import { DELAY_REASONS, fmtDate, unitsText } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
+import { CargoFigure } from "@/components/figures/cargo/CargoFigure";
 
 /**
  * YUR · Carga a chata (Iquitos). En Yurimaguas no hay contenedores: las motos van sueltas en la chata.
@@ -188,12 +189,11 @@ export default function YurCargaPage() {
           <div className="flex flex-col gap-3 border-t border-sb-outline-variant/40 pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
             <Change from="IQT-Port" to="Embarque" />
             {nave && (
-              <div className="rounded-xl bg-sb-surface-container-low px-3 py-2 text-xs">
+              <div className="rounded-[18px] bg-sb-surface-container-low px-3 py-2 text-xs">
                 <p className="font-semibold">{nave.toUpperCase()}</p>
                 <p className="text-sb-on-surface-variant">{onBoard ? `Ya lleva ${n(onBoard.total)} unid.` : "Vacía"}{tot.total ? ` · con esta carga: ${n((onBoard?.total ?? 0) + tot.total)}` : ""}</p>
-                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-sb-surface-container-high">
-                  <div className="h-full rounded-full bg-sb-primary" style={{ width: `${Math.min(100, (((onBoard?.total ?? 0) + tot.total) / TYPICAL) * 100)}%` }} />
-                </div>
+                {/* La chata en 3D: se llena con lo que ya lleva más esta carga */}
+                <CargoFigure kind="barge" units={(onBoard?.total ?? 0) + tot.total} className="-mx-1 mt-1" title={`${nave} con ${(onBoard?.total ?? 0) + tot.total} motos`} />
                 <p className="mt-1 text-[10px] text-sb-on-surface-variant">Una chata lleva normalmente unas {TYPICAL} unidades.</p>
               </div>
             )}

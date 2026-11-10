@@ -12,6 +12,7 @@ import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
 import { ORIGIN, oneLine, onTheWay, orderStops, planEtas, townOf, kmFromOrigin } from "@/lib/yur-road";
 import { roadRoute } from "@/lib/yur";
+import { CargoFigure, SizePicker, sizeFor, type TruckSize } from "@/components/figures/cargo/CargoFigure";
 
 /**
  * YUR · Despacho por ruta (Yurimaguas → carretera). Lo que está en ENAPU se ve por ruta de carretera y destino;
@@ -30,7 +31,7 @@ type Trip = { id: number; dispatched_on: string; driver: string; plate: string |
 const field = "h-10 w-full rounded-xl border border-sb-outline-variant bg-sb-surface px-3 text-sm text-sb-on-surface outline-none focus:border-sb-on-surface";
 const n = (v: number) => Number(v ?? 0).toLocaleString("es-PE");
 /** Lo que lleva normalmente un camión en esta ruta (historial): unas 36 unidades, hasta 84 */
-const TRUCK = 36, TRUCK_MAX = 84;
+const TRUCK_MAX = 84;
 
 export default function YurDespachoPage() {
   const [data, setData] = useState<Data | null>(null);
@@ -50,6 +51,10 @@ export default function YurDespachoPage() {
   const [order, setOrder] = useState<string[]>([]);
   // Cambio de ruta de una guía
   const [edit, setEdit] = useState<{ guia: string; route: string; note: string } | null>(null);
+  // Tamaño del camión: sale solo según lo que lleva, o lo elige el planificador
+  const [sizePick, setSizePick] = useState<TruckSize | null>(null);
+  // Al despachar, el camión se va (se dibuja un momento con la carga que llevaba)
+  const [gone, setGone] = useState<{ units: number; size: TruckSize } | null>(null);
 
   const load = useCallback(() => {
     fetch("/api/yur?view=ruta").then((r) => r.json()).then(setData).catch(() => {});
@@ -75,6 +80,7 @@ export default function YurDespachoPage() {
   const routesChosen = [...new Set(chosen.map((g) => g.r.route))];
   const allLocal = chosen.length > 0 && chosen.every((g) => g.r.local);
   const minDate = chosen.reduce((m, g) => (g.since && g.since > m ? g.since : m), "");
+  const truck = sizePick ?? sizeFor(tot.total);
   // Paradas del camión, en orden, con su llegada estimada
   const districts = [...new Set(chosen.map((g) => g.district ?? "").filter(Boolean))];
   const stops = [...order.filter((d) => districts.includes(d)), ...orderStops(districts.filter((d) => !order.includes(d)))];
@@ -126,7 +132,9 @@ export default function YurDespachoPage() {
     toast.success(delivered ? `Entregado en Yurimaguas: ${n(j.units)} unidades` : `Camión despachado: ${n(j.units)} unidades`,
       { description: delivered ? "Despacho y entrega local registrados" : `Chofer ${j.driver} · → Tránsito dealer`, timeout: 7000 });
     if (j.late && !reason) toast.warning(`${j.late} unidades quedaron sin motivo de demora`, { timeout: 7000 });
-    setPick(new Set()); setOrder([]); setReason(""); setPlate(""); setReload((x) => x + 1);
+    setGone({ units: tot.total, size: truck });
+    setTimeout(() => setGone(null), 1700);
+    setPick(new Set()); setOrder([]); setSizePick(null); setReason(""); setPlate(""); setReload((x) => x + 1);
   }
 
   if (!data) return <div className="p-6 text-sm text-sb-on-surface-variant">Cargando…</div>;
@@ -149,7 +157,7 @@ export default function YurDespachoPage() {
       </div>
 
       {/* Rutas de carretera */}
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid items-start gap-3 lg:grid-cols-2">
         {data.routes.map((r) => {
           const units = r.guias.reduce((t, g) => t + g.total, 0);
           const late = r.guias.reduce((t, g) => t + g.overdue, 0);
@@ -244,16 +252,23 @@ export default function YurDespachoPage() {
         </div>
         <div className="grid gap-4 p-4 lg:grid-cols-[1fr_18rem]">
           <div className="flex min-w-0 flex-col gap-2">
-            {!chosen.length ? <p className="rounded-xl border border-dashed border-sb-outline-variant px-3 py-6 text-center text-xs text-sb-on-surface-variant">Marca arriba las guías que suben al camión.</p> : (
-              <>
-                <div className="rounded-xl bg-sb-surface-container-low px-3 py-2 text-xs">
+            {/* El camión en 3D: se llena con las guías marcadas */}
+            <div className="flex flex-col gap-2 rounded-[18px] bg-sb-surface-container-low p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs"><b className="text-sm">{gone ? gone.size.name : truck.name}</b><span className="text-sb-on-surface-variant"> · hasta {(gone ? gone.size : truck).cap} motos</span></span>
+                <div className="w-full sm:w-56"><SizePicker value={truck} onChange={setSizePick} units={tot.total} /></div>
+              </div>
+              <CargoFigure kind="truck" units={gone ? gone.units : tot.total} size={gone ? gone.size : truck} leaving={!!gone} />
+              {chosen.length > 0 ? (
+                <div className="text-xs">
                   <p className="font-semibold">{chosen.length} guía(s) · {n(tot.total)} unid. · {unitsText(tot.w2, tot.w3)}</p>
                   <p className="text-sb-on-surface-variant">{routesChosen.map((x) => data.routes.find((r) => r.route === x)?.label ?? "Sin ruta").join(" + ")} · {[...new Set(chosen.map((g) => g.district))].join(", ")}</p>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-sb-surface-container-high">
-                    <div className={cn("h-full rounded-full", tot.total > TRUCK_MAX ? "bg-sb-late" : "bg-sb-primary")} style={{ width: `${Math.min(100, (tot.total / TRUCK_MAX) * 100)}%` }} />
-                  </div>
-                  <p className="mt-1 text-[10px] text-sb-on-surface-variant">Un camión lleva normalmente unas {TRUCK} unidades (hasta {TRUCK_MAX}).</p>
+                  {tot.total > truck.cap && tot.total <= TRUCK_MAX && <p className="mt-1 text-[11px] font-semibold text-sb-late">No entra en un {truck.name.toLowerCase()}: elige un tamaño más grande.</p>}
                 </div>
+              ) : <p className="text-center text-xs text-sb-on-surface-variant">{gone ? "¡Camión despachado!" : "Marca arriba las guías que suben al camión."}</p>}
+            </div>
+            {chosen.length > 0 && (
+              <>
                 {/* Paradas en orden, con su llegada estimada */}
                 <div className="rounded-xl border border-sb-outline-variant/40">
                   <p className="flex items-center gap-1.5 border-b border-sb-outline-variant/30 px-3 py-2 text-[11px] font-semibold"><MapPin className="h-3.5 w-3.5" /> Paradas del camión ({stops.length}) · en este orden</p>

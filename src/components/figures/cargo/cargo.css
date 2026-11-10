@@ -1,0 +1,29 @@
+/* Carga en 3D (camión / chata) */
+.iso.cg[data-theme="light"]{--anatomy-paper:var(--sb-surface,#fff);--anatomy-card:var(--sb-surface,#fff)}
+.iso.cg[data-theme="dark"]{--anatomy-paper:var(--sb-surface,#111113);--anatomy-card:var(--sb-surface,#111113)}
+.cg .cg-wheel{fill:#2a2a2e;stroke:none}
+.cg .cg-hub{fill:#9a9aa2;stroke:none}
+.cg .cg-shadow{fill:rgb(0 0 0/.06);stroke:none}
+.cg[data-theme="dark"] .cg-shadow{fill:rgb(0 0 0/.35)}
+.cg .cg-water{fill:color-mix(in oklab,#2a78d6 14%,var(--anatomy-paper));stroke:none}
+.cg .cg-cab .iso-top{fill:color-mix(in oklab,var(--sb-primary) 18%,var(--anatomy-top))}
+/* Cajas: caen en su lugar al sumarse */
+.cg .cg-crate{animation:cg-drop 420ms cubic-bezier(.22,1,.36,1) both}
+@keyframes cg-drop{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+.cg .cg-crate .iso-top{fill:color-mix(in oklab,#c8a06a 34%,var(--anatomy-top))}
+.cg .cg-crate .iso-fill{fill:color-mix(in oklab,#c8a06a 22%,var(--anatomy-face))}
+.cg .cg-crate.is-over .iso-top{fill:color-mix(in oklab,var(--sb-late) 45%,var(--anatomy-top))}
+.cg .cg-crate.is-over .iso-fill{fill:color-mix(in oklab,var(--sb-late) 30%,var(--anatomy-face))}
+/* Cambio de tamaño: el vehículo aparece suave; al despachar, se va */
+.cg .cg-body{animation:cg-in 460ms cubic-bezier(.22,1,.36,1) both;transition:transform 1.5s cubic-bezier(.55,0,.8,.2),opacity 1.5s ease}
+@keyframes cg-in{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
+.cg .cg-body.is-leaving{transform:translate(var(--cg-dx),var(--cg-dy));opacity:0}
+.cg-dim{position:absolute;transform:translate(-50%,-50%);padding:1px 7px;border-radius:999px;background:var(--sb-surface);border:1px solid var(--sb-outline-variant);
+  font-size:10px;font-weight:600;color:var(--sb-on-surface-variant);white-space:nowrap;pointer-events:none}
+.cg-load{position:absolute;right:8px;top:6px;padding:2px 10px;border-radius:999px;background:var(--sb-surface-container);font-size:12px;color:var(--sb-on-surface-variant);font-variant-numeric:tabular-nums}
+.cg-load b{font-size:15px;color:var(--sb-on-surface)}
+.cg-load.is-over{background:var(--sb-late-soft);color:var(--sb-late)}
+.cg-load.is-over b{color:var(--sb-late)}
+.cg-seg{animation:cg-seg .35s cubic-bezier(.22,1,.36,1)}
+@keyframes cg-seg{from{transform:scale(.85);opacity:.4}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.cg .cg-crate,.cg .cg-body,.cg-seg{animation:none!important;transition:none!important}}

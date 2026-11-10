@@ -259,39 +259,32 @@ function NavLink({ item, active, open, badge }: { item: Item; active: boolean; o
       href={item.href}
       title={open ? undefined : item.title}
       className={cn(
-        "group flex items-center gap-2.5 transition-colors duration-300 ease-out",
-        open ? "h-8 rounded-full px-2.5" : "relative mx-auto h-9 w-9 justify-center",
-        active
-          ? open ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-primary"
-          : "text-sb-on-surface-variant/70 hover:text-sb-on-surface",
+        "group relative flex items-center gap-2.5 transition-colors duration-300 ease-out",
+        open ? "h-[34px] rounded-full px-3" : "mx-auto h-9 w-9 justify-center rounded-[14px]",
+        active ? "text-sb-on-surface" : "text-sb-on-surface-variant hover:bg-sb-on-surface/[0.04] hover:text-sb-on-surface",
       )}
     >
-      {!open && (
-        <motion.span
-          className="absolute inset-0"
-          initial={false}
-          animate={{ borderRadius: active ? 14 : 999, backgroundColor: active ? "var(--sb-primary)" : "rgba(127,127,127,0)" }}
-          whileHover={{ backgroundColor: active ? "var(--sb-primary)" : "rgba(127,127,127,0.12)" }}
-          transition={SPRING}
-        />
+      {/* Opción activa: píldora suave que se desliza de una opción a otra */}
+      {active && (
+        <motion.span layoutId="nav-pill" className={cn("absolute inset-0 bg-sb-surface shadow-[var(--sb-shadow-card)] dark:bg-sb-surface-container-high", open ? "rounded-full" : "rounded-[14px]")}
+          transition={{ type: "spring", stiffness: 420, damping: 36 }} />
       )}
       <motion.span
-        className="relative z-10"
+        className={cn("relative z-10", active && "text-sb-primary")}
         whileTap={{ scale: 0.9 }}
-        animate={{ scale: active ? 1.1 : 1, opacity: active ? 1 : 0.7 }}
+        animate={{ scale: active ? 1.06 : 1, opacity: active ? 1 : 0.75 }}
         transition={{ duration: 0.25, ease: "easeInOut" }}
       >
         <item.icon className="h-[16px] w-[16px] shrink-0" />
       </motion.span>
       {open && (
-        <span className={cn("truncate text-[13px] transition-all duration-300 ease-out group-hover:translate-x-1 group-hover:tracking-[0.02em]", active ? "font-medium" : "font-normal")}>
+        <span className={cn("relative z-10 truncate text-[13px] transition-transform duration-300 ease-out group-hover:translate-x-0.5", active ? "font-semibold" : "font-normal")}>
           {item.title}
         </span>
       )}
       {open && badge && (
-        <span className={cn("ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-px text-[10px] font-semibold tabular-nums",
-          active ? "bg-sb-on-primary/20 text-sb-on-primary"
-            : badge.tone === "alert" ? "bg-sb-late-soft text-sb-late"
+        <span className={cn("relative z-10 ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-px text-[10px] font-semibold tabular-nums",
+          badge.tone === "alert" ? "bg-sb-late-soft text-sb-late"
             : badge.tone === "warn" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
             : "bg-sb-surface-container-high text-sb-on-surface-variant")}>
           {badge.tone === "live" && <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-60" /><span className="relative h-1.5 w-1.5 rounded-full bg-current" /></span>}
@@ -311,19 +304,19 @@ function ToolButton({ open, label, onClick, children, muted }: { open: boolean; 
       onClick={onClick}
       title={open ? undefined : label}
       className={cn(
-        "group flex items-center gap-2.5 transition-colors duration-300 ease-out hover:bg-sb-surface-container hover:text-sb-on-surface",
-        open ? "h-8 w-full rounded-full px-2.5" : "mx-auto h-9 w-9 justify-center rounded-full",
-        muted ? "text-sb-on-surface-variant/50" : "text-sb-on-surface-variant/70",
+        "group flex items-center gap-2.5 transition-colors duration-300 ease-out hover:bg-sb-on-surface/[0.04] hover:text-sb-on-surface",
+        open ? "h-[34px] w-full rounded-full px-3" : "mx-auto h-9 w-9 justify-center rounded-full",
+        "text-sb-on-surface-variant", muted && "opacity-70",
       )}
     >
       {children}
-      {open && <span className="truncate text-[13px] transition-all duration-300 ease-out group-hover:translate-x-1 group-hover:tracking-[0.02em]">{label}</span>}
+      {open && <span className="truncate text-[13px] transition-transform duration-300 ease-out group-hover:translate-x-0.5">{label}</span>}
     </button>
   );
 }
 
 const Heading = ({ children }: { children: React.ReactNode }) => (
-  <h3 className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/50">{children}</h3>
+  <h3 className="mb-1 px-3 text-[11px] font-medium text-sb-on-surface-variant opacity-60">{children}</h3>
 );
 
 export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firstGuide = false, brand = null, own = null, swm = false, isOwner = false, upload = null, licenseNotice = null, mustChange = false, children }: {
@@ -408,7 +401,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
       <LiveSync />
       <PushNudge />
       {/* Sidebar */}
-      <aside className={cn("z-10 hidden h-screen shrink-0 flex-col overflow-hidden bg-sb-surface transition-[width] duration-200 ease-out md:flex", open ? "w-[240px]" : "w-[64px]")}>
+      <aside className={cn("z-10 hidden h-screen shrink-0 flex-col overflow-hidden bg-transparent transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] md:flex", open ? "w-[244px]" : "w-[68px]")}>
         <div className={cn("flex h-14 shrink-0 items-center", open ? "gap-2.5 px-4" : "justify-center")}>
           {swm ? (
             // The Iceberg Labs: la plataforma, en blanco y negro
@@ -466,7 +459,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
           ))}
         </nav>
 
-        <div className="shrink-0 space-y-3 border-t border-sb-outline-variant/60 px-2 py-2">
+        <div className="shrink-0 space-y-3 px-2 py-2">
           <div className="flex flex-col gap-px">
             {open && <Heading>Herramientas</Heading>}
             {hasGuide && (
@@ -484,7 +477,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
               <ChevronLeft className={cn("h-[16px] w-[16px] shrink-0 transition-transform duration-200", !open && "rotate-180")} />
             </ToolButton>
           </div>
-          <div className="flex flex-col gap-px border-t border-sb-outline-variant/60 pt-2">
+          <div className="flex flex-col gap-px pt-1">
             {open && <Heading>Cuenta</Heading>}
             {role === "admin" && <NavLink item={LICENSE} active={path.startsWith(LICENSE.href)} open={open} badge={badges.license} />}
             <NavLink item={PROFILE} active={path.startsWith(PROFILE.href)} open={open} />
@@ -502,7 +495,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
           <div className="flex shrink-0 items-center gap-2">
             {hasGuide && (
               <button type="button" onClick={() => setGuide(true)} title="Cómo funciona el sistema"
-                className="flex h-8 items-center gap-1.5 rounded-full bg-sb-surface-container-high px-3 text-[11px] font-medium text-sb-on-surface-variant transition-colors hover:bg-sb-primary hover:text-sb-on-primary">
+                className="flex h-8 items-center gap-1.5 rounded-full bg-sb-surface px-3 text-[11px] font-medium text-sb-on-surface-variant shadow-[var(--sb-shadow-card)] transition-colors hover:bg-sb-primary hover:text-sb-on-primary">
                 <BookOpen className="h-3.5 w-3.5" /><span className="hidden sm:inline">Guía</span>
               </button>
             )}
@@ -513,7 +506,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
               </button>
             )}
             {role !== "dev" && <AlertBell href={role === "operator" ? "/my" : role === "dealer" ? "/portal" : "/alerts"} />}
-            <Link href="/profile" title="Mi perfil" className="flex items-center gap-2 rounded-full bg-sb-surface-container-high px-3 py-1.5 transition-colors hover:bg-sb-surface-container-highest">
+            <Link href="/profile" title="Mi perfil" className="flex items-center gap-2 rounded-full bg-sb-surface px-3 py-1.5 shadow-[var(--sb-shadow-card)] transition-colors hover:bg-sb-surface-container">
               {own?.v ? (
                 <LogoBadge id={own.id} name={own.name} v={own.v} className="h-5 w-5 rounded-full text-[8px]" />
               ) : (
@@ -542,7 +535,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
             </div>
           )}
           <AnimatePresence mode="wait">
-            <motion.div key={path} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: [0.37, 0.35, 0, 1] }}>
+            <motion.div key={path} className="sb-page" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}>
               {children}
             </motion.div>
           </AnimatePresence>

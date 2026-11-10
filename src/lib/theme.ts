@@ -29,13 +29,13 @@ export const onColor = (hex: string) => (1.05 / (luminance(hex) + 0.05) >= 4.5 ?
 
 export function themeCss(color: string | null, swm: boolean) {
   if (swm) {
-    return `:root{--sb-primary:#161618;--sb-on-primary:#fff;--sb-primary-soft:color-mix(in oklab,#161618 8%,transparent);--accent:#161618;--accent-foreground:#fff;--focus:#161618;--page-bg:#f5f5f5}
-html.dark{--sb-primary:#fff;--sb-on-primary:#0a0a0b;--sb-primary-soft:color-mix(in oklab,#fff 12%,transparent);--accent:#fff;--accent-foreground:#0a0a0b;--focus:#fff;--page-bg:#000}`;
+    return `:root{--sb-primary:#161618;--sb-on-primary:#fff;--sb-primary-soft:color-mix(in oklab,#161618 8%,transparent);--accent:#161618;--accent-foreground:#fff;--focus:#161618;--page-bg:#f6f6f7}
+html.dark{--sb-primary:#fff;--sb-on-primary:#0a0a0b;--sb-primary-soft:color-mix(in oklab,#fff 12%,transparent);--accent:#fff;--accent-foreground:#0a0a0b;--focus:#fff;--page-bg:#0a0a0b}`;
   }
   const c = isColor(color) ? color.toLowerCase() : DEFAULT_COLOR;
   const on = onColor(c);
   // En modo oscuro el color se aclara para que se lea sobre fondo negro
   const dark = `color-mix(in oklab,${c} 62%,#fff)`;
-  return `:root{--sb-primary:${c};--sb-on-primary:${on};--sb-primary-soft:color-mix(in oklab,${c} 12%,transparent);--accent:${c};--accent-foreground:${on};--focus:${c};--page-bg:color-mix(in oklab,${c} 4%,#f5f5f5)}
-html.dark{--sb-primary:${dark};--sb-on-primary:#0a0a0b;--sb-primary-soft:color-mix(in oklab,${dark} 16%,transparent);--accent:${dark};--accent-foreground:#0a0a0b;--focus:${dark};--page-bg:#000}`;
+  return `:root{--sb-primary:${c};--sb-on-primary:${on};--sb-primary-soft:color-mix(in oklab,${c} 12%,transparent);--accent:${c};--accent-foreground:${on};--focus:${c};--page-bg:color-mix(in oklab,${c} 2%,#f6f6f7)}
+html.dark{--sb-primary:${dark};--sb-on-primary:#0a0a0b;--sb-primary-soft:color-mix(in oklab,${dark} 16%,transparent);--accent:${dark};--accent-foreground:#0a0a0b;--focus:${dark};--page-bg:#0a0a0b}`;
 }
