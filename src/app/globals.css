@@ -221,14 +221,21 @@ html.dark {
 .mobile-nav-buttons { border-radius: 50px !important; }
 @media (max-width: 380px) { .mobile-nav-inner { padding-left: 0.5rem !important; padding-right: 0.5rem !important; } }
 
-/* ===== Botones minimal (estilo Melon Mind): al pasar el mouse solo cambia el fondo; al presionar se encoge apenas ===== */
+/* ===== Botones animados: réplica exacta de .sb-btn / .sb-btn-icon de EduconectaV2 ===== */
 .button, .sbf-chip {
-  transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 150ms ease !important;
+  transition: padding 400ms cubic-bezier(0.38, 0.49, 0, 2), background-color 125ms, color 125ms,
+    border-radius 200ms cubic-bezier(0.38, 0.49, 0, 1.5), opacity 125ms !important;
   -webkit-tap-highlight-color: transparent;
 }
+/* hover: el botón «respira» ensanchando su relleno horizontal con rebote elástico */
+.button:not(.button--icon-only):not(:disabled):hover { padding-inline: calc(1rem + 2px); }
+.button--sm:not(.button--icon-only):not(:disabled):hover { padding-inline: calc(0.75rem + 2px); }
+.sbf-chip:hover { padding-inline: 16px; }
+/* press: scale(0.97) como .sb-btn:active */
 .button:not(:disabled):active, .sbf-chip:active { transform: scale(0.97) !important; }
+/* todos los botones son totalmente redondos (como los del sidebar); los de icono se encogen más al presionar */
 .button, .button--icon-only, .sbf-chip { border-radius: 9999px !important; }
-.button--icon-only:not(:disabled):active { transform: scale(0.94) !important; }
+.button--icon-only:not(:disabled):active { transform: scale(0.92) !important; }
 @media (prefers-reduced-motion: reduce) { .button, .sbf-chip { transition: none !important; } }
 
 /* Scroll invisible pero funcional (rueda, touchpad y teclado siguen funcionando) */
@@ -355,12 +362,6 @@ html.dark .modal__backdrop--opaque, html.dark .modal__backdrop--blur, html.dark 
 html.dark .modal__dialog { box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 20px 50px -20px rgb(0 0 0 / 0.7) !important; }
 /* Pie separado por una línea fina */
 .modal__footer { border-top: 1px solid var(--sb-outline-variant); padding-top: 14px !important; margin-top: 4px; }
-/* Cerrar: botón gris pequeño y discreto */
-.modal__close-trigger { z-index: 10 !important; width: 28px !important; height: 28px !important; min-width: 0 !important; padding: 0 !important; border-radius: 999px !important;
-  background: transparent !important; color: var(--sb-on-surface-variant) !important; box-shadow: none !important; transition: background-color .15s ease !important; }
-.modal__close-trigger:hover { background: var(--sb-surface-container) !important; }
-.modal__close-trigger svg { width: 15px; height: 15px; }
-
 /* ===== Selects y menús: el campo y su lista flotante ===== */
 .select__trigger, .sb-soft-select__trigger {
   min-height: 40px; border-radius: 14px !important; background: var(--sb-surface-container-low) !important;
@@ -398,32 +399,62 @@ html.dark .modal__dialog { box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 20px
   .modal__body > * > *, .modal__header, .modal__footer, .list-box-item { animation: none !important; }
 }
 
-/* ===== Botones planos y monocromos (estilo Melon Mind) ===== */
-:root { --sb-red: #e5372b; }
-html.dark { --sb-red: #ff5a50; }
-/* Principal: color sólido de la empresa, sin brillo ni sombra; al pasar el mouse, un tono más oscuro */
-.button--primary, button.bg-sb-primary, a.bg-sb-primary, .sbf-chip.active {
-  background: var(--sb-primary) !important; border: 0 !important; box-shadow: none !important; filter: none !important;
+/* ===== Botones de vidrio brillante (estilo macOS «Liquid Glass») ===== */
+:root {
+  --glass-bg: color-mix(in oklab, #ffffff 72%, transparent);
+  --glass-edge: rgb(255 255 255 / 0.9);
+  --glass-line: rgb(16 16 24 / 0.07);
+  --glass-shadow: inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 -1px 0 rgb(16 16 24 / 0.04), 0 1px 2px rgb(16 16 24 / 0.06), 0 8px 20px -12px rgb(16 16 24 / 0.22);
+  --sb-red: #f23b2f;
 }
-.button--primary:not(:disabled):hover, button.bg-sb-primary:not(:disabled):hover, a.bg-sb-primary:hover {
-  background: color-mix(in oklab, var(--sb-primary) 86%, #000) !important;
+html.dark {
+  --glass-bg: color-mix(in oklab, #2a2a30 62%, transparent);
+  --glass-edge: rgb(255 255 255 / 0.10);
+  --glass-line: rgb(255 255 255 / 0.08);
+  --glass-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 24px -12px rgb(0 0 0 / 0.7);
+  --sb-red: #ff5a50;
 }
-html.dark .button--primary:not(:disabled):hover, html.dark button.bg-sb-primary:not(:disabled):hover { background: color-mix(in oklab, var(--sb-primary) 86%, #fff) !important; }
-/* Apagado hasta que se pueda usar (falta completar algo): gris, sin el color de la empresa */
-.button--primary:disabled, .button--primary[data-disabled=true], button.bg-sb-primary:disabled {
-  background: var(--sb-surface-container-high) !important; color: var(--sb-on-surface-variant) !important; opacity: 1 !important;
+/* Gota de color: degradado con reflejo arriba, borde de luz y brillo de su propio color debajo */
+.button--primary, .button--danger, button.bg-sb-primary, a.bg-sb-primary, .sbf-chip.active {
+  --gloss: var(--sb-primary);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--gloss) 72%, #fff) 0%, var(--gloss) 48%, color-mix(in oklab, var(--gloss) 86%, #000) 100%) !important;
+  border: 0 !important;
+  box-shadow: inset 0 1px 0.5px rgb(255 255 255 / 0.55), inset 0 -1.5px 1px rgb(0 0 0 / 0.14), 0 1px 2px rgb(0 0 0 / 0.14),
+    0 8px 22px -8px color-mix(in oklab, var(--gloss) 70%, transparent) !important;
+  transition: box-shadow .25s var(--sb-ease), filter .2s ease, transform .2s var(--sb-ease), padding 400ms cubic-bezier(0.38, 0.49, 0, 2) !important;
 }
-.button--danger { background: var(--sb-red) !important; color: #fff !important; border: 0 !important; box-shadow: none !important; }
-.button--danger:not(:disabled):hover { background: color-mix(in oklab, var(--sb-red) 88%, #000) !important; }
-/* Secundario: gris muy claro, sin borde; terciario y fantasma: solo texto con ícono, el fondo aparece al pasar el mouse */
-.button--secondary { background: var(--sb-surface-container) !important; border: 0 !important; box-shadow: none !important; color: var(--sb-on-surface) !important; }
-.button--secondary:not(:disabled):hover { background: var(--sb-surface-container-high) !important; }
-.button--tertiary, .button--ghost { background: transparent !important; border: 0 !important; box-shadow: none !important; color: var(--sb-on-surface) !important; }
-.button--tertiary:not(:disabled):hover, .button--ghost:not(:disabled):hover { background: var(--sb-surface-container) !important; }
-.button--outline { background: transparent !important; border: 1px solid var(--sb-outline-variant) !important; box-shadow: none !important; }
-.button--outline:not(:disabled):hover { background: var(--sb-surface-container-low) !important; }
-.button--danger-soft { background: transparent !important; border: 0 !important; box-shadow: none !important; color: var(--sb-red) !important; }
-.button--danger-soft:not(:disabled):hover { background: color-mix(in oklab, var(--sb-red) 9%, transparent) !important; }
-.button:disabled, .button[data-disabled=true] { cursor: not-allowed; }
-/* Barras de botones (controles del 3D, tamaños, encabezado): fondo plano con una línea fina */
-.sb-glass { background: var(--sb-surface) !important; border: 1px solid var(--sb-outline-variant) !important; box-shadow: none !important; backdrop-filter: none !important; }
+.button--danger { --gloss: var(--sb-red); color: #fff !important; }
+.button--primary:not(:disabled):hover, .button--danger:not(:disabled):hover, button.bg-sb-primary:not(:disabled):hover, a.bg-sb-primary:hover {
+  filter: brightness(1.05) saturate(1.05);
+  box-shadow: inset 0 1px 0.5px rgb(255 255 255 / 0.6), inset 0 -1.5px 1px rgb(0 0 0 / 0.14), 0 1px 2px rgb(0 0 0 / 0.14),
+    0 12px 30px -8px color-mix(in oklab, var(--gloss) 80%, transparent) !important;
+}
+.button--primary:disabled, .button--danger:disabled, button.bg-sb-primary:disabled { filter: saturate(0.6); box-shadow: inset 0 1px 0.5px rgb(255 255 255 / 0.4) !important; }
+/* Vidrio: secundarios, terciarios, contorno y los suaves */
+.button--secondary, .button--tertiary, .button--outline, .button--danger-soft {
+  background: var(--glass-bg) !important; backdrop-filter: blur(16px) saturate(1.6);
+  border: 1px solid var(--glass-line) !important; box-shadow: var(--glass-shadow) !important;
+  transition: background-color .2s, box-shadow .25s var(--sb-ease), transform .2s var(--sb-ease), padding 400ms cubic-bezier(0.38, 0.49, 0, 2) !important;
+}
+.button--secondary:not(:disabled):hover, .button--tertiary:not(:disabled):hover, .button--outline:not(:disabled):hover, .button--danger-soft:not(:disabled):hover {
+  background: color-mix(in oklab, var(--glass-bg) 70%, var(--sb-surface)) !important;
+  box-shadow: var(--glass-shadow), 0 12px 26px -14px rgb(16 16 24 / 0.3) !important;
+}
+.button--danger-soft { color: var(--sb-red) !important; }
+.button--ghost:not(:disabled):hover { background: var(--glass-bg) !important; box-shadow: var(--glass-shadow) !important; }
+/* Al presionar: se hunde un poco (sin el brillo de abajo) */
+.button:not(:disabled):active, button.bg-sb-primary:not(:disabled):active { box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.18) !important; }
+/* Barras de botones (controles del 3D, tamaños, filtros): base de vidrio esmerilado, como la del ejemplo */
+.sb-glass { background: var(--glass-bg) !important; backdrop-filter: blur(18px) saturate(1.7); border: 1px solid var(--glass-line) !important; box-shadow: var(--glass-shadow) !important; }
+
+/* Cerrar ventana: el botón rojo (con su ✕ oscura y su brillo rojo) */
+.modal__close-trigger {
+  z-index: 10 !important; width: 30px !important; height: 30px !important; min-width: 0 !important; padding: 0 !important; color: rgb(110 10 6 / 0.85) !important;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--sb-red) 70%, #fff) 0%, var(--sb-red) 55%, color-mix(in oklab, var(--sb-red) 85%, #000) 100%) !important;
+  box-shadow: inset 0 1px 0.5px rgb(255 255 255 / 0.55), inset 0 -1px 1px rgb(0 0 0 / 0.15), 0 6px 16px -6px color-mix(in oklab, var(--sb-red) 75%, transparent) !important;
+}
+.modal__close-trigger svg { width: 14px; height: 14px; stroke-width: 2.6; }
+.modal__close-trigger:hover { background: linear-gradient(180deg, color-mix(in oklab, var(--sb-red) 62%, #fff) 0%, var(--sb-red) 55%, color-mix(in oklab, var(--sb-red) 85%, #000) 100%) !important; transform: scale(1.08) rotate(90deg); }
+@media (prefers-reduced-transparency: reduce) { .button--secondary, .button--tertiary, .button--outline, .sb-glass { backdrop-filter: none; background: var(--sb-surface) !important; } }
+/* Botones y enlaces de vidrio (Guía, perfil…): al pasar el mouse, un vidrio un poco más claro; el texto nunca se pierde */
+a.sb-glass:hover, button.sb-glass:hover { background: color-mix(in oklab, var(--glass-bg) 55%, var(--sb-surface-container-high)) !important; color: var(--sb-on-surface) !important; }
