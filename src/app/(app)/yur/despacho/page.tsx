@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, toast } from "@heroui/react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
-import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, ChevronDown, Map as MapIcon, MapPin, Pencil, Plus, Route, Truck, Warehouse } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, Map as MapIcon, MapPin, Pencil, Plus, Route, Truck, Warehouse } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
 import { DATA_EVENT } from "@/components/UploadCenter";
@@ -33,6 +33,13 @@ const field = "h-10 w-full rounded-xl border border-sb-outline-variant bg-sb-sur
 const n = (v: number) => Number(v ?? 0).toLocaleString("es-PE");
 /** Lo que lleva normalmente un camión en esta ruta (historial): unas 36 unidades, hasta 84 */
 const TRUCK_MAX = 84;
+const STEPS = ["Carga", "Paradas", "Chofer y salida"];
+/** Paso que entra desde el lado hacia donde se avanza */
+const SLIDE = {
+  enter: (d: number) => ({ x: d * 36, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (d: number) => ({ x: d * -36, opacity: 0 }),
+};
 
 export default function YurDespachoPage() {
   const [data, setData] = useState<Data | null>(null);
@@ -56,6 +63,9 @@ export default function YurDespachoPage() {
   const [sizePick, setSizePick] = useState<TruckSize | null>(null);
   // Al despachar, el camión se va (se dibuja un momento con la carga que llevaba)
   const [gone, setGone] = useState<{ units: number; size: TruckSize } | null>(null);
+  // Paso del armado (0 carga · 1 paradas · 2 chofer y salida) y hacia dónde se desliza
+  const [step, setStep] = useState(0);
+  const [dir, setDir] = useState(1);
 
   const load = useCallback(() => {
     fetch("/api/yur?view=ruta").then((r) => r.json()).then(setData).catch(() => {});
@@ -82,6 +92,9 @@ export default function YurDespachoPage() {
   const allLocal = chosen.length > 0 && chosen.every((g) => g.r.local);
   const minDate = chosen.reduce((m, g) => (g.since && g.since > m ? g.since : m), "");
   const truck = sizePick ?? sizeFor(tot.total);
+  // Sin guías marcadas, siempre en el primer paso
+  const cur = chosen.length ? step : 0;
+  const go = (i: number) => { setDir(i >= cur ? 1 : -1); setStep(i); };
   // Paradas del camión, en orden, con su llegada estimada
   const districts = [...new Set(chosen.map((g) => g.district ?? "").filter(Boolean))];
   const stops = [...order.filter((d) => districts.includes(d)), ...orderStops(districts.filter((d) => !order.includes(d)))];
@@ -134,6 +147,7 @@ export default function YurDespachoPage() {
       { description: delivered ? "Despacho y entrega local registrados" : `Chofer ${j.driver} · → Tránsito dealer`, timeout: 7000 });
     if (j.late && !reason) toast.warning(`${j.late} unidades quedaron sin motivo de demora`, { timeout: 7000 });
     setGone({ units: tot.total, size: truck });
+    setStep(0); setDir(-1);
     setTimeout(() => setGone(null), 1700);
     setPick(new Set()); setOrder([]); setSizePick(null); setReason(""); setPlate(""); setReload((x) => x + 1);
   }
@@ -246,14 +260,33 @@ export default function YurDespachoPage() {
         })}
       </div>
 
-      {/* Armar el camión */}
+      {/* Armar el camión: tres pasos que se deslizan dentro de la tarjeta (carga → paradas → chofer y salida) */}
       <Card className="scroll-mt-4 overflow-hidden">
-        <div ref={formRef} id="camion" className="border-b border-sb-outline-variant/40 px-4 py-3">
+        <div ref={formRef} id="camion" className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-sb-outline-variant/40 px-4 py-3">
           <h3 className="flex items-center gap-2 text-sm font-semibold"><Truck className="h-4 w-4" /> Armar el camión</h3>
+          <ol className="flex flex-1 items-center gap-1 sm:justify-end" aria-label="Pasos">
+            {STEPS.map((t, i) => {
+              const can = i === 0 || chosen.length > 0;
+              return (
+                <li key={t} className="flex items-center gap-1">
+                  {i > 0 && <span className={cn("h-px w-3 sm:w-5", i <= cur ? "bg-sb-primary" : "bg-sb-outline-variant")} />}
+                  <button type="button" disabled={!can} onClick={() => go(i)} aria-current={i === cur ? "step" : undefined}
+                    className={cn("flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] transition-colors", i === cur ? "bg-sb-surface-container font-semibold text-sb-on-surface" : "text-sb-on-surface-variant hover:bg-sb-surface-container-low", !can && "opacity-40")}>
+                    <span className={cn("grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold", i < cur ? "bg-sb-primary text-sb-on-primary" : i === cur ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container-high")}>{i < cur ? <Check className="h-3 w-3" /> : i + 1}</span>
+                    <span className={cn(i !== cur && "hidden sm:inline")}>{t}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
         </div>
-        <div className="grid gap-4 p-4 lg:grid-cols-[1fr_18rem]">
-          <div className="flex min-w-0 flex-col gap-2">
-            {/* El camión en 3D: se llena con las guías marcadas */}
+        <div className="relative overflow-hidden">
+          <AnimatePresence mode="popLayout" initial={false} custom={dir}>
+            <motion.div key={cur} custom={dir} variants={SLIDE} initial="enter" animate="center" exit="exit" transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
+              className="flex flex-col gap-3 p-4">
+              {cur === 0 && (
+                <>
+                  {/* El camión en 3D: se llena con las guías marcadas */}
             <div className="flex flex-col gap-2 rounded-[18px] bg-sb-surface-container-low p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs"><b className="text-sm">{gone ? gone.size.name : truck.name}</b><span className="text-sb-on-surface-variant"> · hasta {(gone ? gone.size : truck).cap} motos</span></span>
@@ -268,8 +301,31 @@ export default function YurDespachoPage() {
                 </div>
               ) : <p className="text-center text-xs text-sb-on-surface-variant">{gone ? "¡Camión despachado!" : "Marca arriba las guías que suben al camión."}</p>}
             </div>
-            {chosen.length > 0 && (
-              <>
+                  {chosen.length > 0 && (
+                    <>
+                {/* Lo que queda en el camino */}
+                {onWay.length > 0 && tot.total < TRUCK_MAX && (
+                  <div className="rounded-xl bg-sb-primary-soft/50 px-3 py-2 text-xs">
+                    <p className="font-semibold">Puedes sumar · queda en el camino{farthest ? ` a ${townOf(farthest)?.name ?? farthest}` : ""}</p>
+                    <div className="mt-1.5 flex flex-col gap-1">
+                      {onWay.slice(0, 6).map((g) => (
+                        <button key={`${g.guia}-${g.dealer}`} type="button" onClick={() => g.guia && toggle(g.guia)}
+                          className="flex items-center gap-2 rounded-lg bg-sb-surface px-2.5 py-1.5 text-left hover:ring-1 hover:ring-sb-primary">
+                          <Plus className="h-4 w-4 shrink-0 text-sb-primary" />
+                          <span className="min-w-0 flex-1 truncate"><b>{townOf(g.district)?.name ?? g.district}</b> · {g.dealer}</span>
+                          <span className="shrink-0 tabular-nums">{g.total} unid.</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {tot.total > TRUCK_MAX && <p className="flex items-center gap-1.5 rounded-xl bg-sb-late-soft/60 px-3 py-2 text-[11px] text-sb-late"><AlertTriangle className="h-3.5 w-3.5 shrink-0" />Son más unidades de las que suele llevar un camión.</p>}
+                    </>
+                  )}
+                </>
+              )}
+              {cur === 1 && (
+                <>
                 {/* Paradas en orden, con su llegada estimada */}
                 <div className="rounded-xl border border-sb-outline-variant/40">
                   <p className="flex items-center gap-1.5 border-b border-sb-outline-variant/30 px-3 py-2 text-[11px] font-semibold"><MapPin className="h-3.5 w-3.5" /> Paradas del camión ({stops.length}) · en este orden</p>
@@ -292,27 +348,20 @@ export default function YurDespachoPage() {
                 </div>
                 {!line.ok && <p className="flex items-center gap-1.5 rounded-xl bg-amber-500/10 px-3 py-2 text-[11px] text-amber-700 dark:text-amber-400"><AlertTriangle className="h-3.5 w-3.5 shrink-0" />{line.off.join(", ")} no queda en el camino a {line.far}: el camión tendrá que desviarse y volver.</p>}
                 {line.ok && routesChosen.length > 1 && <p className="rounded-xl bg-sb-ontime-soft/50 px-3 py-2 text-[11px]">Junta {routesChosen.length} rutas, pero todo queda en el mismo camino. Bien.</p>}
-                {/* Lo que queda en el camino */}
-                {onWay.length > 0 && tot.total < TRUCK_MAX && (
-                  <div className="rounded-xl bg-sb-primary-soft/50 px-3 py-2 text-xs">
-                    <p className="font-semibold">Puedes sumar · queda en el camino{farthest ? ` a ${townOf(farthest)?.name ?? farthest}` : ""}</p>
-                    <div className="mt-1.5 flex flex-col gap-1">
-                      {onWay.slice(0, 6).map((g) => (
-                        <button key={`${g.guia}-${g.dealer}`} type="button" onClick={() => g.guia && toggle(g.guia)}
-                          className="flex items-center gap-2 rounded-lg bg-sb-surface px-2.5 py-1.5 text-left hover:ring-1 hover:ring-sb-primary">
-                          <Plus className="h-4 w-4 shrink-0 text-sb-primary" />
-                          <span className="min-w-0 flex-1 truncate"><b>{townOf(g.district)?.name ?? g.district}</b> · {g.dealer}</span>
-                          <span className="shrink-0 tabular-nums">{g.total} unid.</span>
-                        </button>
+                </>
+              )}
+              {cur === 2 && (
+                <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
+                  <div className="flex flex-col gap-2 rounded-[18px] bg-sb-surface-container-low p-3 text-xs">
+                    <p className="text-sm font-semibold">{truck.name} · {n(tot.total)} unid.</p>
+                    <p className="text-sb-on-surface-variant">{chosen.length} guía(s) · {unitsText(tot.w2, tot.w3)}</p>
+                    <ol className="mt-1 flex flex-col gap-1">
+                      {stops.map((d, i) => (
+                        <li key={d} className="flex items-center gap-2"><span className="grid h-5 w-5 place-items-center rounded-full bg-sb-surface-container-high text-[10px] font-bold">{i + 1}</span><b>{townOf(d)?.name ?? d}</b><span className="text-sb-on-surface-variant">· aprox. {fmtDate(etas[i])}</span></li>
                       ))}
-                    </div>
+                    </ol>
                   </div>
-                )}
-                {tot.total > TRUCK_MAX && <p className="flex items-center gap-1.5 rounded-xl bg-sb-late-soft/60 px-3 py-2 text-[11px] text-sb-late"><AlertTriangle className="h-3.5 w-3.5 shrink-0" />Son más unidades de las que suele llevar un camión.</p>}
-              </>
-            )}
-          </div>
-          <div className="flex flex-col gap-3 border-t border-sb-outline-variant/40 pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+                  <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1 text-xs">
               <span className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">Cambia de estado</span>
               <span className="flex flex-wrap items-center gap-1.5">
@@ -344,11 +393,27 @@ export default function YurDespachoPage() {
                 <SoftSelect className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((x) => <option key={x}>{x}</option>)}</SoftSelect>
               </label>
             )}
-            <Button variant="primary" className="w-full rounded-full lg:w-auto" onPress={dispatch} isDisabled={saving || !chosen.length || !driver.trim() || !data.canDispatch}>
+                  </div>
+                </div>
+              )}
+              {/* Pie del paso: volver a la izquierda, seguir a la derecha */}
+              <div className="flex items-center justify-between gap-2 border-t border-sb-outline-variant/50 pt-3">
+                {cur > 0 ? (
+                  <Button variant="tertiary" className="rounded-full" onPress={() => go(cur - 1)}><ArrowLeft className="h-4 w-4" /> {STEPS[cur - 1]}</Button>
+                ) : <span className="text-[11px] text-sb-on-surface-variant">{chosen.length ? `${chosen.length} guía(s) en el camión` : "Marca arriba las guías"}</span>}
+                {cur < 2 ? (
+                  <Button variant="primary" className="rounded-full" onPress={() => go(cur + 1)} isDisabled={!chosen.length}>Siguiente: {STEPS[cur + 1].toLowerCase()} <ArrowRight className="h-4 w-4" /></Button>
+                ) : (
+                  <span className="flex items-center gap-2">
+                  {!data.canDispatch && <span className="hidden text-[11px] text-sb-on-surface-variant sm:inline">Solo lectura: el despacho no es tu etapa.</span>}
+            <Button variant="primary" className="rounded-full" onPress={dispatch} isDisabled={saving || !chosen.length || !driver.trim() || !data.canDispatch}>
               {saving ? "Registrando…" : allLocal && local && data.canDeliver ? "Despachar y entregar" : "Despachar camión"}
             </Button>
-            {!data.canDispatch && <p className="text-[11px] text-sb-on-surface-variant">Solo lectura: el despacho no es tu etapa.</p>}
-          </div>
+                  </span>
+                )}
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
       </Card>
 
