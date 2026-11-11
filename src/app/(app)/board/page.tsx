@@ -7,6 +7,7 @@ import { Sheet } from "@/components/modal/Sheet";
 import { DATA_EVENT } from "@/components/UploadCenter";
 import { Card, PageTitle } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import { townOf } from "@/lib/yur-road";
 import { MONTHS, SITE_INFO, STATUS_LABEL, STATUS_SHORT, type Site, type Status } from "@/lib/hsp";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { AnimatedNumber, SERVICE_STYLE, ServiceBadge, ServiceSplitBar } from "@/components/Service";
@@ -349,6 +350,22 @@ function Transit({ site, rows, onPick }: { site: Site; rows: Data["transit"]; on
 
 /* ---------- Modal: detalle por distrito y dealer (2W motos · 3W motokares) ---------- */
 
+/** Colores de motos (2W) y motokares (3W): el de la empresa y su versión clara */
+const W2 = "var(--sb-primary)";
+const W3 = "color-mix(in oklab, var(--sb-primary) 38%, var(--sb-surface-container-high))";
+/** «NUEVA CAJAMARCA» → «Nueva Cajamarca» */
+const nice = (s: string) => townOf(s)?.name ?? s.toLowerCase().replace(/(^|[\s(.-])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());
+
+/** Barra de un distrito: motos y motokares, del largo de su total frente al distrito más grande */
+function Split({ w2, w3, of, className }: { w2: number; w3: number; of: number; className?: string }) {
+  return (
+    <span className={cn("flex overflow-hidden rounded-full bg-sb-surface-container", className)} aria-hidden>
+      <motion.span className="h-full" style={{ background: W2 }} initial={{ width: 0 }} animate={{ width: `${(w2 / of) * 100}%` }} transition={{ duration: 0.6, ease: EASE }} />
+      <motion.span className="h-full" style={{ background: W3 }} initial={{ width: 0 }} animate={{ width: `${(w3 / of) * 100}%` }} transition={{ duration: 0.6, delay: 0.08, ease: EASE }} />
+    </span>
+  );
+}
+
 function DetailModal({ ask, year, onClose }: { ask: Ask | null; year: number; onClose: () => void }) {
   const [data, setData] = useState<Detail | null>(null);
   const [open, setOpen] = useState<Set<string>>(new Set());
@@ -358,66 +375,82 @@ function DetailModal({ ask, year, onClose }: { ask: Ask | null; year: number; on
     for (const k of ["m", "service", "status", "delivered"] as const) if (ask[k] !== undefined) q.set(k, String(ask[k]));
     fetch(`/api/board/detail?${q}`).then((r) => r.json()).then(setData).catch(() => setData({ districts: [], totals: { w2: 0, w3: 0, total: 0 } }));
   }, [ask, year]);
+  const max = Math.max(1, ...(data?.districts ?? []).map((d) => d.total));
   return (
     <Sheet open={!!ask} onClose={onClose} size="lg" icon={MapPinned} title={ask?.title ?? ""}
       sub="Unidades por distrito, separadas en motos (2W) y motokares (3W)."
       summary={data ? <><b className="text-sb-on-surface">{n(data.totals.total)}</b> {data.totals.total === 1 ? "unidad" : "unidades"} · {n(data.totals.w2)} 2W · {n(data.totals.w3)} 3W · {data.districts.length} distritos</> : "Cargando…"}>
-              {!data ? <p className="py-8 text-center text-sm text-sb-on-surface-variant">Cargando…</p> : (
-                <div className="max-h-[60vh] overflow-y-auto rounded-xl border border-sb-outline-variant/40">
-                  <table className="w-full text-sm">
-                    <thead className="sticky top-0 bg-sb-surface">
-                      <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
-                        <th className="px-3 py-2 text-left font-semibold">Distrito / Dealer</th>
-                        <th className="px-3 py-2 text-right font-semibold" title="Motos (2 llantas)">2W · motos</th>
-                        <th className="px-3 py-2 text-right font-semibold" title="Motokares (3 llantas)">3W · motokares</th>
-                        <th className="px-3 py-2 text-right font-semibold">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.districts.map((d) => {
-                        const isOpen = open.has(d.district);
-                        return (
-                          <Fragment key={d.district}>
-                            <tr className="border-b border-sb-outline-variant/20 font-semibold">
-                              <td className="px-3 py-2">
-                                <button type="button" aria-expanded={isOpen} className="flex items-center gap-1"
-                                  onClick={() => setOpen((s) => { const x = new Set(s); if (x.has(d.district)) x.delete(d.district); else x.add(d.district); return x; })}>
-                                  <ChevronRight className={cn("h-3.5 w-3.5 transition-transform duration-200 ease-out", isOpen && "rotate-90")} />{d.district}
-                                </button>
-                              </td>
-                              <td className="px-3 py-2 text-right tabular-nums">{d.w2 ? n(d.w2) : ""}</td>
-                              <td className="px-3 py-2 text-right tabular-nums">{d.w3 ? n(d.w3) : ""}</td>
-                              <td className="px-3 py-2 text-right tabular-nums">{n(d.total)}</td>
-                            </tr>
-                            <AnimatePresence initial={false}>
-                            {isOpen && d.dealers.map((x, k) => (
-                              <motion.tr key={x.dealer} className="border-b border-sb-outline-variant/10 text-xs text-sb-on-surface-variant"
-                                initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, transition: { duration: 0.15 } }}
-                                transition={{ duration: 0.25, delay: 0.03 * k, ease: EASE }}>
-                                <td className="py-1.5 pl-9 pr-3">{x.dealer}</td>
-                                <td className="px-3 py-1.5 text-right tabular-nums">{x.w2 ? n(x.w2) : ""}</td>
-                                <td className="px-3 py-1.5 text-right tabular-nums">{x.w3 ? n(x.w3) : ""}</td>
-                                <td className="px-3 py-1.5 text-right tabular-nums">{n(x.total)}</td>
-                              </motion.tr>
-                            ))}
-                            </AnimatePresence>
-                          </Fragment>
-                        );
-                      })}
-                      {!data.districts.length && <tr><td colSpan={4} className="py-8 text-center text-xs text-sb-on-surface-variant">Sin unidades.</td></tr>}
-                    </tbody>
-                    {!!data.districts.length && (
-                      <tfoot className="sticky bottom-0 bg-sb-surface">
-                        <tr className="border-t border-sb-outline-variant/40 font-bold">
-                          <td className="px-3 py-2">Total</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{n(data.totals.w2)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{n(data.totals.w3)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{n(data.totals.total)}</td>
-                        </tr>
-                      </tfoot>
-                    )}
-                  </table>
+              {!data ? (
+                <div className="flex flex-col gap-2" aria-busy="true">
+                  <div className="grid grid-cols-3 gap-2">{[0, 1, 2].map((i) => <div key={i} className="h-[72px] animate-pulse rounded-2xl bg-sb-surface-container" />)}</div>
+                  {[0, 1, 2, 3].map((i) => <div key={i} className="h-14 animate-pulse rounded-2xl bg-sb-surface-container-low" />)}
                 </div>
+              ) : (
+                <>
+                  {/* Resumen: total, motos y motokares, con la proporción entre ambos */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {([["Total", data.totals.total, null], ["Motos", data.totals.w2, "w2"], ["Motokares", data.totals.w3, "w3"]] as const).map(([l, v, k]) => (
+                      <div key={l} className="flex flex-col gap-1 rounded-2xl bg-sb-surface-container-low px-3.5 py-3">
+                        <span className="flex items-center gap-1.5 text-[11px] text-sb-on-surface-variant">
+                          {k && <i className="h-2 w-2 rounded-full" style={{ background: k === "w2" ? W2 : W3 }} />}{l}
+                        </span>
+                        <b className="text-xl leading-none tabular-nums tracking-tight">{n(v)}</b>
+                        {k ? <span className="text-[10px] text-sb-on-surface-variant">{k === "w2" ? "2W" : "3W"}{data.totals.total > 0 ? ` · ${Math.round((v / data.totals.total) * 100)}%` : ""}</span>
+                          : <span className="text-[10px] text-sb-on-surface-variant">{data.districts.length} {data.districts.length === 1 ? "distrito" : "distritos"}</span>}
+                      </div>
+                    ))}
+                  </div>
+                  {data.totals.total > 0 && <Split w2={data.totals.w2} w3={data.totals.w3} of={data.totals.total} className="h-2" />}
+
+                  {/* Distritos: fila limpia con su barra; al tocarla se abren sus dealers */}
+                  <div className="flex flex-col gap-1.5">
+                    {data.districts.map((d, i) => {
+                      const isOpen = open.has(d.district);
+                      return (
+                        <motion.div key={d.district} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: Math.min(i, 10) * 0.025, ease: EASE }}
+                          className={cn("overflow-hidden rounded-2xl transition-colors", isOpen ? "bg-sb-surface-container-low" : "hover:bg-sb-surface-container-low")}>
+                          <button type="button" aria-expanded={isOpen} className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
+                            onClick={() => setOpen((s) => { const x = new Set(s); if (x.has(d.district)) x.delete(d.district); else x.add(d.district); return x; })}>
+                            <span className={cn("grid h-7 w-7 shrink-0 place-items-center rounded-full bg-sb-surface-container transition-transform duration-300", isOpen && "rotate-90")}>
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </span>
+                            <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                              <span className="flex items-baseline justify-between gap-3">
+                                <span className="truncate text-[14px] font-semibold">{nice(d.district)}</span>
+                                <span className="shrink-0 text-[15px] font-bold tabular-nums">{n(d.total)}</span>
+                              </span>
+                              <span className="flex items-center gap-3">
+                                <Split w2={d.w2} w3={d.w3} of={max} className="h-1.5 flex-1" />
+                                <span className="w-[8.5rem] shrink-0 text-right text-[11px] tabular-nums text-sb-on-surface-variant">
+                                  {d.w2 ? `${n(d.w2)} motos` : ""}{d.w2 && d.w3 ? " · " : ""}{d.w3 ? `${n(d.w3)} motok.` : ""}
+                                </span>
+                              </span>
+                            </span>
+                          </button>
+                          <AnimatePresence initial={false}>
+                            {isOpen && (
+                              <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.28, ease: EASE }} className="overflow-hidden">
+                                {d.dealers.map((x) => (
+                                  <li key={x.dealer} className="ml-[3.25rem] mr-3 flex items-center gap-3 border-t border-sb-outline-variant/50 py-2 text-[12px] first:border-0">
+                                    <span className="min-w-0 flex-1 truncate">{x.dealer}</span>
+                                    <span className="flex shrink-0 items-center gap-2 tabular-nums text-sb-on-surface-variant">
+                                      {x.w2 > 0 && <span className="flex items-center gap-1"><i className="h-1.5 w-1.5 rounded-full" style={{ background: W2 }} />{n(x.w2)}</span>}
+                                      {x.w3 > 0 && <span className="flex items-center gap-1"><i className="h-1.5 w-1.5 rounded-full" style={{ background: W3 }} />{n(x.w3)}</span>}
+                                    </span>
+                                    <b className="w-10 shrink-0 text-right tabular-nums">{n(x.total)}</b>
+                                  </li>
+                                ))}
+                                <li className="h-2" aria-hidden />
+                              </motion.ul>
+                            )}
+                          </AnimatePresence>
+                        </motion.div>
+                      );
+                    })}
+                    {!data.districts.length && <p className="rounded-2xl bg-sb-surface-container-low py-10 text-center text-xs text-sb-on-surface-variant">Sin unidades en esta selección.</p>}
+                  </div>
+                </>
               )}
     </Sheet>
   );
