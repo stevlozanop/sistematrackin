@@ -20,7 +20,6 @@ import { CodeTag } from "@/components/ui";
 import { LiveSync } from "@/components/LiveSync";
 import { PushNudge, forgetPushDevice } from "@/components/PushNotifications";
 import { DATA_EVENT } from "@/components/UploadCenter";
-import { ModalMorph } from "@/components/ModalMorph";
 
 type Item = { title: string; href: string; icon: LucideIcon; roles?: Role[]; fields?: string[]; badge?: string };
 /** Indicador en vivo junto a una opción del menú: texto y tono (alert = rojo, warn = ámbar, live = punto que late) */
@@ -400,7 +399,6 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
   return (
     <div className="relative flex h-screen overflow-hidden bg-[var(--page-bg)] text-sb-on-background">
       <LiveSync />
-      <ModalMorph />
       <PushNudge />
       {/* Sidebar */}
       <aside className={cn("z-10 hidden h-screen shrink-0 flex-col overflow-hidden bg-transparent transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] md:flex", open ? "w-[244px]" : "w-[68px]")}>
