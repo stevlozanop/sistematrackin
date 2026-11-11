@@ -293,7 +293,7 @@ export function RoadScene({ trucks, selected, onPick, path, stops, enapu }: {
           ))}
         </div>
         {/* Controles */}
-        <div className="absolute bottom-2 right-2 flex items-center gap-0.5 rounded-full border border-sb-outline-variant/60 bg-sb-surface/95 p-1 shadow-sm" onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+        <div className="sb-glass absolute bottom-2 right-2 flex items-center gap-0.5 rounded-full border border-sb-outline-variant/60 bg-sb-surface/95 p-1 shadow-sm" onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
           <div className="flex rounded-full bg-sb-surface-container p-0.5" role="group" aria-label="Al arrastrar">
             <button type="button" aria-pressed={mode === "move"} title="Arrastrar mueve el mapa" onClick={() => setMode("move")}
               className={cn("grid h-7 w-7 place-items-center rounded-full", mode === "move" ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant")}><Hand className="h-4 w-4" /><span className="sr-only">Mover</span></button>

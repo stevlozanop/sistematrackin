@@ -391,7 +391,7 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
           </p>
         )}
         {/* Controles de la cámara */}
-        <div className={cn("absolute bottom-2 right-2 flex max-w-[calc(100%-1rem)] items-center gap-0.5 overflow-x-auto rounded-full border border-sb-outline-variant/60 bg-sb-surface/95 p-1 shadow-sm [scrollbar-width:none]", compact && "[&_button]:!h-8 [&_button]:!w-8")} onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+        <div className={cn("sb-glass absolute bottom-2 right-2 flex max-w-[calc(100%-1rem)] items-center gap-0.5 overflow-x-auto rounded-full border border-sb-outline-variant/60 bg-sb-surface/95 p-1 shadow-sm [scrollbar-width:none]", compact && "[&_button]:!h-8 [&_button]:!w-8")} onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
           <div className="flex rounded-full bg-sb-surface-container p-0.5" role="group" aria-label="Al arrastrar">
             <button type="button" aria-pressed={mode === "move"} title="Arrastrar mueve la vista" onClick={() => setMode("move")}
               className={cn("grid h-7 w-7 place-items-center rounded-full", mode === "move" ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant")}><Hand className="h-4 w-4" /><span className="sr-only">Mover</span></button>

@@ -166,7 +166,7 @@ export function CargoFigure({ kind, units, size, leaving = false, className, tit
 /** Botones S · M · L · XL con el indicador que se desliza */
 export function SizePicker({ value, onChange, units }: { value: TruckSize; onChange: (s: TruckSize) => void; units: number }) {
   return (
-    <div className="relative flex rounded-full bg-sb-surface-container p-1" role="radiogroup" aria-label="Tamaño del camión">
+    <div className="sb-glass relative flex rounded-full bg-sb-surface-container p-1" role="radiogroup" aria-label="Tamaño del camión">
       {TRUCK_SIZES.map((s) => {
         const on = s.id === value.id;
         return (
