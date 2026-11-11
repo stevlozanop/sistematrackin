@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { Button, toast } from "@heroui/react";
-import { AlertTriangle, CalendarClock, CheckCircle2, Clock, Copy, History, KeyRound, Lock, Receipt, Send, Users, XCircle } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, Clock, Copy, History, Info, KeyRound, Lock, Receipt, Send, ShieldCheck, Users, Wallet, XCircle } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
 import { DATA_EVENT } from "@/components/UploadCenter";
@@ -105,88 +105,180 @@ export default function LicenciaPage() {
     : l.daysLeft !== null && l.daysLeft <= 15 ? { label: `Vence en ${l.daysLeft} días`, icon: AlertTriangle, cls: "bg-amber-500/15 text-amber-700 dark:text-amber-400" }
     : { label: "Activa", icon: CheckCircle2, cls: "bg-sb-ontime-soft text-sb-ontime" };
 
+  const overdue = owed.some((p) => p.overdue);
+  const totalOwed = owed.reduce((t, p) => t + p.amount, 0);
+  const paidCount = done.filter((p) => p.status === "pagado").length;
+  const usage = l.maxUsers ? Math.min(1, l.accounts / l.maxUsers) : null;
+  const headline = l.status === "suspended" ? "Tu licencia está suspendida" : l.status === "expired" ? "Tu licencia venció"
+    : owed.length ? (overdue ? "Tienes un pago vencido" : "Tienes un pago pendiente") : "Todo en orden";
+  const detail = l.status === "suspended" ? "Nadie de la empresa puede entrar hasta que The Iceberg Labs la reactive."
+    : l.status === "expired" ? "Comunícate con The Iceberg Labs para renovarla."
+    : owed.length ? `${money(totalOwed, owed[0].currency)} por pagar${overdue ? " · regularízalo para evitar la suspensión" : ""}.`
+    : `La licencia está activa${l.expiresAt ? ` hasta el ${fmtDate(l.expiresAt)}` : " y no vence"}. No tienes pagos pendientes.`;
+
   return (
     <div className="flex flex-col gap-4">
       <PageTitle title="Licencia y pagos" sub={`La licencia de ${l.company ?? "tu empresa"} para usar System Tracking: lo que tienes por pagar, cómo pagar y tu historial.`} />
 
-      <Card className="flex flex-col gap-4 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sb-primary text-sb-on-primary"><KeyRound className="h-5 w-5" /></span>
-            <div className="min-w-0">
-              <p className="truncate text-base font-semibold">{l.company}</p>
-              <p className="text-[12px] text-sb-on-surface-variant">Plan {l.plan ?? "Estándar"}{l.fee !== null ? ` · ${money(l.fee, l.currency)} ${l.cycle === "anual" ? "al año" : "al mes"}` : ""}</p>
-            </div>
+      {/* Resumen de la licencia */}
+      <Card className="overflow-hidden">
+        <div className="flex flex-wrap items-center gap-4 p-5">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sb-primary-soft text-sb-primary"><KeyRound className="h-5 w-5" /></span>
+          <div className="min-w-0 flex-1">
+            <p className="flex flex-wrap items-center gap-2 text-[17px] font-semibold tracking-tight">
+              {l.company}
+              <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold", st.cls)}><st.icon className="h-3.5 w-3.5" /> {st.label}</span>
+            </p>
+            <p className="text-[12.5px] text-sb-on-surface-variant">Plan {l.plan ?? "Estándar"}{l.fee !== null ? ` · ${money(l.fee, l.currency)} ${l.cycle === "anual" ? "al año" : "al mes"}` : ""}</p>
           </div>
-          <span className={cn("inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-[12px] font-semibold", st.cls)}><st.icon className="h-3.5 w-3.5" /> {st.label}</span>
+          <div className={cn("flex items-center gap-2.5 rounded-2xl px-4 py-2.5", l.status !== "active" || overdue ? "bg-sb-late-soft/60" : owed.length ? "bg-amber-500/10" : "bg-sb-ontime-soft/60")}>
+            {l.status !== "active" || overdue ? <AlertTriangle className="h-5 w-5 shrink-0 text-sb-late" /> : owed.length ? <Clock className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" /> : <ShieldCheck className="h-5 w-5 shrink-0 text-sb-ontime" />}
+            <span className="flex flex-col leading-tight">
+              <b className="text-[13px]">{headline}</b>
+              <span className="max-w-[22rem] text-[11.5px] text-sb-on-surface-variant">{detail}</span>
+            </span>
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
-          <div><p className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">Vence</p><p className="font-semibold">{l.expiresAt ? fmtDate(l.expiresAt) : "Sin vencimiento"}</p></div>
-          <div><p className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">Cuentas</p><p className="flex items-center gap-1 font-semibold"><Users className="h-3.5 w-3.5" />{l.accounts}{l.maxUsers ? ` de ${l.maxUsers}` : " · sin límite"}</p></div>
-          <div><p className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">Por pagar</p><p className={cn("font-semibold", owed.some((p) => p.overdue) && "text-sb-late")}>{owed.length ? owed.map((p) => money(p.amount, p.currency)).join(" + ") : "Nada"}</p></div>
-          <div><p className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">Desde</p><p className="font-semibold">{l.startsAt ? fmtDate(l.startsAt) : "—"}</p></div>
+        <div className="grid grid-cols-2 gap-px border-t border-sb-outline-variant/50 bg-sb-outline-variant/50 lg:grid-cols-4">
+          <Stat icon={CalendarClock} label="Vencimiento" value={l.expiresAt ? fmtDate(l.expiresAt) : "Sin vencimiento"}
+            hint={l.expiresAt && l.daysLeft !== null ? (l.daysLeft >= 0 ? `Quedan ${l.daysLeft} ${l.daysLeft === 1 ? "día" : "días"}` : "Ya venció") : "Licencia indefinida"} />
+          <Stat icon={Users} label="Cuentas" value={`${l.accounts}${l.maxUsers ? ` de ${l.maxUsers}` : ""}`} hint={l.maxUsers ? `${Math.round((usage ?? 0) * 100)}% del cupo` : "Sin límite de cuentas"}>
+            {usage !== null && <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-sb-surface-container-high"><span className={cn("block h-full rounded-full", usage >= 0.9 ? "bg-sb-late" : "bg-sb-primary")} style={{ width: `${usage * 100}%` }} /></span>}
+          </Stat>
+          <Stat icon={Receipt} label="Por pagar" value={owed.length ? money(totalOwed, owed[0].currency) : "Nada"} tone={overdue ? "late" : undefined}
+            hint={owed.length ? `${owed.length} ${owed.length === 1 ? "cobro" : "cobros"}${overdue ? " · vencido" : ""}` : "Estás al día"} />
+          <Stat icon={History} label="Cliente desde" value={l.startsAt ? fmtDate(l.startsAt) : "—"} hint={`${paidCount} ${paidCount === 1 ? "pago registrado" : "pagos registrados"}`} />
         </div>
-        {owed.some((p) => p.overdue) && (
-          <p className="flex items-start gap-2 rounded-xl bg-sb-late-soft/60 px-3 py-2 text-[12px]"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-sb-late" />
-            Tienes un pago vencido. Si no se regulariza, The Iceberg Labs puede suspender la licencia y nadie de la empresa (ni sus consorcios y clientes) podrá entrar.</p>
-        )}
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      <div className="grid items-start gap-4 lg:grid-cols-[1.5fr_1fr]">
+        {/* Por pagar */}
         <Card className="overflow-hidden">
-          <h3 className="flex items-center gap-2 border-b border-sb-outline-variant/40 px-4 py-3 text-sm font-semibold"><Receipt className="h-4 w-4" /> Por pagar</h3>
-          <div className="flex flex-col">
-            {due.map((p) => {
-              const c = chip(p);
-              return (
-                <div key={p.id} className="border-b border-sb-outline-variant/20 px-4 py-3 last:border-0">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold">{p.period}</p>
-                      <p className="text-[12px] text-sb-on-surface-variant">Vence el {fmtDate(p.due_on)}{p.note ? ` · ${p.note}` : ""}</p>
-                    </div>
-                    <p className="text-lg font-bold tabular-nums">{money(p.amount, p.currency)}</p>
-                    <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold", c.cls)}><c.icon className="h-3.5 w-3.5" /> {c.label}</span>
+          <SectionHead icon={Receipt} title="Por pagar" count={due.length} />
+          {due.length ? due.map((p) => {
+            const c = chip(p);
+            return (
+              <div key={p.id} className="border-t border-sb-outline-variant/40 px-5 py-4 first:border-0">
+                <div className="flex flex-wrap items-center gap-4">
+                  <DateBlock date={p.due_on} late={p.overdue && p.status === "pendiente"} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14px] font-semibold">{p.period}</p>
+                    <p className="text-[12px] text-sb-on-surface-variant">Vence el {fmtDate(p.due_on)}{p.note ? ` · ${p.note}` : ""}</p>
+                    <span className={cn("mt-1 inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold", c.cls)}><c.icon className="h-3.5 w-3.5" /> {c.label}</span>
                   </div>
-                  {p.status === "reportado" ? (
-                    <p className="mt-2 text-[12px] text-sb-on-surface-variant">Avisaste el pago del {p.paid_on ? fmtDate(p.paid_on) : "—"} por {p.method}{p.reference ? ` (op. ${p.reference})` : ""}{p.reported_by ? ` · ${p.reported_by}` : ""}. Te avisaremos cuando se confirme.</p>
-                  ) : open === p.id ? (
-                    <ReportForm p={p} onDone={() => { setOpen(null); load(); }} />
-                  ) : (
-                    <Button size="sm" variant="secondary" className="mt-2 rounded-full" onPress={() => setOpen(p.id)}><CheckCircle2 className="h-3.5 w-3.5" /> Ya pagué</Button>
-                  )}
+                  <div className="flex flex-col items-end gap-2">
+                    <p className="text-xl font-bold tabular-nums tracking-tight">{money(p.amount, p.currency)}</p>
+                    {p.status === "pendiente" && open !== p.id && (
+                      <Button size="sm" variant="primary" className="rounded-full" onPress={() => setOpen(p.id)}><CheckCircle2 className="h-3.5 w-3.5" /> Ya pagué</Button>
+                    )}
+                  </div>
                 </div>
-              );
-            })}
-            {!due.length && <p className="flex items-center justify-center gap-2 px-4 py-8 text-sm text-sb-on-surface-variant"><CheckCircle2 className="h-4 w-4 text-sb-ontime" /> Estás al día. No tienes pagos pendientes.</p>}
-          </div>
+                {p.status === "reportado" ? (
+                  <p className="mt-3 rounded-xl bg-sb-surface-container-low px-3 py-2 text-[12px] text-sb-on-surface-variant">Avisaste el pago del {p.paid_on ? fmtDate(p.paid_on) : "—"} por {p.method}{p.reference ? ` (op. ${p.reference})` : ""}{p.reported_by ? ` · ${p.reported_by}` : ""}. Te avisaremos cuando se confirme.</p>
+                ) : open === p.id ? (
+                  <ReportForm p={p} onDone={() => { setOpen(null); load(); }} />
+                ) : null}
+              </div>
+            );
+          }) : (
+            <Empty icon={CheckCircle2} tone="ok" title="Estás al día" text="No tienes pagos pendientes. Cuando The Iceberg Labs registre un cobro, aparecerá aquí y te llegará un aviso." />
+          )}
         </Card>
 
-        <Card className="flex flex-col gap-2 p-4">
-          <h3 className="text-sm font-semibold">Cómo pagar</h3>
-          {l.payInfo ? (
-            <>
-              <p className="whitespace-pre-wrap rounded-xl bg-sb-surface-container-low px-3 py-2.5 text-[13px] leading-relaxed">{l.payInfo}</p>
-              <Button size="sm" variant="ghost" className="self-start rounded-full" onPress={() => navigator.clipboard.writeText(l.payInfo!).then(() => toast.success("Datos copiados"))}><Copy className="h-3.5 w-3.5" /> Copiar datos</Button>
-            </>
-          ) : <p className="text-[12px] text-sb-on-surface-variant">The Iceberg Labs todavía no registró los datos de pago. Escríbeles para coordinar.</p>}
-          <p className="mt-1 text-[11px] text-sb-on-surface-variant">Después de pagar, toca «Ya pagué» en el cobro y pon el número de operación: así lo confirman más rápido.</p>
+        {/* Cómo pagar */}
+        <Card className="flex flex-col overflow-hidden">
+          <SectionHead icon={Wallet} title="Cómo pagar" />
+          <div className="flex flex-col gap-4 px-5 pb-5">
+            {l.payInfo ? (
+              <div className="rounded-2xl bg-sb-surface-container-low p-3.5">
+                <p className="text-[11px] font-medium text-sb-on-surface-variant">Datos de pago</p>
+                <p className="mt-1 whitespace-pre-wrap text-[13px] leading-relaxed">{l.payInfo}</p>
+                <Button size="sm" variant="tertiary" className="mt-2 rounded-full" onPress={() => navigator.clipboard.writeText(l.payInfo!).then(() => toast.success("Datos copiados"))}><Copy className="h-3.5 w-3.5" /> Copiar datos</Button>
+              </div>
+            ) : (
+              <p className="flex items-start gap-2 rounded-2xl bg-sb-surface-container-low px-3.5 py-3 text-[12.5px] text-sb-on-surface-variant">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" /> The Iceberg Labs todavía no registró los datos de pago. Escríbeles para coordinar.
+              </p>
+            )}
+            <ol className="flex flex-col">
+              {[
+                ["Paga", "Con los datos de arriba: transferencia, depósito, Yape o Plin."],
+                ["Avisa", "Toca «Ya pagué» en el cobro y pon el número de operación."],
+                ["Listo", "The Iceberg Labs confirma el pago y pasa a tu historial."],
+              ].map(([t, d], i, all) => (
+                <li key={t} className="relative flex gap-3 pb-4 last:pb-0">
+                  {i < all.length - 1 && <span className="absolute left-[11px] top-7 h-[calc(100%-1.75rem)] w-px bg-sb-outline-variant" />}
+                  <span className="z-[1] grid h-6 w-6 shrink-0 place-items-center rounded-full bg-sb-surface-container-high text-[11px] font-bold">{i + 1}</span>
+                  <span className="flex flex-col leading-snug"><b className="text-[13px]">{t}</b><span className="text-[12px] text-sb-on-surface-variant">{d}</span></span>
+                </li>
+              ))}
+            </ol>
+          </div>
         </Card>
       </div>
 
+      {/* Historial */}
       <Card className="overflow-hidden">
-        <h3 className="flex items-center gap-2 border-b border-sb-outline-variant/40 px-4 py-3 text-sm font-semibold"><History className="h-4 w-4" /> Historial de pagos</h3>
+        <SectionHead icon={History} title="Historial de pagos" count={done.length} />
         {done.length ? done.map((p) => {
           const c = chip(p);
           return (
-            <div key={p.id} className="flex flex-wrap items-center gap-3 border-b border-sb-outline-variant/20 px-4 py-2.5 text-[13px] last:border-0">
-              <span className="min-w-0 flex-1"><b>{p.period}</b><span className="block text-[11px] text-sb-on-surface-variant">{p.status === "pagado" ? `Pagado el ${p.paid_on ? fmtDate(p.paid_on) : "—"}${p.method ? ` · ${p.method}` : ""}${p.reference ? ` · op. ${p.reference}` : ""}` : "Cobro anulado"}</span></span>
-              <span className="font-semibold tabular-nums">{money(p.amount, p.currency)}</span>
-              <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold", c.cls)}><c.icon className="h-3 w-3" /> {c.label}</span>
+            <div key={p.id} className="flex flex-wrap items-center gap-4 border-t border-sb-outline-variant/40 px-5 py-3 first:border-0">
+              <DateBlock date={p.paid_on ?? p.due_on} muted={p.status === "anulado"} />
+              <span className="min-w-0 flex-1">
+                <b className="text-[13.5px]">{p.period}</b>
+                <span className="block text-[12px] text-sb-on-surface-variant">{p.status === "pagado" ? `Pagado el ${p.paid_on ? fmtDate(p.paid_on) : "—"}${p.method ? ` · ${p.method}` : ""}${p.reference ? ` · op. ${p.reference}` : ""}` : "Cobro anulado"}</span>
+              </span>
+              <span className={cn("text-[15px] font-semibold tabular-nums", p.status === "anulado" && "text-sb-on-surface-variant line-through")}>{money(p.amount, p.currency)}</span>
+              <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold", c.cls)}><c.icon className="h-3.5 w-3.5" /> {c.label}</span>
             </div>
           );
-        }) : <p className="px-4 py-6 text-center text-xs text-sb-on-surface-variant">Todavía no hay pagos registrados.</p>}
+        }) : (
+          <Empty icon={History} title="Todavía no hay pagos" text="Aquí verás cada pago confirmado con su fecha, forma de pago y número de operación." />
+        )}
       </Card>
     </div>
   );
 }
+
+/** Dato del resumen: ícono, título, valor y una línea de detalle */
+function Stat({ icon: Icon, label, value, hint, tone, children }: { icon: typeof Users; label: string; value: string; hint?: string; tone?: "late"; children?: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-0.5 bg-sb-surface px-5 py-4">
+      <span className="flex items-center gap-1.5 text-[11.5px] font-medium text-sb-on-surface-variant"><Icon className="h-3.5 w-3.5" /> {label}</span>
+      <b className={cn("text-[16px] tracking-tight tabular-nums", tone === "late" && "text-sb-late")}>{value}</b>
+      {hint && <span className="text-[11px] text-sb-on-surface-variant">{hint}</span>}
+      {children}
+    </div>
+  );
+}
+
+const SectionHead = ({ icon: Icon, title, count }: { icon: typeof Users; title: string; count?: number }) => (
+  <div className="flex items-center gap-2 px-5 pb-3 pt-4">
+    <span className="grid h-8 w-8 place-items-center rounded-xl bg-sb-surface-container"><Icon className="h-4 w-4" /></span>
+    <h3 className="text-[14px] font-semibold">{title}</h3>
+    {count !== undefined && count > 0 && <span className="rounded-full bg-sb-surface-container px-2 py-0.5 text-[11px] font-semibold tabular-nums text-sb-on-surface-variant">{count}</span>}
+  </div>
+);
+
+/** Fecha en bloque (día grande y mes): para ubicar cada cobro de un vistazo */
+function DateBlock({ date, late, muted }: { date: string; late?: boolean; muted?: boolean }) {
+  const d = new Date(`${String(date).slice(0, 10)}T12:00:00`);
+  const mes = d.toLocaleDateString("es-PE", { month: "short" }).replace(".", "");
+  return (
+    <span className={cn("flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-2xl leading-none",
+      late ? "bg-sb-late-soft text-sb-late" : muted ? "bg-sb-surface-container text-sb-on-surface-variant" : "bg-sb-surface-container-low")}>
+      <b className="text-[17px] tabular-nums">{d.getDate()}</b>
+      <span className="mt-0.5 text-[10px] font-medium uppercase">{mes}</span>
+    </span>
+  );
+}
+
+/** Vacío con ícono suave, título y una línea que explica qué aparecerá */
+const Empty = ({ icon: Icon, title, text, tone }: { icon: typeof Users; title: string; text: string; tone?: "ok" }) => (
+  <div className="flex flex-col items-center gap-2 px-6 pb-8 pt-4 text-center">
+    <span className={cn("grid h-12 w-12 place-items-center rounded-full", tone === "ok" ? "bg-sb-ontime-soft text-sb-ontime" : "bg-sb-surface-container text-sb-on-surface-variant")}><Icon className="h-5 w-5" /></span>
+    <b className="text-[14px]">{title}</b>
+    <p className="max-w-sm text-[12.5px] text-sb-on-surface-variant">{text}</p>
+  </div>
+);
