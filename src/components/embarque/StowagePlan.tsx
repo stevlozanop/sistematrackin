@@ -7,6 +7,7 @@ import type { Site } from "@/lib/hsp";
 import { KIND_LABEL, bayName, defaultVessel, floating, rowName, same, slotName, tierName, type Slot, type Vessel } from "@/lib/stowage";
 import { cn } from "@/lib/cn";
 import { Stowage3D } from "./Stowage3D";
+import { SoftSelect } from "@/components/SoftSelect";
 
 type Item = { id: number; code: string; slot: Slot | null; units: number; guias: number; dealers: string | null };
 
@@ -85,7 +86,7 @@ export function StowagePlan({ site, nave, onChanged }: { site: Site; nave: strin
       {sizing && (
         <div className="flex flex-wrap items-end gap-2 rounded-xl border border-sb-outline-variant/50 p-3 text-[11px] text-sb-on-surface-variant">
           <label className="flex flex-col gap-1">Tipo de nave
-            <select className="h-9 rounded-lg border border-sb-outline-variant bg-sb-surface px-2 text-sm text-sb-on-surface" value={sizing.kind ?? "chata"}
+            <SoftSelect className="h-9 rounded-lg border border-sb-outline-variant bg-sb-surface px-2 text-sm text-sb-on-surface" value={sizing.kind ?? "chata"}
               onChange={(e) => {
                 const kind = e.target.value as "chata" | "motonave";
                 // Al cambiar el tipo se propone su tamaño típico (se puede ajustar)
@@ -94,14 +95,14 @@ export function StowagePlan({ site, nave, onChanged }: { site: Site; nave: strin
               }}>
               <option value="chata">Chata con empujador (muchos contenedores)</option>
               <option value="motonave">Motonave (pocos contenedores en proa)</option>
-            </select>
+            </SoftSelect>
           </label>
           {([["bays", "Bahías (largo)", 20], ["rows", "Filas (ancho)", 6], ["tiers", "Niveles (alto)", 5]] as const).map(([k, l, max]) => (
             <label key={k} className="flex flex-col gap-1">{l}
-              <select className="h-9 rounded-lg border border-sb-outline-variant bg-sb-surface px-2 text-sm text-sb-on-surface" value={sizing[k]}
+              <SoftSelect className="h-9 rounded-lg border border-sb-outline-variant bg-sb-surface px-2 text-sm text-sb-on-surface" value={sizing[k]}
                 onChange={(e) => setSizing({ ...sizing, [k]: Number(e.target.value) })}>
                 {Array.from({ length: max }, (_, i) => i + 1).map((x) => <option key={x} value={x}>{x}</option>)}
-              </select>
+              </SoftSelect>
             </label>
           ))}
           <Button size="sm" variant="secondary" className="rounded-full" onPress={() => setSizing(null)}>Cancelar</Button>

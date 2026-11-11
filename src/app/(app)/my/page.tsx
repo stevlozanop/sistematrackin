@@ -9,6 +9,7 @@ import { DATA_EVENT } from "@/components/UploadCenter";
 import { cn } from "@/lib/cn";
 import { DELAY_REASONS, SITE_INFO, STATUS_LABEL, daysText, fmtDate, type DateField, type Site, type Status } from "@/lib/hsp";
 import { areaOf, needsDelayReason, previousDate, stageLabel, today, type Stage } from "@/lib/workflow";
+import { SoftSelect } from "@/components/SoftSelect";
 
 type Me = {
   name: string; area: string | null; carrier: string | null; canImport: boolean;
@@ -273,10 +274,10 @@ export default function MyWorkPage() {
             {lateSel.length > 0 && (
               <label className="flex flex-col gap-1 text-[11px]">
                 Motivo de demora ({lateSel.length} fuera de tiempo · puedes dejarlo para después)
-                <select value={reason} onChange={(e) => setReason(e.target.value)} className={cn(input, "w-full sm:w-56", !reason && "border-sb-on-surface")}>
+                <SoftSelect value={reason} onChange={(e) => setReason(e.target.value)} className={cn(input, "w-full sm:w-56", !reason && "border-sb-on-surface")}>
                   <option value="">Elige el motivo…</option>
                   {DELAY_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
-                </select>
+                </SoftSelect>
               </label>
             )}
             {needsCarrier && (

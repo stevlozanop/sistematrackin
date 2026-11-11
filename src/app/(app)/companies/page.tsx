@@ -12,6 +12,7 @@ import { LogoBadge, LogoPicker } from "@/components/CompanyLogo";
 import { ConsortiumCard } from "@/components/ConsortiumCard";
 import { DEFAULT_COLOR, PRESETS, onColor } from "@/lib/theme";
 import { useRouter } from "next/navigation";
+import { SoftSelect } from "@/components/SoftSelect";
 
 
 type Stats = { units: number; delivered: number; onTime: number; open: number } | null;
@@ -350,10 +351,10 @@ export default function CompaniesPage() {
                     {edit.form.kind === "client" && transports.length > 0 && (
                       <label className="flex flex-col gap-1 text-xs">
                         <span className="font-medium">Consorcio de</span>
-                        <select className={input} value={edit.form.parent_id} onChange={(e) => setF("parent_id", e.target.value)} aria-label="Transportista dueña">
+                        <SoftSelect className={input} value={edit.form.parent_id} onChange={(e) => setF("parent_id", e.target.value)} aria-label="Transportista dueña">
                           <option value="">— Ninguna —</option>
                           {transports.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </select>
+                        </SoftSelect>
                       </label>
                     )}
                   </div> : (

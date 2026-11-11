@@ -8,6 +8,7 @@ import { Card, Empty, PageTitle, Table, Td, Th, Thead, Tr } from "@/components/u
 import { StatGrid } from "@/components/StatCard";
 import { Bars, LiveDot, deviceOf, roleLabel, useLive } from "@/components/dev/DevKit";
 import { cn } from "@/lib/cn";
+import { SoftSelect } from "@/components/SoftSelect";
 
 type Sec = {
   kpis: Record<string, number>;
@@ -110,9 +111,9 @@ export default function DevSecurity() {
           <div className="flex flex-wrap items-center gap-2 px-5 pt-4">
             <h3 className="text-sm font-semibold">Intentos fallidos por correo e IP · 7 días</h3>
             <span className="ml-auto flex items-center gap-1 text-[11px] text-sb-on-surface-variant">Bloquear por
-              <select value={blockFor} onChange={(e) => setBlockFor(Number(e.target.value))} className="h-7 rounded-lg border border-sb-outline-variant bg-sb-surface px-1.5 text-xs">
+              <SoftSelect value={blockFor} onChange={(e) => setBlockFor(Number(e.target.value))} className="h-7 rounded-lg border border-sb-outline-variant bg-sb-surface px-1.5 text-xs">
                 {BLOCK_TIMES.map(([m, l]) => <option key={m} value={m}>{l}</option>)}
-              </select>
+              </SoftSelect>
             </span>
           </div>
           <p className="px-5 text-[11px] text-sb-on-surface-variant">Automático: 5 fallidos en 15 min con el mismo correo (o 10 con la misma IP) bloquean el ingreso 15 min.</p>

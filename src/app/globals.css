@@ -306,7 +306,7 @@ body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; 
 :root { --overlay-shadow: var(--sb-shadow-float); }
 .modal__dialog, .drawer__content { border: 0 !important; }
 .modal__backdrop--opaque, .drawer__backdrop--opaque, .modal__backdrop--blur, .drawer__backdrop--blur {
-  background: color-mix(in oklab, var(--page-bg) 55%, transparent) !important; backdrop-filter: blur(8px) saturate(1.1); -webkit-backdrop-filter: blur(8px) saturate(1.1);
+  background: color-mix(in oklab, var(--page-bg) 55%, transparent) !important; backdrop-filter: blur(8px) saturate(1.1);
 }
 html.dark .modal__backdrop--opaque, html.dark .drawer__backdrop--opaque, html.dark .modal__backdrop--blur, html.dark .drawer__backdrop--blur { background: rgb(0 0 0 / 0.55) !important; }
 .dropdown__popover, .popover { box-shadow: var(--sb-shadow-float) !important; border-radius: 18px !important; }
@@ -341,4 +341,75 @@ a.sb-card:hover, button.sb-card:hover, .sb-card[role="button"]:hover { transform
 /* Bloques armados a mano como tarjeta (borde gris + fondo blanco): también sin borde y con sombra suave */
 .rounded-2xl.border.bg-sb-surface:not(input):not(select):not(textarea):not([class*="border-sb-primary"]):not([class*="border-sb-late"]):not([class*="border-amber"]) {
   border-color: transparent; box-shadow: var(--sb-shadow-card);
+}
+
+/* ===== Ventanas (modales): crecen desde donde se tocó, con desenfoque (como el calendario de referencia) ===== */
+/* --sb-ox / --sb-oy: último punto tocado (lo guarda AppShell). El modal sale de ahí hacia el centro */
+.modal__container[data-entering=true] { animation: sb-modal-in 440ms var(--sb-ease) both !important; }
+.modal__container[data-exiting=true] { animation: sb-modal-out 200ms cubic-bezier(0.4, 0, 1, 1) both !important; }
+@keyframes sb-modal-in {
+  from { opacity: 0; filter: blur(8px); transform: translate(calc((var(--sb-ox, 50vw) - 50vw) * 0.42), calc((var(--sb-oy, 50vh) - 50vh) * 0.42)) scale(0.82); }
+  60% { filter: blur(0); }
+  to { opacity: 1; filter: blur(0); transform: none; }
+}
+@keyframes sb-modal-out {
+  to { opacity: 0; filter: blur(6px); transform: translate(calc((var(--sb-ox, 50vw) - 50vw) * 0.3), calc((var(--sb-oy, 50vh) - 50vh) * 0.3)) scale(0.88); }
+}
+.modal__backdrop[data-entering=true], .drawer__backdrop[data-entering=true] { animation: sb-veil-in 360ms var(--sb-ease) both !important; }
+.modal__backdrop[data-exiting=true], .drawer__backdrop[data-exiting=true] { animation: sb-veil-out 220ms ease both !important; }
+@keyframes sb-veil-in { from { opacity: 0; backdrop-filter: blur(0); } }
+@keyframes sb-veil-out { to { opacity: 0; } }
+.modal__backdrop--opaque, .modal__backdrop--blur, .drawer__backdrop--opaque, .drawer__backdrop--blur {
+  backdrop-filter: blur(12px) saturate(1.05) !important;
+}
+.modal__dialog { border-radius: 28px !important; }
+/* Contenido del modal: entra en cascada apenas detrás de la ventana */
+.modal__body > * > *, .modal__header, .modal__footer { animation: sb-rise 480ms var(--sb-ease) both; }
+.modal__header { animation-delay: 60ms; }
+.modal__body > * > *:nth-child(1) { animation-delay: 90ms; } .modal__body > * > *:nth-child(2) { animation-delay: 120ms; }
+.modal__body > * > *:nth-child(3) { animation-delay: 150ms; } .modal__body > * > *:nth-child(n + 4) { animation-delay: 180ms; }
+.modal__footer { animation-delay: 200ms; border-top: 1px solid var(--sb-outline-variant); padding-top: 14px !important; margin-top: 4px; }
+/* Botón cerrar: redondo y suave */
+.modal__close-trigger { border-radius: 999px !important; background: var(--sb-surface-container) !important; transition: transform .2s var(--sb-ease), background-color .2s !important; }
+.modal__close-trigger:hover { transform: rotate(90deg); background: var(--sb-surface-container-high) !important; }
+
+/* ===== Selects y menús: el campo y su lista flotante ===== */
+.select__trigger, .sb-soft-select__trigger {
+  min-height: 40px; border-radius: 14px !important; background: var(--sb-surface-container-low) !important;
+  border: 1px solid var(--sb-outline-variant) !important; box-shadow: none !important; font-size: 14px;
+  transition: background-color .2s var(--sb-ease), border-color .2s var(--sb-ease), box-shadow .2s var(--sb-ease) !important;
+}
+.select__trigger:hover, .sb-soft-select__trigger:hover { background: var(--sb-surface-container) !important; }
+.select__trigger[data-focus-visible=true], .select__trigger[data-pressed=true], .select__trigger[aria-expanded=true] {
+  border-color: color-mix(in oklab, var(--sb-primary) 55%, transparent) !important;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--sb-primary) 16%, transparent) !important;
+}
+.select__indicator { transition: transform .3s var(--sb-ease) !important; }
+.select__trigger[aria-expanded=true] .select__indicator { transform: rotate(180deg); }
+.sb-soft-select__trigger.h-7, .sb-soft-select__trigger.h-8, .sb-soft-select__trigger.h-9 { min-height: 0; border-radius: 10px !important; font-size: 12px; }
+/* Lista flotante: tarjeta con sombra amplia que sale del campo con un leve desenfoque */
+.select__popover, .dropdown__popover, .combo-box__popover, .popover {
+  border-radius: 18px !important; padding: 6px !important; box-shadow: var(--sb-shadow-float) !important; border: 0 !important;
+}
+.select__popover[data-entering=true], .dropdown__popover[data-entering=true], .combo-box__popover[data-entering=true], .popover[data-entering=true] {
+  animation: sb-pop-in 300ms var(--sb-ease) both !important;
+}
+.select__popover[data-exiting=true], .dropdown__popover[data-exiting=true], .combo-box__popover[data-exiting=true], .popover[data-exiting=true] {
+  animation: sb-pop-out 150ms ease both !important;
+}
+@keyframes sb-pop-in { from { opacity: 0; filter: blur(6px); transform: translateY(-6px) scale(0.94); } to { opacity: 1; filter: blur(0); transform: none; } }
+@keyframes sb-pop-out { to { opacity: 0; filter: blur(4px); transform: translateY(-4px) scale(0.97); } }
+.list-box { gap: 2px; }
+.list-box-item { border-radius: 11px !important; font-size: 13.5px; padding-inline: 10px !important; transition: background-color .15s, color .15s, transform .2s var(--sb-ease) !important; }
+.list-box-item[data-hovered=true], .list-box-item[data-focused=true] { background: var(--sb-surface-container) !important; }
+.list-box-item[data-selected=true] { background: var(--sb-primary-soft) !important; color: var(--sb-primary) !important; font-weight: 600; }
+.list-box-item[data-pressed=true] { transform: scale(0.98); }
+/* Opciones en cascada al abrir (las primeras) */
+.select__popover[data-entering=true] .list-box-item, .dropdown__popover[data-entering=true] .list-box-item { animation: sb-fade 300ms var(--sb-ease) both; }
+.select__popover[data-entering=true] .list-box-item:nth-child(2) { animation-delay: 20ms; } .select__popover[data-entering=true] .list-box-item:nth-child(3) { animation-delay: 40ms; }
+.select__popover[data-entering=true] .list-box-item:nth-child(4) { animation-delay: 60ms; } .select__popover[data-entering=true] .list-box-item:nth-child(n + 5) { animation-delay: 80ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .modal__container, .modal__backdrop, .drawer__backdrop, .select__popover, .dropdown__popover, .popover,
+  .modal__body > * > *, .modal__header, .modal__footer, .list-box-item { animation: none !important; }
 }

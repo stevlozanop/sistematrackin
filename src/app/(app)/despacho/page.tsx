@@ -11,6 +11,7 @@ import { DATA_EVENT } from "@/components/UploadCenter";
 import { DELAY_REASONS, SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
+import { SoftSelect } from "@/components/SoftSelect";
 
 /**
  * 5. Despacho de almacén: se arma el viaje del camión agregando guías, con chofer, placa y fecha
@@ -260,7 +261,7 @@ export default function DespachoPage() {
             </div>
             {tot.need > 0 && (
               <Label t={`Motivo de demora (${tot.need} fuera de tiempo · puedes dejarlo para después)`}>
-                <select className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
+                <SoftSelect className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</SoftSelect>
               </Label>
             )}
             <Button variant="primary" className="rounded-full" onPress={dispatch} isDisabled={saving || !guias.length || ro}>{saving ? "Despachando…" : "Despachar"}</Button>

@@ -7,6 +7,7 @@ import { notifyData } from "@/components/UploadCenter";
 import { fmtDate } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
+import { SoftSelect } from "@/components/SoftSelect";
 
 export type Pay = {
   id: number; period: string; amount: number; currency: string; due_on: string; status: "pendiente" | "reportado" | "pagado" | "anulado";
@@ -76,9 +77,9 @@ export function LicenseBilling({ companyId, company, billing, payments }: { comp
         <div className="grid gap-2 rounded-xl bg-sb-surface-container-low p-3 sm:grid-cols-3">
           <label className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Cuota<input className={field} inputMode="decimal" value={setup.fee} onChange={(e) => setSetup({ ...setup, fee: e.target.value })} placeholder="Ej. 500" /></label>
           <label className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Moneda
-            <select className={field} value={setup.currency} onChange={(e) => setSetup({ ...setup, currency: e.target.value })}><option value="PEN">Soles (S/)</option><option value="USD">Dólares (US$)</option></select></label>
+            <SoftSelect className={field} value={setup.currency} onChange={(e) => setSetup({ ...setup, currency: e.target.value })}><option value="PEN">Soles (S/)</option><option value="USD">Dólares (US$)</option></SoftSelect></label>
           <label className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Cada
-            <select className={field} value={setup.cycle} onChange={(e) => setSetup({ ...setup, cycle: e.target.value })}><option value="mensual">Mes</option><option value="anual">Año</option></select></label>
+            <SoftSelect className={field} value={setup.cycle} onChange={(e) => setSetup({ ...setup, cycle: e.target.value })}><option value="mensual">Mes</option><option value="anual">Año</option></SoftSelect></label>
           <label className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant sm:col-span-3">Datos para pagar (los verá {company})
             <textarea className={cn(field, "h-24 resize-none py-2")} value={setup.payInfo} onChange={(e) => setSetup({ ...setup, payInfo: e.target.value })} maxLength={1500}
               placeholder={"Ej.\nBCP Soles 191-1234567-0-12 · CCI 002-191-001234567012-34\nYape / Plin: 999 999 999 (The Iceberg Labs)"} /></label>
@@ -93,7 +94,7 @@ export function LicenseBilling({ companyId, company, billing, payments }: { comp
           <div className="flex gap-2">
             <label className="flex flex-1 flex-col gap-1 text-[11px] text-sb-on-surface-variant">Monto<input className={field} inputMode="decimal" value={charge.amount} onChange={(e) => setCharge({ ...charge, amount: e.target.value })} /></label>
             <label className="flex w-24 flex-col gap-1 text-[11px] text-sb-on-surface-variant">Moneda
-              <select className={field} value={charge.currency} onChange={(e) => setCharge({ ...charge, currency: e.target.value })}><option value="PEN">S/</option><option value="USD">US$</option></select></label>
+              <SoftSelect className={field} value={charge.currency} onChange={(e) => setCharge({ ...charge, currency: e.target.value })}><option value="PEN">S/</option><option value="USD">US$</option></SoftSelect></label>
           </div>
           <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Vence<DatePicker label="Vence" value={charge.dueOn} onChange={(v) => setCharge({ ...charge, dueOn: v })} /></div>
           <label className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Nota (opcional)<input className={field} value={charge.note} onChange={(e) => setCharge({ ...charge, note: e.target.value })} maxLength={300} /></label>

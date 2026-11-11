@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { DATA_EVENT } from "@/components/UploadCenter";
 import { DELAY_REASONS, SITE_INFO, fmtDate, type DateField, type Site } from "@/lib/hsp";
 import { stageLabel, today } from "@/lib/workflow";
+import { SoftSelect } from "@/components/SoftSelect";
 
 /**
  * Carga por guía de remisión: el encargado marca las guías (cada una trae varias motos/motokares)
@@ -334,10 +335,10 @@ export default function GuiasPage() {
                 {needReason > 0 && (
                   <label className="flex flex-col gap-1 text-[11px] text-sb-late">
                     Motivo de demora ({needReason} fuera de tiempo · puedes dejarlo para después)
-                    <select className={cn(field, "w-52")} value={reason} onChange={(e) => setReason(e.target.value)}>
+                    <SoftSelect className={cn(field, "w-52")} value={reason} onChange={(e) => setReason(e.target.value)}>
                       <option value="">Elegir…</option>
                       {DELAY_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
-                    </select>
+                    </SoftSelect>
                   </label>
                 )}
                 <div className="flex items-center gap-2">

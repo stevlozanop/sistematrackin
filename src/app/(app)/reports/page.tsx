@@ -6,6 +6,7 @@ import { Card, PageTitle } from "@/components/ui";
 import { ServiceSplitBar } from "@/components/Service";
 import { cn } from "@/lib/cn";
 import { MONTHS, STATUS_LABEL, fmtDate, type Status } from "@/lib/hsp";
+import { SoftSelect } from "@/components/SoftSelect";
 
 type Summary = {
   title: string; filters: string[]; generatedAt: string; target: number;
@@ -79,17 +80,17 @@ export default function ReportsPage() {
           <input type="month" className={input} value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1 text-xs"><span className="font-medium">Módulo</span>
-          <select className={input} value={site} onChange={(e) => setSite(e.target.value)}>
+          <SoftSelect className={input} value={site} onChange={(e) => setSite(e.target.value)}>
             <option value="">PCL y YUR</option>
             <option value="PCL">PCL · Pucallpa</option>
             <option value="YUR">YUR · Yurimaguas</option>
-          </select>
+          </SoftSelect>
         </label>
         <label className="flex flex-col gap-1 text-xs"><span className="font-medium">Cliente</span>
-          <select className={cn(input, "w-56")} value={client} onChange={(e) => setClient(e.target.value)}>
+          <SoftSelect className={cn(input, "w-56")} value={client} onChange={(e) => setClient(e.target.value)}>
             <option value="">Todos los clientes</option>
             {clients.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          </SoftSelect>
         </label>
         <div className="ml-auto flex flex-wrap gap-2">
           <a href={`/api/report?${params}`} className="sbf-chip flex items-center gap-1.5"><Download className="h-3.5 w-3.5" /> Descargar Excel</a>

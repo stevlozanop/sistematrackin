@@ -13,6 +13,7 @@ import { Check } from "@/components/Check";
 import { AreaPicker, type Assignment } from "@/components/AreaPicker";
 import { DealerAccounts } from "@/components/DealerAccounts";
 import { ROLE_LABEL, USER_DOMAIN, companyCode, roleLabel, areaOf, stageLabel, suggestEmail, type Role, type Stage } from "@/lib/workflow";
+import { SoftSelect } from "@/components/SoftSelect";
 
 type Admin = {
   id: number; name: string; email: string; role: Exclude<Role, "dev">; created_at: string; last_seen: string | null; online: number;
@@ -289,11 +290,11 @@ export default function AdminsPage() {
                   {role === "dealer" && (
                     <label className="flex flex-col gap-1.5 text-sm">
                       <Label>Cliente</Label>
-                      <select required value={dealerId} onChange={(e) => setDealerId(e.target.value)} aria-label="Cliente"
+                      <SoftSelect required value={dealerId} onChange={(e) => setDealerId(e.target.value)} aria-label="Cliente"
                         className="h-9 rounded-xl border border-sb-outline-variant bg-sb-surface-container-low px-2 text-sm outline-none focus:border-sb-primary">
                         <option value="">Elige el cliente…</option>
                         {clientList.map(([c, n]) => <option key={c} value={c}>{c} · {n} {n === 1 ? "tienda" : "tiendas"}</option>)}
-                      </select>
+                      </SoftSelect>
                     </label>
                   )}
                   <p className="text-xs text-muted">El correo y la contraseña se autocompletan; puedes editarlos.</p>

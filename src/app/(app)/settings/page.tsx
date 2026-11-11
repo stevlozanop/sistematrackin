@@ -4,6 +4,7 @@ import { Button, toast } from "@heroui/react";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { MONTHS, SITE_INFO, type Site } from "@/lib/hsp";
+import { SoftSelect } from "@/components/SoftSelect";
 
 type LT = { site: Site; zone: string; days_cre: number; days_vac: number; units?: number };
 type DR = { district: string; department: string; site: Site; days: number; units?: number };
@@ -172,9 +173,9 @@ export default function SettingsPage() {
                     <td className="px-4 py-1.5"><input value={r.district} onChange={(e) => setDR(i, { district: e.target.value.toUpperCase() })} className={`w-full ${input}`} aria-label="Distrito" placeholder="DISTRITO" /></td>
                     <td className="px-2 py-1.5"><input value={r.department} onChange={(e) => setDR(i, { department: e.target.value.toUpperCase() })} className={`w-28 ${input}`} aria-label="Departamento" placeholder="cualquiera" /></td>
                     <td className="px-2 py-1.5">
-                      <select value={r.site} onChange={(e) => setDR(i, { site: e.target.value as Site })} className={`w-20 ${input}`} aria-label="Ruta">
+                      <SoftSelect value={r.site} onChange={(e) => setDR(i, { site: e.target.value as Site })} className={`w-20 ${input}`} aria-label="Ruta">
                         <option value="YUR">YUR</option><option value="PCL">PCL</option>
-                      </select>
+                      </SoftSelect>
                     </td>
                     <td className="px-2 py-1.5"><input type="number" min={0} value={r.days} onChange={(e) => setDR(i, { days: Number(e.target.value) })} className={`w-16 ${input}`} aria-label="Plazo en días" /></td>
                     <td className="px-2 py-1.5 text-right text-sb-on-surface-variant">{r.units?.toLocaleString() ?? "—"}</td>

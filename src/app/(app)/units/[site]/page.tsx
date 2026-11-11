@@ -23,6 +23,7 @@ import {
 } from "@/lib/hsp";
 import { allowedNext, areaOf, isSuper, previousDate, stageLabel, today, type Role, type Stage } from "@/lib/workflow";
 import { YurTramos } from "@/components/units/YurTramos";
+import { SoftSelect } from "@/components/SoftSelect";
 
 type Unit = {
   id: number; site: Site; chassis: string; motor: string | null; lote: string | null; material: string | null;
@@ -155,10 +156,10 @@ function ReasonInfo({ u }: { u: Pick<Unit, "delay_reason" | "service" | "reason_
 function ReasonCell({ value, onSave, reasons, readOnly }: { value: string | null; onSave: (v: string) => void; reasons: string[]; readOnly?: boolean }) {
   if (readOnly) return <span className="text-xs">{value ?? "—"}</span>;
   return (
-    <select aria-label="Motivo de demora" value={value ?? ""} onChange={(e) => onSave(e.target.value)} className={`w-[11rem] ${field}`}>
+    <SoftSelect aria-label="Motivo de demora" value={value ?? ""} onChange={(e) => onSave(e.target.value)} className={`w-[11rem] ${field}`}>
       <option value="">— Sin motivo —</option>
       {reasons.map((r) => <option key={r} value={r}>{r}</option>)}
-    </select>
+    </SoftSelect>
   );
 }
 

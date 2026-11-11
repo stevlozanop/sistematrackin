@@ -6,6 +6,7 @@ import { DELAY_REASONS, type Site } from "@/lib/hsp";
 import { DatePicker } from "@/components/modal/DatePicker";
 import { SuggestInput } from "@/components/SuggestInput";
 import { cn } from "@/lib/cn";
+import { SoftSelect } from "@/components/SoftSelect";
 
 type Guia = { guia: string; dealer: string; district: string; units: number };
 type NewGuia = { guia: string; dealer: string; district: string; total: number; need: number };
@@ -119,10 +120,10 @@ export function ContainerEdit({ site, id, code, nave, loadedOn, guias, naves, on
 
       {askReason && (
         <label className="flex flex-col gap-1 text-[11px] text-sb-late">Motivo de demora ({need || lateNew} fuera de tiempo · opcional)
-          <select className={field} value={reason} onChange={(e) => setReason(e.target.value)}>
+          <SoftSelect className={field} value={reason} onChange={(e) => setReason(e.target.value)}>
             <option value="">Elegir…</option>
             {DELAY_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
-          </select>
+          </SoftSelect>
         </label>
       )}
 

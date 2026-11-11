@@ -18,6 +18,7 @@ import { NaveContents } from "@/components/embarque/NaveContents";
 import { StowagePlan } from "@/components/embarque/StowagePlan";
 import { PendingGuias } from "@/components/embarque/PendingGuias";
 import { ContainerPanel } from "@/components/embarque/ContainerPanel";
+import { SoftSelect } from "@/components/SoftSelect";
 
 /**
  * Embarque y zarpe (Iquitos):
@@ -354,7 +355,7 @@ export default function EmbarquePage() {
                 <DatePicker label="Fecha de embarque" value={date} onChange={setDate} disabled={!data?.canEmbark} quick={pastQuick(null, today())} /></div>
               {tot.need > 0 && (
                 <Label t={`Motivo de demora (${tot.need} fuera de tiempo · puedes dejarlo para después)`}>
-                  <select className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
+                  <SoftSelect className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</SoftSelect>
                 </Label>
               )}
               <Button variant="primary" className="w-full rounded-full lg:w-auto" onPress={embark} isDisabled={saving || !guias.length || !data?.canEmbark}>
@@ -434,7 +435,7 @@ export default function EmbarquePage() {
                 <DatePicker label="Fecha de zarpe" value={sailDate} min={sailMin || null} onChange={setSailDate} disabled={!data?.canSail} quick={pastQuick(sailMin || null, today())} /></div>
               {sailNeed > 0 && (
                 <Label t={`Motivo de demora (${sailNeed} fuera de tiempo · puedes dejarlo para después)`}>
-                  <select className={field} value={sailReason} onChange={(e) => setSailReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
+                  <SoftSelect className={field} value={sailReason} onChange={(e) => setSailReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</SoftSelect>
                 </Label>
               )}
               <Button variant="primary" className="w-full rounded-full lg:w-auto" onPress={sail} isDisabled={sailing || !checkedNaves.length || !data?.canSail}>

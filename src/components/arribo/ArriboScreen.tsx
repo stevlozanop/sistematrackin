@@ -9,6 +9,7 @@ import { DATA_EVENT } from "@/components/UploadCenter";
 import { DELAY_REASONS, SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
+import { SoftSelect } from "@/components/SoftSelect";
 
 /**
  * Arribo e ingreso a almacén en destino (pasos 3 y 4), con el mismo diseño que Embarque y zarpe:
@@ -50,7 +51,7 @@ function Register({ from, to, label, date, setDate, min, need, reason, setReason
       </div>
       {need > 0 && (
         <label className="flex flex-col gap-1 text-[11px] text-sb-late">Motivo de demora ({need} fuera de tiempo · puedes dejarlo para después)
-          <select className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
+          <SoftSelect className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</SoftSelect>
         </label>
       )}
       <Button variant="primary" className="rounded-full" onPress={onSave} isDisabled={busy || disabled || readOnly}>

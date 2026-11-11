@@ -6,6 +6,7 @@ import { Card, PageTitle } from "@/components/ui";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { LiveDot, roleLabel, useLive } from "@/components/dev/DevKit";
 import { cn } from "@/lib/cn";
+import { SoftSelect } from "@/components/SoftSelect";
 
 type Data = {
   platform: { maintenance: boolean; message: string | null; until: string | null };
@@ -152,9 +153,9 @@ export default function DevControl() {
             <h3 className="flex items-center gap-2 text-sm font-semibold"><Download className="h-4 w-4" /> Respaldo de una tabla en Excel</h3>
             <p className="text-[11px] text-sb-on-surface-variant">Descárgalo antes de una operación delicada. Las contraseñas y llaves salen ocultas.</p>
             <div className="flex gap-2">
-              <select value={table} onChange={(e) => setTable(e.target.value)} className="h-10 min-w-0 flex-1 rounded-xl border border-sb-outline-variant bg-sb-surface px-3 text-sm">
+              <SoftSelect value={table} onChange={(e) => setTable(e.target.value)} className="h-10 min-w-0 flex-1 rounded-xl border border-sb-outline-variant bg-sb-surface px-3 text-sm">
                 {d.tables.map((t) => <option key={t.name} value={t.name}>{t.name} · {Number(t.rows).toLocaleString("es-PE")} filas</option>)}
-              </select>
+              </SoftSelect>
               <a href={`/api/dev/export?table=${encodeURIComponent(table)}`} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-sb-primary px-4 text-sm font-semibold text-sb-on-primary">
                 <Download className="h-4 w-4" /> Descargar
               </a>

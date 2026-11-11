@@ -11,6 +11,7 @@ import { DELAY_REASONS, SITE_INFO, fmtDate, unitsText, type Site } from "@/lib/h
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
 import { TripCard, type Trip } from "@/components/yur/YurTrips";
+import { SoftSelect } from "@/components/SoftSelect";
 
 /**
  * 6. Entrega · Conductor: escribe su nombre, ve las guías que lleva (en «Tránsito dealer»),
@@ -209,7 +210,7 @@ export default function ConductorPage() {
             </div>
             {need > 0 && (
               <label className="flex flex-col gap-1 text-[11px] text-sb-late">Motivo de demora ({need} fuera de tiempo · puedes dejarlo para después)
-                <select className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
+                <SoftSelect className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</SoftSelect>
               </label>
             )}
             <Button variant="primary" className="rounded-full" onPress={save} isDisabled={saving || !chosen.length || !canDeliver}>

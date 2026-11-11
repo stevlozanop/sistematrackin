@@ -12,6 +12,7 @@ import { DELAY_REASONS, fmtDate, unitsText } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
 import { CargoFigure } from "@/components/figures/cargo/CargoFigure";
+import { SoftSelect } from "@/components/SoftSelect";
 
 /**
  * YUR · Carga a chata (Iquitos). En Yurimaguas no hay contenedores: las motos van sueltas en la chata.
@@ -202,7 +203,7 @@ export default function YurCargaPage() {
             </div>
             {tot.need > 0 && (
               <label className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Motivo de demora ({tot.need} fuera de tiempo · puedes dejarlo para después)
-                <select className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
+                <SoftSelect className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</SoftSelect>
               </label>
             )}
             <Button variant="primary" className="w-full rounded-full lg:w-auto" onPress={loadChata} isDisabled={saving || !guias.length || !nave.trim() || !data.canLoad}>
@@ -265,7 +266,7 @@ export default function YurCargaPage() {
             </div>
             {sailNeed > 0 && (
               <label className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Motivo de demora ({sailNeed} fuera de tiempo · puedes dejarlo para después)
-                <select className={field} value={sailReason} onChange={(e) => setSailReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
+                <SoftSelect className={field} value={sailReason} onChange={(e) => setSailReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</SoftSelect>
               </label>
             )}
             <Button variant="primary" className="w-full rounded-full lg:w-auto" onPress={sail} isDisabled={sailing || !sailList.length || !data.canSail}>

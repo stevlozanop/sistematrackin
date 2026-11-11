@@ -333,6 +333,13 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
     return () => window.removeEventListener("keydown", onKey);
   }, [hasAssistant]);
   const path = usePathname();
+  // Último punto tocado: las ventanas (modales) crecen desde ahí, como en el calendario de referencia
+  useEffect(() => {
+    const root = document.documentElement.style;
+    const at = (e: PointerEvent) => { root.setProperty("--sb-ox", `${e.clientX}px`); root.setProperty("--sb-oy", `${e.clientY}px`); };
+    document.addEventListener("pointerdown", at, true);
+    return () => document.removeEventListener("pointerdown", at, true);
+  }, []);
   // Cambio de contraseña obligatorio (lo pidió la empresa o The Iceberg Labs): primero a su perfil
   const routerTop = useRouter();
   useEffect(() => { if (mustChange && path !== "/profile") routerTop.replace("/profile?cambiar=1"); }, [mustChange, path, routerTop]);

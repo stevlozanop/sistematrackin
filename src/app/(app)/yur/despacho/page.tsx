@@ -13,6 +13,7 @@ import { cn } from "@/lib/cn";
 import { ORIGIN, oneLine, onTheWay, orderStops, planEtas, townOf, kmFromOrigin } from "@/lib/yur-road";
 import { roadRoute } from "@/lib/yur";
 import { CargoFigure, SizePicker, sizeFor, type TruckSize } from "@/components/figures/cargo/CargoFigure";
+import { SoftSelect } from "@/components/SoftSelect";
 
 /**
  * YUR · Despacho por ruta (Yurimaguas → carretera). Lo que está en ENAPU se ve por ruta de carretera y destino;
@@ -340,7 +341,7 @@ export default function YurDespachoPage() {
             )}
             {tot.need > 0 && (
               <label className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Motivo de demora ({tot.need} fuera de tiempo · puedes dejarlo para después)
-                <select className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((x) => <option key={x}>{x}</option>)}</select>
+                <SoftSelect className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((x) => <option key={x}>{x}</option>)}</SoftSelect>
               </label>
             )}
             <Button variant="primary" className="w-full rounded-full lg:w-auto" onPress={dispatch} isDisabled={saving || !chosen.length || !driver.trim() || !data.canDispatch}>
