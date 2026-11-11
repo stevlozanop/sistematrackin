@@ -456,3 +456,13 @@ html.dark {
 @media (prefers-reduced-transparency: reduce) { .button--secondary, .button--tertiary, .button--outline, .sb-glass { backdrop-filter: none; background: var(--sb-surface) !important; } }
 /* Botones y enlaces de vidrio (Guía, perfil…): al pasar el mouse, un vidrio un poco más claro; el texto nunca se pierde */
 a.sb-glass:hover, button.sb-glass:hover { background: color-mix(in oklab, var(--glass-bg) 55%, var(--sb-surface-container-high)) !important; color: var(--sb-on-surface) !important; }
+
+/* ===== Cursor de mano en todo lo que se puede tocar (tarjetas, botones, filas, chips, opciones, casillas) =====
+   Tailwind 4 deja los botones con la flecha normal; así se nota dónde se puede hacer clic. */
+button:not(:disabled):not([aria-disabled="true"]), [role="button"]:not([aria-disabled="true"]), [role="tab"], [role="option"], [role="menuitem"],
+[role="radio"], [role="checkbox"], [role="switch"], [role="link"], a[href], summary, label:has(input[type="checkbox"]:not(:disabled)), label:has(input[type="radio"]:not(:disabled)),
+input[type="checkbox"]:not(:disabled), input[type="radio"]:not(:disabled), input[type="date"], input[type="month"], select,
+.list-box-item, .select__trigger, .sbf-chip, .rf-pick, tr[class*="cursor-pointer"], [data-pressable="true"] {
+  cursor: pointer;
+}
+button:disabled, [aria-disabled="true"], input:disabled, .list-box-item[data-disabled="true"] { cursor: not-allowed; }
