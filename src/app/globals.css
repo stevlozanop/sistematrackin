@@ -447,14 +447,12 @@ html.dark {
 /* Barras de botones (controles del 3D, tamaños, filtros): base de vidrio esmerilado, como la del ejemplo */
 .sb-glass { background: var(--glass-bg) !important; backdrop-filter: blur(18px) saturate(1.7); border: 1px solid var(--glass-line) !important; box-shadow: var(--glass-shadow) !important; }
 
-/* Cerrar ventana: el botón rojo (con su ✕ oscura y su brillo rojo) */
+/* Cerrar ventana: el original suave (círculo gris claro con su ✕; al pasar el mouse se oscurece apenas y gira) */
 .modal__close-trigger {
-  z-index: 10 !important; width: 30px !important; height: 30px !important; min-width: 0 !important; padding: 0 !important; color: rgb(110 10 6 / 0.85) !important;
-  background: linear-gradient(180deg, color-mix(in oklab, var(--sb-red) 70%, #fff) 0%, var(--sb-red) 55%, color-mix(in oklab, var(--sb-red) 85%, #000) 100%) !important;
-  box-shadow: inset 0 1px 0.5px rgb(255 255 255 / 0.55), inset 0 -1px 1px rgb(0 0 0 / 0.15), 0 6px 16px -6px color-mix(in oklab, var(--sb-red) 75%, transparent) !important;
+  z-index: 10 !important; border-radius: 999px !important; background: var(--sb-surface-container) !important; color: var(--sb-on-surface-variant) !important;
+  box-shadow: none !important; border: 0 !important; transition: transform .2s var(--sb-ease), background-color .2s !important;
 }
-.modal__close-trigger svg { width: 14px; height: 14px; stroke-width: 2.6; }
-.modal__close-trigger:hover { background: linear-gradient(180deg, color-mix(in oklab, var(--sb-red) 62%, #fff) 0%, var(--sb-red) 55%, color-mix(in oklab, var(--sb-red) 85%, #000) 100%) !important; transform: scale(1.08) rotate(90deg); }
+.modal__close-trigger:hover { transform: rotate(90deg); background: var(--sb-surface-container-high) !important; color: var(--sb-on-surface) !important; }
 @media (prefers-reduced-transparency: reduce) { .button--secondary, .button--tertiary, .button--outline, .sb-glass { backdrop-filter: none; background: var(--sb-surface) !important; } }
 /* Botones y enlaces de vidrio (Guía, perfil…): al pasar el mouse, un vidrio un poco más claro; el texto nunca se pierde */
 a.sb-glass:hover, button.sb-glass:hover { background: color-mix(in oklab, var(--glass-bg) 55%, var(--sb-surface-container-high)) !important; color: var(--sb-on-surface) !important; }
