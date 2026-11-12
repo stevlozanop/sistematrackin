@@ -604,4 +604,6 @@ html[data-accent] ::selection { background: color-mix(in oklab, var(--sb-primary
 
 /* Container transform: cuando la ventana nace de su botón, el contenedor no hace su propia animación (lo mueve ContainerTransform) */
 .modal__container[data-ct][data-entering=true], html[data-look] .modal__container[data-ct][data-entering=true] { animation: none !important; }
-.modal__container[data-ct][data-exiting=true] { animation: sb-veil-out 220ms ease-in both !important; }
+.modal__container[data-ct][data-exiting=true] { animation: sb-ct-out 440ms linear both !important; }
+/* La ventana vuelve al botón (420 ms) y recién al final el contenedor se desvanece */
+@keyframes sb-ct-out { 0%, 85% { opacity: 1; } 100% { opacity: 0; } }
