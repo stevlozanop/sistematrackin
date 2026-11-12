@@ -6,7 +6,8 @@ import { ChoiceCards } from "@/components/modal/ChoiceCards";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { Selection, SortDescriptor } from "@heroui/react";
 import { cn } from "@/lib/cn";
-import { Copy, Eye, EyeOff, KeyRound, Store, ListChecks, UserPlus, Plus, Radio, Search, ShieldCheck, Trash2, Users, X } from "lucide-react";
+import { motion } from "framer-motion";
+import { Building2, ChevronRight, Copy, Eye, EyeOff, KeyRound, Store, ListChecks, UserPlus, Plus, Radio, Search, ShieldCheck, Trash2, Users, X } from "lucide-react";
 import { Card, CodeTag, PageTitle } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
 import { Check } from "@/components/Check";
@@ -63,6 +64,10 @@ export default function AdminsPage() {
   const create = useOverlayState();
   const [bulkDealers, setBulkDealers] = useState(false);
   const [toDelete, setToDelete] = useState<Admin | null>(null);
+  // Dos listas separadas: el personal de la empresa (Leyva) y sus clientes (consorcios como Honda y los clientes de cada consorcio)
+  const [tab, setTab] = useState<"staff" | "clients">("staff");
+  const [consortia, setConsortia] = useState<{ id: number; name: string; code: string | null; parent: string | null }[]>([]);
+  const [consortiumId, setConsortiumId] = useState<number | null>(null);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -88,6 +93,10 @@ export default function AdminsPage() {
   useEffect(() => {
     fetch("/api/admins?carriers=1").then((r) => r.ok && r.json()).then((c) => c && setCarriers(c));
     fetch("/api/dealers").then((r) => r.ok && r.json()).then((d) => d && setDealers(d));
+    fetch("/api/companies").then((r) => r.ok && r.json()).then((j) => {
+      const list = (j?.companies ?? []).filter((c: { kind: string }) => c.kind === "client");
+      setConsortia(list); setConsortiumId(list[0]?.id ?? null);
+    }).catch(() => {});
   }, []);
 
   const load = useCallback(() => fetch("/api/admins").then((r) => r.json()).then(setRows), []);
@@ -97,13 +106,29 @@ export default function AdminsPage() {
   const suggested = useMemo(() => suggestEmail(name, role, asg.area), [name, role, asg.area]);
   const shownEmail = emailEdited ? email : suggested;
 
+  const isStaff = (a: Admin) => a.role === "admin" || a.role === "operator";
   const list = useMemo(() => {
     const t = q.trim().toLowerCase();
     const col = String(sort.column) as keyof Admin;
     return rows
-      .filter((a) => !t || a.name.toLowerCase().includes(t) || a.email.toLowerCase().includes(t))
+      .filter((a) => (tab === "staff" ? isStaff(a) : !isStaff(a)))
+      .filter((a) => !t || a.name.toLowerCase().includes(t) || a.email.toLowerCase().includes(t) || String(a.client ?? "").toLowerCase().includes(t))
       .sort((a, b) => String(a[col]).localeCompare(String(b[col])) * (sort.direction === "descending" ? -1 : 1));
-  }, [rows, q, sort]);
+  }, [rows, q, sort, tab]);
+  const myCompany = consortia[0]?.parent ?? "la empresa";
+  const consortium = consortia.find((c) => c.id === consortiumId) ?? consortia[0] ?? null;
+  // Clientes agrupados por consorcio: su personal (solo lectura) y sus clientes de motos
+  const groups = useMemo(() => {
+    const m = new Map<number, { id: number; name: string; code: string | null; staff: Admin[]; clients: Admin[] }>();
+    for (const a of list) {
+      const own = a.company_kind === "client" && a.company_id ? a.company_id : 0;
+      const g = m.get(own) ?? { id: own, name: own ? a.company ?? "Consorcio" : "Sin consorcio", code: own ? a.company_code ?? null : null, staff: [], clients: [] };
+      (a.role === "dealer" ? g.clients : g.staff).push(a);
+      m.set(own, g);
+    }
+    for (const c of consortia) if (!m.has(c.id) && !q.trim()) m.set(c.id, { id: c.id, name: c.name, code: c.code, staff: [], clients: [] });
+    return [...m.values()].sort((a, b) => (a.id ? 0 : 1) - (b.id ? 0 : 1) || a.name.localeCompare(b.name));
+  }, [list, consortia, q]);
 
   const online = rows.filter((a) => Number(a.online)).length;
 
@@ -112,7 +137,7 @@ export default function AdminsPage() {
     if (role === "operator" && !asg.area) return toast.danger("Elige el área del encargado");
     if (role === "dealer" && !dealerId) return toast.danger("Elige el cliente");
     setSaving(true);
-    const r = await fetch("/api/admins", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email: shownEmail, password, role, client: role === "dealer" ? dealerId : undefined, ...(role === "operator" ? asg : {}) }) });
+    const r = await fetch("/api/admins", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email: shownEmail, password, role, client: role === "dealer" ? dealerId : undefined, companyId: role === "viewer" || role === "dealer" ? consortium?.id : undefined, ...(role === "operator" ? asg : {}) }) });
     setSaving(false);
     if (!r.ok) return toast.danger((await r.json()).error);
     await navigator.clipboard?.writeText(`${shownEmail} / ${password}`).catch(() => {});
@@ -147,36 +172,91 @@ export default function AdminsPage() {
     load();
   }
 
-  const stats = [
-    { label: "Encargados", value: rows.filter((a) => a.role === "operator").length, icon: Users },
-    { label: "Supervisores", value: rows.filter((a) => a.role === "admin").length, icon: ShieldCheck },
-    { label: "Dealers y solo lectura", value: rows.filter((a) => a.role === "dealer" || a.role === "viewer").length, icon: Eye },
-    { label: "En línea ahora", value: online, icon: Radio },
+  const staffRows = rows.filter(isStaff), clientRows = rows.filter((a) => !isStaff(a));
+  const stats = tab === "staff" ? [
+    { label: "Supervisores", value: staffRows.filter((a) => a.role === "admin").length, icon: ShieldCheck },
+    { label: "Encargados de etapa", value: staffRows.filter((a) => a.role === "operator").length, icon: Users },
+    { label: "Personal en línea", value: staffRows.filter((a) => Number(a.online)).length, icon: Radio },
+  ] : [
+    { label: "Consorcios clientes", value: consortia.length, icon: Building2 },
+    { label: "Personal del consorcio", value: clientRows.filter((a) => a.role === "viewer").length, icon: Eye },
+    { label: "Clientes de motos", value: clientRows.filter((a) => a.role === "dealer").length, icon: Store },
+    { label: "Clientes en línea", value: clientRows.filter((a) => Number(a.online)).length, icon: Radio },
   ];
+  void online;
+  const openCreate = (r: NewRole) => { setRole(r); setAsg(emptyAsg); setDealerId(""); create.open(); };
 
   return (
     <div className="flex flex-col gap-4">
-      <PageTitle title="Usuarios" sub="Encargados registran las fechas de su área. Supervisores ven y corrigen todo. Dealers y cuentas de solo lectura (Honda) solo consultan.">
-        <Button size="sm" variant="secondary" className="rounded-full" onPress={() => setBulkDealers(true)}>
-          <Store className="h-3.5 w-3.5" /> Crear clientes
-        </Button>
-        <Button size="sm" variant="primary" className="rounded-full" onPress={() => { setRole("operator"); setAsg(emptyAsg); create.open(); }}>
-          <Plus className="h-3.5 w-3.5" /> Nuevo usuario
-        </Button>
+      <PageTitle title="Usuarios" sub={tab === "staff"
+        ? `Personal de ${myCompany}: supervisores que ven y corrigen todo, y encargados que registran las fechas de su área.`
+        : `Clientes de ${myCompany}: cada consorcio (como Honda) con su personal en solo lectura y las cuentas de sus propios clientes de motos.`}>
+        {tab === "clients" ? (
+          <>
+            <Button size="sm" variant="secondary" className="rounded-full" onPress={() => setBulkDealers(true)}><Store className="h-3.5 w-3.5" /> Crear varios clientes</Button>
+            <Button size="sm" variant="primary" className="rounded-full" onPress={() => openCreate("dealer")}><Plus className="h-3.5 w-3.5" /> Nueva cuenta de cliente</Button>
+          </>
+        ) : (
+          <Button size="sm" variant="primary" className="rounded-full" onPress={() => openCreate("operator")}><Plus className="h-3.5 w-3.5" /> Nuevo personal</Button>
+        )}
       </PageTitle>
       <DealerAccounts open={bulkDealers} onClose={() => setBulkDealers(false)} onCreated={load} />
 
-      <StatGrid className="grid-cols-2 lg:grid-cols-4" items={stats} />
+      {/* Personal de la empresa | Clientes: dos listas separadas */}
+      <div className="flex w-full max-w-xl rounded-full bg-sb-surface-container p-1" role="tablist" aria-label="Tipo de usuarios">
+        {([["staff", `Personal de ${myCompany}`, staffRows.length, Users], ["clients", "Clientes", clientRows.length, Building2]] as const).map(([k, l, n, I]) => (
+          <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => { setTab(k); setSelected(new Set()); setQ(""); }}
+            className={cn("relative flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-2 text-[13px] font-medium transition-colors", tab === k ? "text-sb-on-surface" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+            {tab === k && <motion.span layoutId="users-tab" className="absolute inset-0 rounded-full bg-sb-surface shadow-[var(--sb-shadow-card)]" transition={{ type: "spring", stiffness: 420, damping: 36 }} />}
+            <I className="relative h-4 w-4" />
+            <span className="relative truncate">{l}</span>
+            <span className="relative rounded-full bg-sb-surface-container-high px-1.5 text-[11px] tabular-nums">{n}</span>
+          </button>
+        ))}
+      </div>
+
+      <StatGrid className={cn("grid-cols-2", tab === "staff" ? "lg:grid-cols-3" : "lg:grid-cols-4")} items={stats} />
 
       <label className="sbf-search md:w-96">
         <Search className="h-4 w-4 opacity-40" />
-        <input placeholder="Buscar por nombre o correo…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input placeholder={tab === "staff" ? "Buscar personal por nombre o correo…" : "Buscar cliente, consorcio o correo…"} value={q} onChange={(e) => setQ(e.target.value)} />
         {q && <button type="button" onClick={() => setQ("")} className="opacity-40 hover:opacity-100"><X className="h-4 w-4" /></button>}
       </label>
 
+      {tab === "clients" && (
+        <div className="flex flex-col gap-4">
+          {!groups.length && <Card className="px-4 py-10 text-center text-sm text-sb-on-surface-variant">{q ? "Sin resultados." : "Aún no hay clientes. Crea la primera cuenta de cliente."}</Card>}
+          {groups.map((g) => (
+            <Card key={g.id} className="overflow-hidden">
+              {/* Consorcio: quién es y de quién es cliente */}
+              <div className="flex flex-wrap items-center gap-3 px-5 py-4">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sb-primary-soft text-sb-primary"><Building2 className="h-5 w-5" /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="flex flex-wrap items-center gap-2 text-[16px] font-semibold tracking-tight">{g.name}{g.code && <CodeTag code={g.code} size="xs" />}</p>
+                  <p className="flex flex-wrap items-center gap-1 text-[12px] text-sb-on-surface-variant">
+                    {g.id ? <>Consorcio cliente de <b className="font-medium text-sb-on-surface">{myCompany}</b> <ChevronRight className="h-3 w-3" /> {g.staff.length} de su personal · {g.clients.length} {g.clients.length === 1 ? "cliente suyo" : "clientes suyos"}</> : "Cuentas sin consorcio asignado"}
+                  </p>
+                </div>
+                {g.id > 0 && (
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="tertiary" className="rounded-full" onPress={() => { setConsortiumId(g.id); openCreate("viewer"); }}><Eye className="h-3.5 w-3.5" /> Personal</Button>
+                    <Button size="sm" variant="secondary" className="rounded-full" onPress={() => { setConsortiumId(g.id); openCreate("dealer"); }}><Plus className="h-3.5 w-3.5" /> Cliente de {short(g.name)}</Button>
+                  </div>
+                )}
+              </div>
+              <ClientBlock title={`Personal de ${g.name}`} hint="Su propio equipo: ve todo en solo lectura (dashboard, alertas, unidades). No son clientes de motos." rows={g.staff}
+                empty="Sin cuentas de su personal." render={(a) => <ClientRow key={a.id} a={a} kind="staff" consortium={g.name} onCopy={() => copy(a.email, "Correo copiado")} onReset={() => reset(a)} onDelete={() => setToDelete(a)} />} />
+              <ClientBlock title={`Clientes de ${g.name}`} hint={`Quienes le compran motos a ${short(g.name)} (SORSA, CREDIVARGAS…): cada cuenta ve solo las unidades de sus tiendas.`} rows={g.clients}
+                empty="Todavía no hay cuentas de sus clientes." render={(a) => <ClientRow key={a.id} a={a} kind="client" consortium={g.name} onCopy={() => copy(a.email, "Correo copiado")} onReset={() => reset(a)} onDelete={() => setToDelete(a)} />} />
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {tab === "staff" && <>
       {/* Celular: tarjetas */}
       <div className="flex flex-col gap-2 md:hidden">
-        {!list.length && <Card className="px-4 py-10 text-center text-sm text-sb-on-surface-variant/60">{q ? "Sin resultados." : "Aún no hay usuarios. Crea el primer encargado."}</Card>}
+        {!list.length && <Card className="px-4 py-10 text-center text-sm text-sb-on-surface-variant/60">{q ? "Sin resultados." : "Aún no hay personal. Crea el primer encargado."}</Card>}
         {list.map((a) => (
           <Card key={a.id} className="flex flex-col gap-2 p-3">
             <div className="flex items-start gap-3">
@@ -213,7 +293,7 @@ export default function AdminsPage() {
       <Card className="sb-anim-table-in hidden overflow-hidden md:block">
         <Table>
           <Table.ScrollContainer>
-            <Table.Content aria-label="Usuarios" className="min-w-[900px]" selectionMode="multiple" selectedKeys={selected} onSelectionChange={setSelected} sortDescriptor={sort} onSortChange={setSort}>
+            <Table.Content aria-label="Personal" className="min-w-[900px]" selectionMode="multiple" selectedKeys={selected} onSelectionChange={setSelected} sortDescriptor={sort} onSortChange={setSort}>
               <Table.Header>
                 <Table.Column className="pe-0"><Check slot="selection" aria-label="Seleccionar todo" /></Table.Column>
                 <Table.Column allowsSorting isRowHeader id="name" className="after:hidden">
@@ -269,27 +349,50 @@ export default function AdminsPage() {
           </Table.ScrollContainer>
         </Table>
         <div className="border-t border-sb-outline-variant/40 px-4 py-2.5 text-[11px] text-sb-on-surface-variant">
-          {list.length} usuario{list.length === 1 ? "" : "s"}
+          {list.length} {list.length === 1 ? "persona" : "personas"} del personal
         </div>
       </Card>
+      </>}
 
       {/* Crear */}
-      <Sheet open={create.isOpen} onClose={create.close} size="lg" icon={UserPlus} title={ROLE_TITLE[role]} onSubmit={submit} busy={saving}
-        sub="Elige el tipo de cuenta, su nombre y su área. El usuario y la contraseña se arman solos."
+      <Sheet open={create.isOpen} onClose={create.close} size="lg" icon={role === "dealer" ? Store : role === "viewer" ? Eye : UserPlus} title={role === "dealer" ? `Nueva cuenta para un cliente de ${consortium ? short(consortium.name) : "Honda"}` : role === "viewer" ? `Nueva cuenta del personal de ${consortium ? short(consortium.name) : "Honda"}` : ROLE_TITLE[role]} onSubmit={submit} busy={saving}
+        sub={role === "dealer" || role === "viewer" ? "Elige para quién es la cuenta. El usuario y la contraseña se arman solos." : "Elige el tipo de cuenta, su nombre y su área. El usuario y la contraseña se arman solos."}
         summary={name.trim() ? <>Se creará <b className="text-sb-on-surface">{name.trim()}</b> · {ROLE_LABEL[role]} · usuario <b className="font-mono text-sb-on-surface">{shownEmail || "…"}</b></> : "Escribe el nombre para ver cómo quedará la cuenta."}
         footer={<>
           <Button variant="secondary" className="rounded-full" onPress={create.close}>Cancelar</Button>
           <Button type="submit" variant="primary" className="rounded-full" isDisabled={saving}>{saving ? "Creando…" : "Crear cuenta"}</Button>
         </>}>
-                  <ChoiceCards id="new-role" columns={2} value={role} onChange={(v) => setRole(v as NewRole)} options={[
-                    { key: "operator", label: "Encargado de etapa", desc: ROLE_HELP.operator, icon: ListChecks },
-                    { key: "admin", label: "Supervisor", desc: ROLE_HELP.admin, icon: ShieldCheck },
-                    { key: "viewer", label: "Solo lectura (Honda)", desc: ROLE_HELP.viewer, icon: Eye },
-                    { key: "dealer", label: "Cliente de Honda", desc: ROLE_HELP.dealer, icon: Store },
-                  ]} />
+                  {role === "operator" || role === "admin" ? (
+                    <ChoiceCards id="new-role" columns={2} value={role} onChange={(v) => setRole(v as NewRole)} options={[
+                      { key: "operator", label: "Encargado de etapa", desc: ROLE_HELP.operator, icon: ListChecks },
+                      { key: "admin", label: "Supervisor", desc: ROLE_HELP.admin, icon: ShieldCheck },
+                    ]} />
+                  ) : (
+                    <>
+                      {consortia.length > 1 && (
+                        <label className="flex flex-col gap-1.5 text-sm">
+                          <Label>Consorcio</Label>
+                          <SoftSelect value={String(consortium?.id ?? "")} onChange={(e) => setConsortiumId(Number(e.target.value))} aria-label="Consorcio" className="h-9 w-full rounded-xl text-sm">
+                            {consortia.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </SoftSelect>
+                        </label>
+                      )}
+                      <ChoiceCards id="new-client-role" columns={2} value={role} onChange={(v) => setRole(v as NewRole)} options={[
+                        { key: "dealer", label: `Cliente de ${consortium ? short(consortium.name) : "Honda"}`, desc: `Para un cliente que le compra motos a ${consortium ? short(consortium.name) : "Honda"} (SORSA, CREDIVARGAS…). Ve solo las unidades de sus tiendas.`, icon: Store },
+                        { key: "viewer", label: `Personal de ${consortium ? short(consortium.name) : "Honda"}`, desc: `Para alguien del equipo de ${consortium ? short(consortium.name) : "Honda"} mismo. Ve todo en solo lectura; no es un cliente de motos.`, icon: Eye },
+                      ]} />
+                      {/* De quién es la cuenta: la jerarquía completa */}
+                      <div className="flex flex-wrap items-center gap-1.5 rounded-2xl bg-sb-surface-container-low px-3.5 py-2.5 text-[12px]">
+                        <span className="text-sb-on-surface-variant">La cuenta quedará en:</span>
+                        <b>{myCompany}</b><ChevronRight className="h-3.5 w-3.5 text-sb-on-surface-variant" />
+                        <b>{consortium?.name ?? "Consorcio"}</b><ChevronRight className="h-3.5 w-3.5 text-sb-on-surface-variant" />
+                        <b className="text-sb-primary">{role === "dealer" ? (dealerId || "su cliente") : "su personal"}</b>
+                      </div>
+                    </>
+                  )}
                   {role === "dealer" && (
                     <label className="flex flex-col gap-1.5 text-sm">
-                      <Label>Cliente</Label>
+                      <Label>¿Qué cliente de {consortium ? short(consortium.name) : "Honda"} es?</Label>
                       <SoftSelect required value={dealerId} onChange={(e) => setDealerId(e.target.value)} aria-label="Cliente"
                         className="h-9 rounded-xl border border-sb-outline-variant bg-sb-surface-container-low px-2 text-sm outline-none focus:border-sb-primary">
                         <option value="">Elige el cliente…</option>
@@ -356,6 +459,55 @@ export default function AdminsPage() {
         onCancel={() => setToDelete(null)} onConfirm={() => toDelete && remove(toDelete)}>
         <b className="text-sb-on-surface">{toDelete?.email}</b> perderá el acceso de inmediato, aunque tenga la sesión abierta.
       </ConfirmDialog>
+    </div>
+  );
+}
+
+/** «Honda Selva del Perú (HSP)» → «Honda» para frases cortas */
+const short = (n: string) => n.split(/[\s(]/)[0] || n;
+
+/** Bloque dentro de un consorcio: su personal o sus clientes, con una línea que explica quiénes son */
+function ClientBlock({ title, hint, rows, empty, render }: { title: string; hint: string; rows: Admin[]; empty: string; render: (a: Admin) => React.ReactNode }) {
+  return (
+    <div className="border-t border-sb-outline-variant/50">
+      <div className="flex items-baseline gap-2 px-5 pb-1 pt-3.5">
+        <h4 className="text-[13px] font-semibold">{title}</h4>
+        <span className="rounded-full bg-sb-surface-container px-1.5 text-[11px] tabular-nums text-sb-on-surface-variant">{rows.length}</span>
+      </div>
+      <p className="px-5 pb-2 text-[11.5px] text-sb-on-surface-variant">{hint}</p>
+      <div className="flex flex-col pb-2">{rows.length ? rows.map(render) : <p className="px-5 pb-3 text-[12px] text-sb-on-surface-variant opacity-70">{empty}</p>}</div>
+    </div>
+  );
+}
+
+/** Fila de una cuenta de cliente: quién es, de quién es cliente, qué ve y sus acciones */
+function ClientRow({ a, kind, consortium, onCopy, onReset, onDelete }: { a: Admin; kind: "staff" | "client"; consortium: string; onCopy: () => void; onReset: () => void; onDelete: () => void }) {
+  return (
+    <div className="group flex flex-wrap items-center gap-3 px-5 py-2.5 transition-colors hover:bg-sb-surface-container-low">
+      <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[11px] font-bold", kind === "client" ? "bg-sb-primary-soft text-sb-primary" : "bg-sb-surface-container text-sb-on-surface-variant")}>{initials(a.name)}</span>
+      <span className="min-w-0 flex-1 basis-56">
+        <span className="flex items-center gap-2 text-[13px] font-medium">{a.name}{!!Number(a.online) && <span className="h-2 w-2 rounded-full bg-sb-primary" title="En línea" />}</span>
+        <span className="block truncate text-[11.5px] text-sb-on-surface-variant">{a.email}</span>
+      </span>
+      <span className="min-w-0 flex-1 basis-56 text-[12px]">
+        {kind === "client" ? (
+          <>
+            <b className="font-medium">{a.client ?? a.dealer ?? "Sin cliente"}</b>
+            <span className="block text-[11px] text-sb-on-surface-variant">Cliente de {consortium} · {a.client ? `${a.client_stores ?? 0} ${Number(a.client_stores) === 1 ? "tienda" : "tiendas"}` : "una tienda"} · ve solo lo suyo</span>
+          </>
+        ) : (
+          <>
+            <b className="font-medium">{Number(a.is_owner) ? "Cuenta principal" : "Solo lectura"}</b>
+            <span className="block text-[11px] text-sb-on-surface-variant">Personal de {consortium} · ve todo sin cambiar nada</span>
+          </>
+        )}
+      </span>
+      <span className="hidden w-32 shrink-0 text-[11px] tabular-nums text-sb-on-surface-variant lg:block">{a.created_at}</span>
+      <span className="flex shrink-0 items-center gap-1">
+        <Button isIconOnly size="sm" variant="tertiary" aria-label={`Copiar correo de ${a.name}`} onPress={onCopy}><Copy className="h-4 w-4" /></Button>
+        <Button isIconOnly size="sm" variant="tertiary" aria-label={`Restablecer contraseña de ${a.name}`} onPress={onReset}><KeyRound className="h-4 w-4" /></Button>
+        <Button isIconOnly size="sm" variant="danger-soft" aria-label={`Eliminar ${a.name}`} onPress={onDelete}><Trash2 className="h-4 w-4" /></Button>
+      </span>
     </div>
   );
 }

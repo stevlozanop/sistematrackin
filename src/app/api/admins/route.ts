@@ -98,7 +98,8 @@ export async function POST(req: Request) {
   let companyId = s.role === "dev" ? target?.id ?? null : creator?.company_id ?? null;
   if (s.role !== "dev" && target && creator?.company_id && (target.id === creator.company_id || target.parent_id === creator.company_id)) companyId = target.id;
   // Los clientes de Honda (dealers) pertenecen al consorcio Honda: ven sus colores y su logo
-  if (role === "dealer") companyId = (await clientsConsortium(companyId ?? creator?.company_id ?? null)) ?? companyId;
+  // Si se eligió el consorcio (Honda), la cuenta del cliente queda en ese consorcio; si no, en el primero de la empresa
+  if (role === "dealer") companyId = target?.kind === "client" && companyId === target.id ? target.id : (await clientsConsortium(companyId ?? creator?.company_id ?? null)) ?? companyId;
   // En un consorcio cliente (Honda…) solo hay cuentas que consultan: solo lectura o clientes
   if (companyId && companyId === target?.id && target.kind === "client" && role !== "viewer" && role !== "dealer") {
     return NextResponse.json({ error: "Las cuentas de un consorcio cliente son de solo lectura" }, { status: 400 });
