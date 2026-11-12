@@ -237,6 +237,7 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
       const j = await saveExcel(units.rows, setProgress, units.name);
       setUnits((p) => p && { ...p, saved: true });
       toast.success("Excel guardado: todo el sistema ya está actualizado", { description: `${j.created.toLocaleString()} nuevas, ${j.updated.toLocaleString()} actualizadas` });
+      if (j.skipped) toast.warning(`${j.skipped.toLocaleString()} filas no se guardaron`, { description: "Son motos de tiendas de otro consorcio: cada consorcio solo carga las suyas.", timeout: 9000 });
       notifyData();
     } catch (e) {
       toast.danger((e as Error).message, { description: "Lo que alcanzó a guardarse se queda. Vuelve a subir el Excel para completar el resto." });

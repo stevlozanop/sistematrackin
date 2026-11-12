@@ -13,6 +13,31 @@ export const maxDuration = 300;
 /** Máximo de filas por envío (el navegador manda el Excel en bloques). */
 const CHUNK = 5000;
 
+/**
+ * Carga del personal de un consorcio: solo motos de su consorcio. Se descartan las filas cuyo dealer es de otro consorcio
+ * o cuyo chasis ya existe a nombre de una tienda de otro consorcio (así Yamaha nunca pisa las motos de Honda).
+ */
+async function onlyOwn(rows: UnitRow[], cid: number) {
+  const names = [...new Set(rows.map((r) => r.dealer?.slice(0, 160)).filter(Boolean) as string[])];
+  const otherDealers = new Set<string>();
+  for (let i = 0; i < names.length; i += 1000) {
+    const found = await queryList<{ name: string }>("SELECT name FROM dealers WHERE name IN (?) AND company_id IS NOT NULL AND company_id <> ?", [names.slice(i, i + 1000), cid]);
+    for (const d of found) otherDealers.add(d.name.toUpperCase());
+  }
+  const otherUnits = new Set<string>();
+  for (const site of ["PCL", "YUR"] as const) {
+    const list = rows.filter((r) => r.site === site).map((r) => r.chassis);
+    for (let i = 0; i < list.length; i += 1000) {
+      const found = await queryList<{ chassis: string }>(
+        `SELECT u.chassis FROM units u JOIN dealers d ON d.id = u.dealer_id
+          WHERE u.site = ? AND u.chassis IN (?) AND d.company_id IS NOT NULL AND d.company_id <> ?`, [site, list.slice(i, i + 1000), cid]);
+      for (const u of found) otherUnits.add(`${site}|${u.chassis.toUpperCase()}`);
+    }
+  }
+  const keep = rows.filter((r) => !(r.dealer && otherDealers.has(r.dealer.slice(0, 160).toUpperCase())) && !otherUnits.has(`${r.site}|${r.chassis.toUpperCase()}`));
+  return { keep, skipped: rows.length - keep.length, names };
+}
+
 const str = (v: unknown, max: number) => {
   const s = typeof v === "string" ? v.replace(/\s+/g, " ").trim() : "";
   return s ? s.slice(0, max) : null;
@@ -70,16 +95,28 @@ export async function POST(req: Request) {
     }
 
     if (body?.step === "save") {
-      const rows = (body.rows ?? []).slice(0, CHUNK).map(clean).filter((r): r is UnitRow => !!r);
+      let rows = (body.rows ?? []).slice(0, CHUNK).map(clean).filter((r): r is UnitRow => !!r);
       if (!rows.length) return NextResponse.json({ error: "El bloque no trae filas válidas" }, { status: 400 });
+      // Personal de un consorcio: solo sus motos; las tiendas nuevas quedan a nombre de su consorcio
+      const cid = s.role === "viewer" ? await clientConsortiumOf(s) : null;
+      let skipped = 0;
+      if (cid) {
+        const own = await onlyOwn(rows, cid);
+        rows = own.keep; skipped = own.skipped;
+        if (!rows.length) return NextResponse.json({ created: 0, updated: 0, skipped });
+      }
       const batchId = Number(body.batchId) || null;
       const [own] = batchId ? await queryList<{ id: number }>("SELECT id FROM import_batches WHERE id = ? AND user_id = ? AND undone_at IS NULL", [batchId, s.id]) : [];
       const res = await tx(async (c) => {
         const r = await saveRows(c, rows, own ? batchId : null);
+        if (cid) {
+          const names = [...new Set(rows.map((x) => x.dealer?.slice(0, 160)).filter(Boolean) as string[])];
+          if (names.length) await c.query("UPDATE dealers SET company_id = ? WHERE company_id IS NULL AND name IN (?)", [cid, names]);
+        }
         if (own) await c.query("UPDATE import_batches SET created = created + ?, updated = updated + ? WHERE id = ?", [r.created, r.updated, batchId]);
         return r;
       });
-      return NextResponse.json(res);
+      return NextResponse.json({ ...res, skipped });
     }
 
     if (body?.step === "finish") {
