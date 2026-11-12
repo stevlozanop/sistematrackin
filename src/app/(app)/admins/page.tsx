@@ -10,7 +10,6 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { Building2, ChevronRight, Copy, Eye, EyeOff, KeyRound, Store, ListChecks, UserPlus, Plus, Radio, Search, ShieldCheck, Trash2, Users, X } from "lucide-react";
 import { Card, CodeTag, PageTitle } from "@/components/ui";
-import { StatGrid } from "@/components/StatCard";
 import { Check } from "@/components/Check";
 import { AreaPicker, type Assignment } from "@/components/AreaPicker";
 import { DealerAccounts } from "@/components/DealerAccounts";
@@ -206,19 +205,29 @@ export default function AdminsPage() {
       <DealerAccounts open={bulkDealers} onClose={() => setBulkDealers(false)} onCreated={load} consortium={consortium ? { id: consortium.id, name: consortium.name } : null} />
 
       {/* Personal de la empresa | Clientes: dos listas separadas */}
-      <div className="flex w-full max-w-xl rounded-full bg-sb-surface-container p-1" role="tablist" aria-label="Tipo de usuarios">
+      <div className="flex w-full min-w-0 max-w-xl rounded-full bg-sb-surface-container p-1" role="tablist" aria-label="Tipo de usuarios">
         {([["staff", `Personal de ${myCompany}`, staffRows.length, Users], ["clients", "Clientes", clientRows.length, Building2]] as const).map(([k, l, n, I]) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => { setTab(k); setSelected(new Set()); setQ(""); }}
-            className={cn("sb-pill relative flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-2 text-[13px] font-medium transition-colors", tab === k ? "text-sb-on-surface" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+            className={cn("sb-pill relative flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-2.5 py-2 text-[13px] font-medium transition-colors sm:gap-2 sm:px-3", tab === k ? "text-sb-on-surface" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
             {tab === k && <motion.span layoutId="users-tab" className="absolute inset-0 rounded-full bg-sb-surface shadow-[var(--sb-shadow-card)]" transition={{ type: "spring", stiffness: 420, damping: 36 }} />}
-            <I className="relative h-4 w-4" />
-            <span className="relative truncate">{l}</span>
-            <span className="relative rounded-full bg-sb-surface-container-high px-1.5 text-[11px] tabular-nums">{n}</span>
+            <I className="relative h-4 w-4 shrink-0" />
+            <span className="relative truncate"><span className="sm:hidden">{k === "staff" ? "Personal" : l}</span><span className="hidden sm:inline">{l}</span></span>
+            <span className="relative shrink-0 rounded-full bg-sb-surface-container-high px-1.5 text-[11px] tabular-nums">{n}</span>
           </button>
         ))}
       </div>
 
-      <StatGrid className={cn("grid-cols-2", tab === "staff" ? "lg:grid-cols-3" : "lg:grid-cols-4")} items={stats} />
+      {/* Cifras: en celular una franja compacta (3 o 2×2), sin huecos vacíos */}
+      <Card className={cn("grid overflow-hidden", stats.length === 3 ? "grid-cols-3" : "grid-cols-2 lg:grid-cols-4")}>
+        {stats.map((m, i) => (
+          <div key={m.label} className={cn("min-w-0 px-3 py-3 sm:px-5 sm:py-4", i > 0 && "border-l border-sb-outline-variant/40", stats.length === 4 && i === 2 && "border-l-0 lg:border-l", stats.length === 4 && i >= 2 && "border-t border-sb-outline-variant/40 lg:border-t-0")}>
+            <p className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">
+              <m.icon className="hidden h-3.5 w-3.5 shrink-0 sm:block" /><span className="line-clamp-2 leading-tight">{m.label}</span>
+            </p>
+            <p className="mt-1 text-xl font-semibold tabular-nums sm:text-2xl">{m.value}</p>
+          </div>
+        ))}
+      </Card>
 
       <label className="sbf-search md:w-96">
         <Search className="h-4 w-4 opacity-40" />
