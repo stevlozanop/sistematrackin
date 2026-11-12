@@ -13,8 +13,15 @@ import pg from "pg";
 
 const file = process.argv[2];
 const confirm = process.argv.includes("--confirmar");
-if (!file || !fs.existsSync(file)) {
+if (!file) {
   console.error("Indica el archivo:  npm run db:restaurar -- respaldo-AAAA-MM-DD.json.gz [--confirmar]");
+  process.exit(1);
+}
+if (!fs.existsSync(file)) {
+  console.error(`No encuentro «${file}» en esta carpeta.`);
+  console.error("Descárgalo primero desde la consola: Base de datos › Respaldos (botón de descarga junto a cada respaldo),");
+  console.error("ponlo en la carpeta del proyecto o indica la ruta completa, por ejemplo:");
+  console.error("  npm run db:restaurar -- ~/Descargas/respaldo-2026-11-12.json.gz");
   process.exit(1);
 }
 const dump = JSON.parse(gunzipSync(fs.readFileSync(file)).toString("utf8"));
