@@ -31,53 +31,110 @@ function TripDetail({ site, trip, onClose }: { site: Site; trip: Trip | null; on
     if (!trip) return;
     fetch(`/api/despacho?${new URLSearchParams({ site, trip: String(trip.id) })}`).then((r) => r.json()).then((j) => setRows(j.rows ?? []));
   }, [site, trip]);
+  // Paradas en orden: un destino (distrito) con sus guías
+  const stops = useMemo(() => {
+    const m = new Map<string, TripRow[]>();
+    for (const r of rows ?? []) m.set(r.district ?? "—", [...(m.get(r.district ?? "—") ?? []), r]);
+    return [...m.entries()].map(([district, list]) => ({
+      district, list, department: list[0].department, lima: list.some((x) => x.via_lima),
+      total: list.reduce((t, x) => t + Number(x.total), 0), delivered: list.reduce((t, x) => t + Number(x.delivered), 0),
+    }));
+  }, [rows]);
+  const total = Number(trip?.total ?? 0), delivered = Number(trip?.delivered ?? 0);
+  const from = site === "PCL" ? "Pucallpa" : "Yurimaguas";
   return (
     <Sheet open={!!trip} onClose={onClose} size="lg" icon={Truck} title={trip ? `Viaje de ${trip.driver}` : ""}
-      sub={trip ? `${fmtDate(trip.dispatched_on)}${trip.plate ? ` · placa ${trip.plate}` : ""} · ${n(trip.total)} unidades · ${n(trip.delivered)} entregadas` : ""}>
-      {!rows ? <p className="py-8 text-center text-sm text-sb-on-surface-variant">Cargando…</p> : (
-        <div className="max-h-[60vh] overflow-auto rounded-xl border border-sb-outline-variant/40">
-          <table className="w-full min-w-[760px] text-left text-xs">
-            <thead>
-              <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
-                <th className="px-3 py-2 font-semibold">Destino</th><th className="px-2 py-2 font-semibold">Dealer</th><th className="px-2 py-2 font-semibold">N° factura</th>
-                <th className="px-2 py-2 font-semibold">Guía R.</th><th className="px-2 py-2 text-right font-semibold">2W</th><th className="px-2 py-2 text-right font-semibold">3W</th>
-                <th className="px-2 py-2 text-right font-semibold">Cantidad</th><th className="px-3 py-2 text-right font-semibold">Entrega</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...new Map(rows.map((r) => [r.district ?? "—", rows.filter((x) => (x.district ?? "—") === (r.district ?? "—"))])).entries()].map(([d, list], si) => [
-                <tr key={`h-${d}`} className="border-b border-sb-outline-variant/30 bg-sb-surface-container-low/70">
-                  <td colSpan={8} className="px-3 py-2">
-                    <span className="flex flex-wrap items-center gap-x-2">
-                      <span className="grid h-5 w-5 place-items-center rounded-full bg-sb-primary text-[10px] font-bold text-sb-on-primary">{si + 1}</span>
-                      <span className="text-[11px] text-sb-on-surface-variant">{list.some((x) => x.via_lima) ? "Lima" : site === "PCL" ? "Pucallpa" : "Yurimaguas"} →</span>
-                      <b>{d}</b><span className="text-[11px] text-sb-on-surface-variant">{list[0].department ?? ""} · {n(list.reduce((t, x) => t + x.delivered, 0))}/{n(list.reduce((t, x) => t + x.total, 0))} entregadas</span>
-                    </span>
-                  </td>
-                </tr>,
-                ...list.map((r) => (
-                <tr key={`${r.guia}|${r.dealer}`} className="border-b border-sb-outline-variant/20 last:border-0">
-                  <td className="px-3 py-2 pl-9 font-medium">{r.district ?? "—"}</td>
-                  <td className="max-w-[12rem] truncate px-2 py-2" title={r.dealer ?? ""}>{r.dealer ?? "—"}</td>
-                  <td className="whitespace-nowrap px-2 py-2 font-mono text-[11px]">{r.invoice ?? "—"}</td>
-                  <td className="whitespace-nowrap px-2 py-2 font-mono text-[11px] font-semibold">{r.guia ?? "—"}</td>
-                  <td className="px-2 py-2 text-right tabular-nums">{r.w2 || ""}</td>
-                  <td className="px-2 py-2 text-right tabular-nums">{r.w3 || ""}</td>
-                  <td className="px-2 py-2 text-right font-semibold tabular-nums">{n(r.total)}</td>
-                  <td className="px-3 py-2 text-right">
-                    <span className={cn("tabular-nums", r.delivered === r.total ? "font-semibold text-sb-primary" : "text-sb-on-surface-variant")}>{r.delivered === r.total ? fmtDate(r.delivered_on) : `${n(r.delivered)}/${n(r.total)}`}</span>
-                    {r.reception && <span className={cn("block text-[10px]", r.reception.kind === "completo" ? "text-sb-primary" : "text-sb-late")} title={r.reception.note ?? ""}>{r.reception.kind === "completo" ? "Dealer: completo" : "Dealer: con observación"}</span>}
-                  </td>
-                </tr>
-                )),
-              ])}
-            </tbody>
-          </table>
+      sub={trip ? `${fmtDate(trip.dispatched_on)}${trip.plate ? ` · placa ${trip.plate}` : ""}` : ""}>
+      {trip && (
+        <div className="mb-4 grid grid-cols-3 divide-x divide-sb-outline-variant/40 rounded-2xl bg-sb-surface-container-low py-3">
+          <div className="px-4">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Motos</p>
+            <p className="mt-0.5 text-2xl font-semibold leading-none tabular-nums">{n(total)}</p>
+            <p className="mt-1 text-[10px] text-sb-on-surface-variant tabular-nums">2W {n(trip.w2)} · 3W {n(trip.w3)}</p>
+          </div>
+          <div className="px-4">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Entregadas</p>
+            <p className={cn("mt-0.5 text-2xl font-semibold leading-none tabular-nums", delivered >= total && total > 0 && "text-sb-primary")}>{n(delivered)}<span className="text-sm font-normal text-sb-on-surface-variant">/{n(total)}</span></p>
+            <span className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-sb-surface-container"><span className="bg-sb-primary transition-[width] duration-500" style={{ width: `${total ? (delivered / total) * 100 : 0}%` }} /></span>
+          </div>
+          <div className="px-4">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Paradas</p>
+            <p className="mt-0.5 text-2xl font-semibold leading-none tabular-nums">{rows ? n(stops.length) : "…"}</p>
+            <p className="mt-1 truncate text-[10px] text-sb-on-surface-variant">{rows ? plural(rows.length, ["guía", "guías"]) : ""}</p>
+          </div>
         </div>
+      )}
+      {!rows ? (
+        <div className="flex flex-col gap-2">{[0, 1].map((i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-sb-surface-container-low" />)}</div>
+      ) : !stops.length ? (
+        <p className="py-8 text-center text-sm text-sb-on-surface-variant">Este viaje no tiene guías.</p>
+      ) : (
+        <ol className="flex flex-col">
+          {stops.map((st, i) => {
+            const done = st.delivered >= st.total;
+            const last = i === stops.length - 1;
+            return (
+              <li key={st.district} className="relative flex gap-3 pb-4 last:pb-0">
+                {/* Línea de la ruta */}
+                {!last && <span className="absolute bottom-0 left-[13px] top-8 w-0.5 rounded-full bg-sb-outline-variant/50" aria-hidden />}
+                <span className={cn("z-[1] grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold",
+                  done ? "bg-sb-primary text-sb-on-primary" : "bg-sb-surface-container text-sb-on-surface")}>
+                  {done ? <CheckCheck className="h-3.5 w-3.5" /> : i + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 pt-0.5">
+                    <span className="text-[11px] text-sb-on-surface-variant">{st.lima ? "Lima" : from} →</span>
+                    <b className="text-sm">{nice(st.district)}</b>
+                    {st.department && <span className="text-[11px] text-sb-on-surface-variant">{nice(st.department)}</span>}
+                    <span className={cn("ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums", done ? "bg-sb-primary-soft text-sb-primary" : "bg-sb-surface-container text-sb-on-surface-variant")}>
+                      {done ? "Entregado" : `${n(st.delivered)}/${n(st.total)} entregadas`}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-col gap-1.5">
+                    {st.list.map((r) => {
+                      const full = Number(r.delivered) >= Number(r.total);
+                      return (
+                        <div key={`${r.guia}|${r.dealer}`} className="rounded-xl border border-sb-outline-variant/40 px-3 py-2.5">
+                          <div className="flex items-start gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-xs font-semibold" title={r.dealer ?? ""}>{r.dealer ?? "—"}</p>
+                              <p className="mt-0.5 flex flex-wrap gap-x-3 font-mono text-[10px] text-sb-on-surface-variant">
+                                <span>Guía <b className="text-sb-on-surface">{r.guia ?? "—"}</b></span>
+                                {r.invoice && <span>Factura {r.invoice}</span>}
+                              </p>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-sm font-semibold leading-none tabular-nums">{n(r.total)}</p>
+                              <p className="mt-0.5 text-[10px] text-sb-on-surface-variant tabular-nums">2W {n(r.w2)} · 3W {n(r.w3)}</p>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold">
+                            <span className={cn("rounded-full px-2 py-0.5", full ? "bg-sb-primary-soft text-sb-primary" : "bg-sb-surface-container text-sb-on-surface-variant")}>
+                              {full ? `Entregado ${fmtDate(r.delivered_on)}` : `${n(r.delivered)}/${n(r.total)} entregadas`}
+                            </span>
+                            {r.reception && (
+                              <span className={cn("rounded-full px-2 py-0.5", r.reception.kind === "completo" ? "bg-sb-primary-soft text-sb-primary" : "bg-sb-late-soft text-sb-late")}>
+                                {r.reception.kind === "completo" ? "Dealer: recibió completo" : "Dealer: con observación"}
+                              </span>
+                            )}
+                          </div>
+                          {r.reception?.note && <p className="mt-1.5 rounded-lg bg-sb-surface-container-low px-2.5 py-1.5 text-[11px] text-sb-on-surface-variant">«{r.reception.note}»</p>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
       )}
     </Sheet>
   );
 }
+
+/** «SAN MARTIN» → «San Martin» */
+const nice = (v: string) => v.toLowerCase().replace(/(^|[\s(])\p{L}/gu, (m) => m.toUpperCase());
 
 export default function DespachoPage() {
   const [me, setMe] = useState<{ role: string; stages: { site: Site; field: string }[] } | null>(null);
