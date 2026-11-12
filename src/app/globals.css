@@ -480,26 +480,29 @@ input[type="checkbox"]:not(:disabled), input[type="radio"]:not(:disabled), input
 }
 button:disabled, [aria-disabled="true"], input:disabled, .list-box-item[data-disabled="true"] { cursor: not-allowed; }
 
-/* ===== Apariencia «Taksice»: ventana blanca flotante sobre gris, menú de solo íconos, tarjetas planas con borde fino,
-   esquinas medianas, letra más compacta y etiquetas tipo pastilla. Mantiene los colores de cada empresa. ===== */
+/* ===== Apariencia «Taksice» (réplica de Stepbro Tasks): ocupa toda la pantalla, menú blanco con la opción activa en
+   píldora gris, el contenido en un panel gris claro redondeado y tarjetas blancas planas con borde fino; letra compacta.
+   Mantiene los colores de cada empresa en botones y datos. ===== */
 html[data-look="taksice"] {
   font-size: 15px;
-  --page-bg: #d4d4d8;
-  --sb-surface-container-low: #f6f6f8;
-  --sb-surface-container: #f1f1f4;
-  --sb-outline-variant: #e9e9ee;
+  --page-bg: #ffffff;
+  --sb-surface-container-low: #f4f4f6;
+  --sb-surface-container: #efeff2;
+  --sb-outline-variant: #e8e8ec;
   --sb-radius-card: 14px;
   --sb-shadow-card: none;
   --sb-shadow-float: 0 1px 2px rgb(16 16 24 / 0.05), 0 12px 32px -16px rgb(16 16 24 / 0.25);
+  --tk-panel: #f6f6f8;
 }
-html.dark[data-look="taksice"] { --page-bg: #050506; --sb-surface-container-low: #151518; --sb-surface-container: #1c1c20; --sb-outline-variant: #26262b; }
-html[data-look="taksice"] .sb-shell {
-  margin: 14px; height: calc(100vh - 28px); border-radius: 22px; background: var(--sb-surface);
-  box-shadow: 0 1px 2px rgb(16 16 24 / 0.06), 0 30px 80px -30px rgb(16 16 24 / 0.35);
+html.dark[data-look="taksice"] { --page-bg: #0b0b0d; --sb-surface-container-low: #17171a; --sb-surface-container: #1d1d21; --sb-outline-variant: #26262b; --tk-panel: #121215; }
+/* El contenido vive en un panel gris redondeado que llena el resto de la pantalla */
+@media (min-width: 768px) {
+  html[data-look="taksice"] .sb-shell > div > main { background: var(--tk-panel); border-radius: 20px; margin: 0 12px 12px 0; padding-top: 20px; }
 }
 html[data-look="taksice"] .sb-card { border: 1px solid var(--sb-outline-variant); }
 html[data-look="taksice"] main .sb-card .sb-card { background: var(--sb-surface); }
-html[data-look="taksice"] .sb-shell > aside { border-right: 1px solid var(--sb-outline-variant); }
-html[data-look="taksice"] .sb-shell > aside nav a, html[data-look="taksice"] .sb-shell > aside nav button { border-radius: 12px !important; }
+/* Menú: opción activa en píldora gris sin sombra, ícono oscuro (no de color) */
+html[data-look="taksice"] .sb-nav-pill { background: var(--sb-surface-container) !important; box-shadow: none !important; border-radius: 10px !important; }
+html[data-look="taksice"] .sb-nav-icon { color: var(--sb-on-surface) !important; }
+html[data-look="taksice"] .sb-shell > aside nav a { border-radius: 10px !important; }
 html[data-look="taksice"] h1 { letter-spacing: -0.02em; }
-@media (max-width: 767px) { html[data-look="taksice"] .sb-shell { margin: 0; height: 100vh; border-radius: 0; } }

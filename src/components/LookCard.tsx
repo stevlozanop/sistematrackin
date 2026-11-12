@@ -4,7 +4,7 @@ import { Check, Palette } from "lucide-react";
 import { Card } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
-/** Aspecto de todo el sistema: «Clásica» (el original) o «Taksice» (ventana blanca, menú de íconos, tarjetas planas). */
+/** Aspecto de todo el sistema: «Clásica» (el original) o «Taksice» (réplica de Stepbro Tasks). */
 export type Look = "clasica" | "taksice";
 const EVENT = "sb-look";
 
@@ -23,12 +23,12 @@ export const LOOK_EVENT = EVENT;
 function Preview({ look }: { look: Look }) {
   const t = look === "taksice";
   return (
-    <div className={cn("flex h-20 gap-1.5 overflow-hidden p-1.5", t ? "rounded-xl bg-zinc-300" : "rounded-xl bg-zinc-100")}>
-      <div className={cn("flex flex-1 gap-1.5", t && "rounded-lg bg-white p-1.5 shadow-sm")}>
-        <div className={cn("flex shrink-0 flex-col gap-1", t ? "w-3.5 border-r border-zinc-200 pr-1" : "w-9")}>
-          {[0, 1, 2, 3].map((i) => <span key={i} className={cn("h-1.5 rounded-full", i === 0 ? "bg-sb-primary" : "bg-zinc-300", t ? "w-1.5" : "w-full")} />)}
+    <div className={cn("flex h-20 gap-1.5 overflow-hidden p-1.5", t ? "rounded-xl bg-white ring-1 ring-zinc-200" : "rounded-xl bg-zinc-100")}>
+      <div className="flex flex-1 gap-1.5">
+        <div className="flex w-9 shrink-0 flex-col gap-1">
+          {[0, 1, 2, 3].map((i) => <span key={i} className={cn("h-1.5 w-full rounded-full", i === 0 ? (t ? "bg-zinc-400" : "bg-sb-primary") : "bg-zinc-300")} />)}
         </div>
-        <div className="flex flex-1 flex-col gap-1">
+        <div className={cn("flex flex-1 flex-col gap-1", t && "rounded-lg bg-zinc-100 p-1")}>
           <span className={cn("h-5", t ? "rounded-md border border-zinc-200 bg-zinc-50" : "rounded-lg bg-white shadow-sm")} />
           <div className="flex flex-1 gap-1">
             <span className={cn("flex-1", t ? "rounded-md bg-zinc-100" : "rounded-lg bg-white shadow-sm")} />
@@ -44,7 +44,7 @@ export function LookCard() {
   const look = useLook();
   const options: [Look, string, string][] = [
     ["clasica", "Clásica", "El diseño original: tarjetas suaves con sombra y menú con nombres."],
-    ["taksice", "Taksice", "Ventana blanca flotante, menú de íconos, tarjetas planas con borde fino y letra compacta."],
+    ["taksice", "Taksice", "Como Stepbro Tasks: pantalla completa, menú blanco, contenido en un panel gris y tarjetas planas con borde fino."],
   ];
   return (
     <Card className="flex flex-col gap-3 p-5">

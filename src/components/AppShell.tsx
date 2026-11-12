@@ -266,11 +266,11 @@ function NavLink({ item, active, open, badge }: { item: Item; active: boolean; o
     >
       {/* Opción activa: píldora suave que se desliza de una opción a otra */}
       {active && (
-        <motion.span layoutId="nav-pill" className={cn("absolute inset-0 bg-sb-surface shadow-[var(--sb-shadow-card)] dark:bg-sb-surface-container-high", open ? "rounded-full" : "rounded-[14px]")}
+        <motion.span layoutId="nav-pill" className={cn("sb-nav-pill absolute inset-0 bg-sb-surface shadow-[var(--sb-shadow-card)] dark:bg-sb-surface-container-high", open ? "rounded-full" : "rounded-[14px]")}
           transition={{ type: "spring", stiffness: 420, damping: 36 }} />
       )}
       <motion.span
-        className={cn("relative z-10", active && "text-sb-primary")}
+        className={cn("sb-nav-icon relative z-10", active && "text-sb-primary")}
         whileTap={{ scale: 0.9 }}
         animate={{ scale: active ? 1.06 : 1, opacity: active ? 1 : 0.75 }}
         transition={{ duration: 0.25, ease: "easeInOut" }}
@@ -356,16 +356,8 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
   };
 
   useEffect(() => {
-    // Taksice: menú de solo íconos (como el de la referencia); se puede abrir igual con «Colapsar»
-    setOpen(document.documentElement.dataset.look === "taksice" ? localStorage.getItem("sb-sidebar-open") === "1" : localStorage.getItem("sb-sidebar-open") !== "0");
+    setOpen(localStorage.getItem("sb-sidebar-open") !== "0");
     setDark(document.documentElement.classList.contains("dark"));
-  }, []);
-
-  // Al cambiar de apariencia: Taksice deja el menú en íconos; Clásica lo vuelve a abrir
-  useEffect(() => {
-    const on = () => setOpen(document.documentElement.dataset.look !== "taksice");
-    window.addEventListener("sb-look", on);
-    return () => window.removeEventListener("sb-look", on);
   }, []);
 
   const toggleSidebar = () => setOpen((o) => (localStorage.setItem("sb-sidebar-open", o ? "0" : "1"), !o));
