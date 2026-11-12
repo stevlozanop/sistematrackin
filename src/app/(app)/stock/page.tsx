@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { TableLabels } from "@/components/TableLabels";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
-import { Forklift, Search, Warehouse, X } from "lucide-react";
+import { Check, Forklift, Inbox, Search, Warehouse, X } from "lucide-react";
+import { Mix, n, plural } from "@/components/stage/StageKit";
 import { Card, PageTitle } from "@/components/ui";
 import { DATA_EVENT } from "@/components/UploadCenter";
-import { SITE_INFO, fmtDate, unitsText, type Site } from "@/lib/hsp";
+import { SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { daysBetween, parseISO, todayLima } from "@/lib/dates";
 import { cn } from "@/lib/cn";
 
@@ -17,7 +17,8 @@ import { cn } from "@/lib/cn";
 
 type Row = { guia: string | null; district: string | null; dealer: string | null; nave: string | null; container: string | null; w2: number; w3: number; total: number; since: string; need: number; models: string | null; est: string | null; billing: string | null; overdue: number };
 
-const n = (v: number) => Number(v ?? 0).toLocaleString("es-PE");
+/** Columnas de cada guía: marca · guía/dealer · nave/modelos · lead time · en almacén · 2W/3W · total (celular: marca · guía · total) */
+const COLS = "grid-cols-[1.25rem_minmax(0,1fr)_3.5rem] gap-x-3 lg:grid-cols-[1.25rem_minmax(0,1.5fr)_minmax(0,1fr)_10.5rem_6.5rem_7rem_3.5rem]";
 
 export default function StockPage() {
   const router = useRouter();
@@ -85,109 +86,136 @@ export default function StockPage() {
       </PageTitle>
 
       {/* Resumen */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {[["Unidades en almacén", n(all.total)], ["2W · 3W", `${n(all.w2)} · ${n(all.w3)}`], ["Guías", n(rows?.length ?? 0)]].map(([l, v]) => (
-          <Card key={l} className="px-4 py-3">
-            <p className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">{l}</p>
-            <p className="text-2xl font-bold tabular-nums">{rows ? v : "…"}</p>
-          </Card>
-        ))}
-        <Card className="px-4 py-3">
-          <p className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">Lead time</p>
-          <p className="text-2xl font-bold tabular-nums"><span className="text-sb-late">{rows ? n(lateCount) : "…"}</span><span className="text-base font-medium text-sb-on-surface-variant"> · </span><span className="text-sb-ontime">{rows ? n((rows?.length ?? 0) - lateCount) : "…"}</span></p>
-          <p className="text-[10px] text-sb-on-surface-variant"><span className="text-sb-late">vencidas</span> · <span className="text-sb-ontime">al día</span></p>
-        </Card>
-      </div>
+      <Card className="grid grid-cols-2 divide-sb-outline-variant/40 sm:grid-cols-4 sm:divide-x">
+        <div className="p-4">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">En almacén</p>
+          <p className="mt-1 text-3xl font-semibold leading-none tabular-nums">{rows ? n(all.total) : "…"}<span className="ml-1.5 text-sm font-normal text-sb-on-surface-variant">motos</span></p>
+          <div className="mt-3 max-w-[11rem] [&>span]:flex"><Mix w2={all.w2} w3={all.w3} /></div>
+        </div>
+        <div className="p-4">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Guías</p>
+          <p className="mt-1 text-3xl font-semibold leading-none tabular-nums">{rows ? n(rows.length) : "…"}</p>
+          <p className="mt-2 text-[11px] text-sb-on-surface-variant">{rows ? `${plural(new Set(rows.map((r) => r.dealer)).size, ["dealer", "dealers"])} · ${plural(new Set(rows.map((r) => r.district)).size, ["distrito", "distritos"])}` : ""}</p>
+        </div>
+        <div className="col-span-2 border-t border-sb-outline-variant/40 p-4 sm:col-span-2 sm:border-t-0">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Lead time</p>
+          <div className="mt-1 flex items-end gap-5">
+            <p className="text-3xl font-semibold leading-none tabular-nums text-sb-late">{rows ? n(lateCount) : "…"}<span className="ml-1.5 text-sm font-normal">vencidas</span></p>
+            <p className="text-3xl font-semibold leading-none tabular-nums text-sb-ontime">{rows ? n((rows?.length ?? 0) - lateCount) : "…"}<span className="ml-1.5 text-sm font-normal">al día</span></p>
+          </div>
+          <span className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-sb-surface-container">
+            <span className="bg-sb-late transition-[width] duration-500" style={{ width: `${rows?.length ? (lateCount / rows.length) * 100 : 0}%` }} />
+            <span className="bg-sb-ontime transition-[width] duration-500" style={{ width: `${rows?.length ? ((rows.length - lateCount) / rows.length) * 100 : 0}%` }} />
+          </span>
+        </div>
+      </Card>
 
       <Card className="overflow-hidden">
-        <div className="flex flex-wrap items-center gap-3 border-b border-sb-outline-variant/40 px-4 py-3">
-          <h3 className="flex items-center gap-2 text-sm font-semibold"><Warehouse className="h-4 w-4" /> Unidades en almacén por guía</h3>
-          <div className="flex rounded-full bg-sb-surface-container p-0.5">
-            {([["all", "Todas"], ["late", "Vencidas"], ["ok", "Al día"]] as const).map(([k, l]) => (
-              <button key={k} type="button" onClick={() => setOnly(k)}
-                className={cn("rounded-full px-3 py-1 text-[11px] font-semibold transition-colors", only === k ? (k === "late" ? "bg-sb-late text-white" : k === "ok" ? "bg-sb-ontime text-white" : "bg-sb-surface text-sb-on-surface shadow-sm") : "text-sb-on-surface-variant")}>{l}</button>
+        <div className="flex flex-wrap items-center gap-3 border-b border-sb-outline-variant/40 px-4 py-3.5">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sb-primary-soft text-sb-primary"><Warehouse className="h-[18px] w-[18px]" /></span>
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold">Guías en almacén</h3>
+            <p className="text-[11px] text-sb-on-surface-variant">Marca las guías que salen y arma el despacho</p>
+          </div>
+          <div className="flex rounded-full bg-sb-surface-container p-0.5 sm:ml-2">
+            {([["all", "Todas", rows?.length ?? 0], ["late", "Vencidas", lateCount], ["ok", "Al día", (rows?.length ?? 0) - lateCount]] as const).map(([k, l, c]) => (
+              <button key={k} type="button" onClick={() => setOnly(k)} aria-pressed={only === k}
+                className={cn("flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold transition-colors duration-200",
+                  only === k ? "bg-sb-surface text-sb-on-surface shadow-sm" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+                {k !== "all" && <span className={cn("h-1.5 w-1.5 rounded-full", k === "late" ? "bg-sb-late" : "bg-sb-ontime")} />}
+                {l}<span className="tabular-nums opacity-60">{n(c)}</span>
+              </button>
             ))}
           </div>
-          <label className="relative ml-auto w-full sm:w-80">
+          <label className="relative w-full sm:ml-auto sm:w-80">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sb-on-surface-variant" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar guía, dealer, distrito o nave (varias con coma)"
-              className="h-10 w-full rounded-xl border border-sb-outline-variant bg-sb-surface pl-9 pr-8 text-sm outline-none focus:border-sb-on-surface" />
-            {q && <button type="button" aria-label="Limpiar" onClick={() => setQ("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-sb-on-surface-variant"><X className="h-3.5 w-3.5" /></button>}
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Guía, dealer, distrito o nave (varias con coma)"
+              className="h-10 w-full rounded-full border border-sb-outline-variant bg-sb-surface pl-9 pr-8 text-sm outline-none transition-colors focus:border-sb-on-surface" />
+            {q && <button type="button" aria-label="Limpiar" onClick={() => setQ("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-sb-on-surface-variant hover:bg-sb-surface-container"><X className="h-3.5 w-3.5" /></button>}
           </label>
         </div>
-        <TableLabels className="">
-          <table className="w-full min-w-[920px] text-left text-xs">
-            <thead>
-              <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
-                <th className="w-10 px-4 py-2">
-                  <input type="checkbox" aria-label="Marcar todas las que se ven" className="h-4 w-4 accent-[var(--sb-primary)]" checked={allShown} disabled={!shown.length}
-                    onChange={() => setSel((s) => { const y = new Set(s); for (const r of shown) { if (allShown) y.delete(key(r)); else y.add(key(r)); } return y; })} />
-                </th>
-                <th className="px-2 py-2 font-semibold">Guía R.</th><th className="px-2 py-2 font-semibold">Distrito</th><th className="px-2 py-2 font-semibold">Dealer</th>
-                <th className="px-2 py-2 font-semibold">Modelos</th><th className="px-2 py-2 font-semibold">Nave · contenedor</th>
-                <th className="px-2 py-2 text-right font-semibold">2W</th><th className="px-2 py-2 text-right font-semibold">3W</th><th className="px-2 py-2 text-right font-semibold">Total</th>
-                <th className="px-2 py-2 font-semibold">Lead time</th>
-                <th className="px-4 py-2 text-right font-semibold">En almacén</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((r) => {
-                const on = sel.has(key(r)), days = r.since ? daysBetween(parseISO(String(r.since).slice(0, 10)), today) : 0;
-                return (
-                  <tr key={`${key(r)}|${r.dealer}`} onClick={() => flip(key(r))} className={cn("cursor-pointer border-b border-sb-outline-variant/20 transition-colors last:border-0", on ? "bg-sb-primary-soft" : "hover:bg-sb-surface-container-low")}>
-                    <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
-                      <input type="checkbox" aria-label={`Marcar ${r.guia}`} className="h-4 w-4 accent-[var(--sb-primary)]" checked={on} onChange={() => flip(key(r))} />
-                    </td>
-                    <td className={cn("px-2 py-2.5 font-mono font-semibold", late(r) ? "text-sb-late" : "text-sb-ontime")}>{r.guia ?? "—"}</td>
-                    <td className="px-2 py-2.5">{r.district ?? "—"}</td>
-                    <td className="max-w-[14rem] truncate px-2 py-2.5" title={r.dealer ?? ""}>{r.dealer ?? "—"}</td>
-                    <td className="max-w-[10rem] truncate px-2 py-2.5 text-sb-on-surface-variant" title={r.models ?? ""}>{r.models ?? "—"}</td>
-                    <td className="px-2 py-2.5 text-sb-on-surface-variant">{r.nave ?? "—"}{r.container ? <span className="block font-mono text-[10px]">{r.container}</span> : null}</td>
-                    <td className="px-2 py-2.5 text-right tabular-nums">{r.w2 || ""}</td>
-                    <td className="px-2 py-2.5 text-right tabular-nums">{r.w3 || ""}</td>
-                    <td className="px-2 py-2.5 text-right font-semibold tabular-nums">{n(r.total)}</td>
-                    <td className="whitespace-nowrap px-2 py-2.5">
-                      {r.est ? (() => {
-                        const left = -dd(r.est, today), lead = r.billing ? dd(r.billing, parseISO(String(r.est).slice(0, 10))) : null;
-                        return (
-                          <span className={late(r) ? "text-sb-late" : "text-sb-ontime"}>
-                            <b className="block">{late(r) ? `Vencida hace ${-left} día${left === -1 ? "" : "s"}` : left === 0 ? "Vence hoy" : `Quedan ${left} día${left === 1 ? "" : "s"}`}</b>
-                            <span className="text-[10px] opacity-80">vence {fmtDate(r.est)}{lead !== null ? ` · ${lead} días de plazo` : ""}</span>
-                          </span>
-                        );
-                      })() : <span className="text-sb-on-surface-variant">—</span>}
-                    </td>
-                    <td className="px-4 py-2.5 text-right whitespace-nowrap">
-                      <span className="block">{fmtDate(r.since)}</span>
-                      <span className={cn("text-[10px]", days >= 7 ? "font-semibold text-sb-late" : "text-sb-on-surface-variant")}>{days <= 0 ? "hoy" : `${days} día${days === 1 ? "" : "s"}`}</span>
-                    </td>
-                  </tr>
-                );
-              })}
-              {rows && !shown.length && <tr><td colSpan={11} className="px-4 py-10 text-center text-sb-on-surface-variant">{rows.length ? "Ninguna guía coincide con la búsqueda." : "No hay unidades en almacén."}</td></tr>}
-              {!rows && <tr><td colSpan={11} className="px-4 py-10 text-center text-sb-on-surface-variant">Cargando…</td></tr>}
-            </tbody>
-          </table>
-        </TableLabels>
+
+        <div className="p-2 sm:p-3">
+          {/* Encabezado de columnas (escritorio) */}
+          {!!shown.length && (
+            <div className={cn(COLS, "hidden px-3 pb-2 text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant lg:grid")}>
+              <button type="button" role="checkbox" aria-checked={allShown} aria-label="Marcar todas las que se ven"
+                onClick={() => setSel((s) => { const y = new Set(s); for (const r of shown) { if (allShown) y.delete(key(r)); else y.add(key(r)); } return y; })}
+                className={cn("grid h-5 w-5 place-items-center rounded-full border transition-colors", allShown ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant bg-sb-surface")}>
+                <Check className={cn("h-3 w-3", allShown ? "opacity-100" : "opacity-0")} strokeWidth={3} />
+              </button>
+              <span>Guía · dealer</span><span>Nave · modelos</span><span>Lead time</span><span>En almacén</span><span>2W · 3W</span><span className="text-right">Total</span>
+            </div>
+          )}
+          <div className="flex flex-col gap-0.5">
+            {!rows && [0, 1, 2, 3].map((i) => <div key={i} className="h-[62px] animate-pulse rounded-xl bg-sb-surface-container-low" />)}
+            {rows && !shown.length && (
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-sb-outline-variant/60 px-4 py-12 text-center text-xs text-sb-on-surface-variant">
+                <Inbox className="h-5 w-5 opacity-50" />{rows.length ? "Ninguna guía coincide con la búsqueda." : "No hay unidades en almacén."}
+              </div>
+            )}
+            {shown.map((r) => {
+              const on = sel.has(key(r)), days = r.since ? daysBetween(parseISO(String(r.since).slice(0, 10)), today) : 0;
+              const left = r.est ? -dd(r.est, today) : null, lead = r.est && r.billing ? dd(r.billing, parseISO(String(r.est).slice(0, 10))) : null;
+              const tone = late(r) ? "late" : "ontime";
+              return (
+                <button key={`${key(r)}|${r.dealer}`} type="button" role="checkbox" aria-checked={on} aria-label={`Marcar ${r.guia}`} onClick={() => flip(key(r))}
+                  className={cn(COLS, "grid items-center gap-y-1 rounded-xl px-3 py-3 text-left transition-colors duration-200", on ? "bg-sb-primary-soft" : "hover:bg-sb-surface-container-low")}>
+                  <span className={cn("grid h-5 w-5 place-items-center rounded-full border transition-all duration-200", on ? "scale-105 border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant bg-sb-surface")}>
+                    <Check className={cn("h-3 w-3 transition-opacity", on ? "opacity-100" : "opacity-0")} strokeWidth={3} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-1.5 font-mono text-sm font-semibold tracking-tight">
+                      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", tone === "late" ? "bg-sb-late" : "bg-sb-ontime")} />{r.guia ?? "—"}
+                    </span>
+                    <span className="block truncate text-[11px] text-sb-on-surface-variant" title={r.dealer ?? ""}>{r.district ?? "—"} · {r.dealer ?? "—"}</span>
+                  </span>
+                  <span className="hidden min-w-0 text-[11px] text-sb-on-surface-variant lg:block">
+                    <span className="block truncate text-xs text-sb-on-surface">{r.nave ?? "—"}{r.container ? <span className="ml-1.5 font-mono text-[10px] text-sb-on-surface-variant">{r.container}</span> : null}</span>
+                    <span className="block truncate" title={r.models ?? ""}>{r.models ?? "—"}</span>
+                  </span>
+                  <span className="col-start-2 min-w-0 lg:col-start-auto">
+                    {left !== null ? (
+                      <>
+                        <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold", tone === "late" ? "bg-sb-late-soft text-sb-late" : "bg-sb-ontime-soft text-sb-ontime")}>
+                          {late(r) ? `Vencida hace ${-left} día${left === -1 ? "" : "s"}` : left === 0 ? "Vence hoy" : `Quedan ${left} día${left === 1 ? "" : "s"}`}
+                        </span>
+                        <span className="mt-0.5 block truncate text-[10px] text-sb-on-surface-variant">vence {fmtDate(r.est)}{lead !== null ? ` · ${lead} días de plazo` : ""}</span>
+                      </>
+                    ) : <span className="text-[11px] text-sb-on-surface-variant">Sin plazo</span>}
+                  </span>
+                  <span className="hidden text-[11px] lg:block">
+                    <span className="block text-xs">{fmtDate(r.since)}</span>
+                    <span className={cn("text-[10px]", days >= 7 ? "font-semibold text-sb-late" : "text-sb-on-surface-variant")}>{days <= 0 ? "ingresó hoy" : `hace ${days} día${days === 1 ? "" : "s"}`}</span>
+                  </span>
+                  <span className="hidden lg:block"><Mix w2={r.w2} w3={r.w3} /></span>
+                  <span className="col-start-3 row-span-2 row-start-1 text-right lg:col-start-auto lg:row-span-1 lg:row-start-auto">
+                    <span className="block text-sm font-semibold tabular-nums">{n(r.total)}</span>
+                    <span className="block text-[10px] text-sb-on-surface-variant">motos</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </Card>
 
       {/* Barra para armar el despacho con lo marcado */}
       {chosen.length > 0 && (
-        <div className="sticky bottom-24 z-40 flex flex-wrap items-center gap-3 rounded-2xl border border-sb-outline-variant bg-sb-surface p-3 shadow-2xl md:bottom-3">
-          <div className="min-w-[10rem] flex-1">
-            <p className="text-sm font-semibold">{chosen.length} guía(s) · {unitsText(pick.w2, pick.w3)}</p>
-            <p className="text-[11px] text-sb-on-surface-variant">2W {n(pick.w2)} · 3W {n(pick.w3)} · {[...new Set(chosen.map((r) => r.district).filter(Boolean))].join(", ")}</p>
+        <div className="sticky bottom-24 z-40 flex items-center gap-2 sm:gap-3 rounded-2xl border border-sb-outline-variant/60 bg-sb-surface/90 p-3 pl-4 shadow-2xl backdrop-blur-xl md:bottom-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold"><span className="text-lg tabular-nums">{n(pick.total)}</span> motos <span className="font-normal text-sb-on-surface-variant">en {chosen.length === 1 ? "1 guía" : `${chosen.length} guías`}</span></p>
+            <p className="truncate text-[11px] text-sb-on-surface-variant">{canDispatch ? <>2W {n(pick.w2)} · 3W {n(pick.w3)} · {[...new Set(chosen.map((r) => r.district).filter(Boolean))].join(", ")}</> : "El despacho no es tu etapa: pásale estas guías a quien despacha."}</p>
           </div>
-          <Button variant="secondary" className="rounded-full" onPress={() => setSel(new Set())}><X className="h-4 w-4" /> Quitar</Button>
-          <Button variant="primary" className="rounded-full" isDisabled={!canDispatch}
+          <Button variant="secondary" className="shrink-0 rounded-full" aria-label="Quitar lo marcado" onPress={() => setSel(new Set())}><X className="h-4 w-4" /><span className="hidden sm:inline">Quitar</span></Button>
+          <Button variant="primary" className="shrink-0 rounded-full" isDisabled={!canDispatch}
             onPress={() => {
               // Despacho las toma al abrir y las agrega al viaje
               try { sessionStorage.setItem("sb-despacho-preload", JSON.stringify({ site: current, guias: chosen.map(key), at: Date.now() })); } catch { /* sin almacenamiento: se escriben a mano */ }
               router.push("/despacho");
             }}>
-            <Forklift className="h-4 w-4" /> Armar despacho
+            <Forklift className="h-4 w-4" /><span className="hidden min-[400px]:inline">Armar despacho</span><span className="min-[400px]:hidden">Despachar</span>
           </Button>
-          {!canDispatch && <p className="w-full text-[11px] text-sb-on-surface-variant">El despacho no es tu etapa: pásale estas guías a quien despacha.</p>}
         </div>
       )}
     </div>
