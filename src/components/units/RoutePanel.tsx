@@ -63,8 +63,9 @@ export function RoutePanel({ site, pick, flow, filters, onClose, onOpenUnit }: {
         <Drawer.Content placement={narrow ? "bottom" : "right"}>
           <Drawer.Dialog className={cn(narrow ? "max-h-[88dvh]" : "w-[460px] max-w-[92vw]")}>
             <Drawer.CloseTrigger aria-label="Cerrar" />
-            <Drawer.Header className="flex flex-col gap-3 pr-10">
-              <div className="flex items-center gap-3">
+            {/* El espacio del ✕ va solo en la fila del título: el resumen, los avisos y el buscador usan todo el ancho, igual que las guías */}
+            <Drawer.Header className="flex flex-col gap-3">
+              <div className="flex items-center gap-3 pr-10">
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sb-primary-soft text-sb-primary">
                   {pick?.kind === "nave" ? <Ship className="h-5 w-5" /> : <MapPin className="h-5 w-5" />}
                 </span>
@@ -140,7 +141,8 @@ export function RoutePanel({ site, pick, flow, filters, onClose, onOpenUnit }: {
                         </span>
                       </span>
                       <span className="flex shrink-0 flex-col items-end gap-0.5">
-                        <b className="text-[12.5px]">{unitsOf(list as { category?: string | null }[])}</b>
+                        <b className="text-[15px] leading-none tabular-nums" title={unitsOf(list as { category?: string | null }[])}>{list.length}</b>
+                        <span className="text-[10px] tabular-nums text-sb-on-surface-variant">2W {g2} · 3W {list.length - g2}</span>
                         {lateN > 0 && <span className="rounded-full bg-sb-late-soft px-2 py-px text-[10px] font-semibold text-sb-late">{lateN} tarde</span>}
                       </span>
                       <ChevronDown className={cn("h-4 w-4 shrink-0 text-sb-on-surface-variant transition-transform duration-300", isOpen && "rotate-180")} />

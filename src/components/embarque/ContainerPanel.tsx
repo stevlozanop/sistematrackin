@@ -46,7 +46,7 @@ export function ContainerPanel({ site, pick, onClose, onOpenNave }: {
         <Drawer.Content placement={narrow ? "bottom" : "right"}>
           <Drawer.Dialog className={cn(narrow ? "max-h-[85dvh]" : "w-[420px] max-w-[92vw]")}>
             <Drawer.CloseTrigger aria-label="Cerrar" />
-            <Drawer.Header className="flex flex-col gap-1">
+            <Drawer.Header className="flex flex-col gap-1 pr-10">
               <Drawer.Heading className="flex items-center gap-2 font-mono"><Box className="h-4 w-4" />{pick?.code}</Drawer.Heading>
               <p className="flex flex-wrap items-center gap-x-2 text-xs text-sb-on-surface-variant">
                 <span className="inline-flex items-center gap-1"><Ship className="h-3 w-3" />{pick?.nave}</span>
