@@ -111,23 +111,23 @@ export function ConsortiumCard({ c, onEdit, onDelete, onAddAccount }: {
             </Tabs.List>
           </Tabs.ListContainer>
 
-          <Tabs.Panel id="entries" className="pt-3">
+          <Tabs.Panel id="entries" className="min-w-0 pt-3">
             {entries.length ? (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
                 {entries.map((e) => {
                   const url = `${origin}${e.path}`;
                   return (
-                    <Card key={e.path} variant="secondary">
-                      <Card.Header className="flex flex-row items-center gap-2">
+                    <Card key={e.path} variant="secondary" className="min-w-0">
+                      <Card.Header className="flex min-w-0 flex-row flex-wrap items-center gap-2">
                         <e.icon className="h-4 w-4 text-sb-on-surface-variant" />
                         <Card.Title className="text-sm">Entrada · {e.who}</Card.Title>
                         <Chip size="sm" variant="soft" className="ml-auto">{e.n} {e.n === 1 ? "cuenta" : "cuentas"}</Chip>
                         {e.live > 0 && <Chip size="sm" color="success" variant="soft">{e.live} en línea</Chip>}
                       </Card.Header>
-                      <Card.Content className="flex flex-col gap-1">
-                        <Card.Description>{e.desc}</Card.Description>
-                        <p className="font-mono text-base font-semibold">{e.path}</p>
-                        <p className="truncate font-mono text-xs text-sb-on-surface-variant">{url || e.path}</p>
+                      <Card.Content className="flex min-w-0 flex-col gap-1">
+                        <Card.Description className="break-words">{e.desc}</Card.Description>
+                        <p className="break-all font-mono text-base font-semibold">{e.path}</p>
+                        <p className="break-all rounded-lg bg-sb-surface-container-low px-2 py-1 font-mono text-[11px] leading-snug text-sb-on-surface-variant">{url || e.path}</p>
                       </Card.Content>
                       <Card.Footer>
                         <ButtonGroup size="sm" variant="secondary">
@@ -152,7 +152,7 @@ export function ConsortiumCard({ c, onEdit, onDelete, onAddAccount }: {
             ) : <p className="text-sm text-sb-on-surface-variant">Este consorcio aún no tiene dirección de entrada. Edítalo para ponerle una.</p>}
           </Tabs.Panel>
 
-          <Tabs.Panel id="accounts" className="flex flex-col gap-3 pt-3">
+          <Tabs.Panel id="accounts" className="flex min-w-0 flex-col gap-3 pt-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-sb-on-surface-variant">Equipo</span>
               {onAddAccount && <Button size="sm" variant="secondary" onPress={onAddAccount}><UserPlus className="h-4 w-4" /> Agregar cuenta</Button>}
