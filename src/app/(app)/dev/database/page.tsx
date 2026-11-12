@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Database, HardDrive, KeyRound, Layers, Search, Server, Table2, Terminal, User } from "lucide-react";
+import { Archive, Database, HardDrive, KeyRound, Layers, Search, Server, Table2, Terminal, User } from "lucide-react";
 import { Card, Pill } from "@/components/ui";
+import { BackupsSheet } from "@/components/dev/BackupsSheet";
 import { cn } from "@/lib/cn";
 
 type TableRow = { name: string; kind: string; engine: string | null; rows: number | null; size_kb: number; updated: string | null; collation: string | null };
@@ -69,6 +70,7 @@ export default function DevDatabase() {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<"cols" | "rows">("cols");
+  const [backups, setBackups] = useState(false);
 
   useEffect(() => { fetch("/api/dev/db").then((r) => r.json()).then(setInfo); }, []);
   useEffect(() => {
@@ -110,6 +112,7 @@ export default function DevDatabase() {
               <Icon className="h-3 w-3 shrink-0" /><span className="truncate">{v}</span>
             </span>
           ))}
+          <button type="button" onClick={() => setBackups(true)} className="sb-pill flex items-center gap-1.5 rounded-full bg-sb-surface-container px-3 py-1 font-semibold text-sb-on-surface"><Archive className="h-3.5 w-3.5" /> Respaldos</button>
           <Link href="/dev/sql" className="sb-pill flex items-center gap-1.5 rounded-full bg-sb-primary px-3 py-1 font-semibold text-sb-on-primary"><Terminal className="h-3.5 w-3.5" /> Consola SQL</Link>
         </div>
       </div>
@@ -221,6 +224,7 @@ export default function DevDatabase() {
           {shown && tab === "rows" && <p className="border-t border-sb-outline-variant/30 px-4 py-1.5 text-[10px] text-sb-on-surface-variant">Últimas {shown.sample.length} filas{shown.table.updated ? ` · actualizada ${shown.table.updated}` : ""} · las claves se ocultan</p>}
         </Card>
       </div>
+      <BackupsSheet open={backups} onClose={() => setBackups(false)} />
     </div>
   );
 }
