@@ -4,8 +4,8 @@ import Link from "next/link";
 import { Button, toast } from "@heroui/react";
 import { Sheet } from "@/components/modal/Sheet";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
-import { Box, ChevronUp, Eye, FileText, Plus, Ship, X } from "lucide-react";
-import { Head, Mix, PickList, PickRow, Register, field, n, plural } from "@/components/stage/StageKit";
+import { Box, ChevronUp, Eye, Plus, Ship } from "lucide-react";
+import { GuiaRow, Head, PickList, PickRow, QuickChips, Register, TotalRow, field, n, plural } from "@/components/stage/StageKit";
 import { Card, PageTitle } from "@/components/ui";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { cn } from "@/lib/cn";
@@ -262,33 +262,12 @@ export default function EmbarquePage() {
                 <AnimatePresence initial={false}>
                   {guias.map((g) => (
                     <motion.div key={g.guia} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: 16, transition: { duration: 0.15 } }} transition={{ duration: 0.3, ease: EASE }}
-                      className="flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-sb-surface-container-low">
-                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sb-surface-container text-sb-on-surface-variant"><FileText className="h-4 w-4" /></span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-mono text-sm font-semibold tracking-tight">{g.guia}</span>
-                        <span className="block text-[11px] text-sb-on-surface-variant sm:truncate" title={g.dealer}>
-                          {g.district} · {g.dealer}<span className="sm:hidden"> · 2W {n(g.w2)} · 3W {n(g.w3)}</span>
-                          {g.need ? <b className="font-semibold text-sb-late"> · {n(g.need)} fuera de tiempo</b> : null}
-                        </span>
-                      </span>
-                      <Mix w2={g.w2} w3={g.w3} />
-                      <span className="w-12 shrink-0 text-right">
-                        <span className="block text-sm font-semibold tabular-nums">{n(g.total)}</span>
-                        <span className="block text-[10px] text-sb-on-surface-variant">motos</span>
-                      </span>
-                      <button type="button" onClick={() => setGuias((x) => x.filter((y) => y.guia !== g.guia))} aria-label={`Quitar ${g.guia}`}
-                        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sb-on-surface-variant transition-colors hover:bg-sb-late-soft hover:text-sb-late"><X className="h-4 w-4" /></button>
+                      >
+                      <GuiaRow guia={g.guia} district={g.district} dealer={g.dealer} w2={g.w2} w3={g.w3} total={g.total} late={g.need} onRemove={() => setGuias((x) => x.filter((y) => y.guia !== g.guia))} />
                     </motion.div>
                   ))}
                 </AnimatePresence>
-                {guias.length > 1 && (
-                  <div className="mt-1 flex items-center gap-3 rounded-xl bg-sb-surface-container-low px-3 py-2.5">
-                    <span className="min-w-0 flex-1 text-xs font-semibold">Total del contenedor<span className="block text-[11px] font-normal text-sb-on-surface-variant">{plural(guias.length, ["guía", "guías"])}</span></span>
-                    <Mix w2={tot.w2} w3={tot.w3} />
-                    <span className="w-12 shrink-0 text-right text-sm font-semibold tabular-nums">{n(tot.total)}</span>
-                    <span className="w-8 shrink-0" />
-                  </div>
-                )}
+                {guias.length > 1 && <TotalRow label="Total del contenedor" count={guias.length} w2={tot.w2} w3={tot.w3} total={tot.total} />}
               </PickList>
             </div>
             <Register from="IQT-Port" to="Embarque" label="Embarque" noun={["guía", "guías"]} title="En el contenedor" hint="Agrega guías a la lista"
@@ -303,20 +282,7 @@ export default function EmbarquePage() {
                   <datalist id="naves-emb">{naveOptions.map((v) => <option key={v} value={v} />)}</datalist>
                 </label>
               </div>
-              {naveOptions.length > 0 && data?.canEmbark && (
-                <div className="-mt-2 flex flex-wrap gap-1.5">
-                  {naveOptions.slice(0, 6).map((v) => {
-                    const on = nave.toUpperCase() === v.toUpperCase();
-                    return (
-                      <button key={v} type="button" onClick={() => setNave(v)} aria-pressed={on}
-                        className={cn("flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
-                          on ? "bg-sb-primary text-sb-on-primary" : "bg-sb-surface text-sb-on-surface-variant hover:text-sb-on-surface")}>
-                        <Ship className="h-3 w-3" />{v}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+              {data?.canEmbark && <QuickChips items={naveOptions} value={nave} onPick={setNave} icon={Ship} />}
             </Register>
           </div>
         </Card>

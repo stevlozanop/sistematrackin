@@ -1,6 +1,6 @@
 "use client";
 import { Button } from "@heroui/react";
-import { ArrowRight, Check as CheckIcon, Inbox, type LucideIcon } from "lucide-react";
+import { ArrowRight, Check as CheckIcon, FileText, Inbox, X, type LucideIcon } from "lucide-react";
 import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
 import { SoftSelect } from "@/components/SoftSelect";
 import { DELAY_REASONS } from "@/lib/hsp";
@@ -102,10 +102,10 @@ export function PickList({ title, allOn = false, onAll, canAll = false, loading,
 }
 
 /** Panel de la derecha: lo marcado, el cambio de estado, fecha, motivo de demora y botón */
-export function Register({ from, to, label, noun, date, setDate, min, need, reason, setReason, count, units, busy, disabled, readOnly, onSave, title = "Marcado", hint, readOnlyText = "Solo lectura: no es tu etapa.", children }: {
+export function Register({ from, to, label, noun, date, setDate, min, need, reason, setReason, count, units, busy, disabled, readOnly, onSave, title = "Marcado", hint, action, readOnlyText = "Solo lectura: no es tu etapa.", children }: {
   from: string; to: string; label: string; noun: Noun; date: string; setDate: (v: string) => void; min: string; need: number;
   reason: string; setReason: (v: string) => void; count: number; units: number; busy: boolean; disabled: boolean; readOnly: boolean; onSave: () => void;
-  title?: string; hint?: string; readOnlyText?: string; children?: React.ReactNode;
+  title?: string; hint?: string; readOnlyText?: string; children?: React.ReactNode; action?: string;
 }) {
   return (
     <div className="flex flex-col gap-4 rounded-2xl bg-sb-surface-container-low p-4 lg:sticky lg:top-4 lg:self-start">
@@ -130,10 +130,66 @@ export function Register({ from, to, label, noun, date, setDate, min, need, reas
         </label>
       )}
       <Button variant="primary" className="w-full rounded-full" onPress={onSave} isDisabled={busy || disabled || readOnly}>
-        {busy ? "Registrando…" : `Registrar ${label.toLowerCase()}`}
+        {busy ? "Registrando…" : action ?? `Registrar ${label.toLowerCase()}`}
       </Button>
       {readOnly && <p className="-mt-2 text-center text-[11px] text-sb-on-surface-variant">{readOnlyText}</p>}
     </div>
   );
 }
 
+
+/** Guía agregada a un contenedor o a un viaje: ícono, código, distrito · dealer, atraso, barra 2W/3W, total y quitar */
+export function GuiaRow({ guia, district, dealer, w2, w3, total, late, onRemove }: {
+  guia: string; district: string | null; dealer: string | null; w2: number; w3: number; total: number; late: number; onRemove: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-sb-surface-container-low">
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sb-surface-container text-sb-on-surface-variant"><FileText className="h-4 w-4" /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-mono text-sm font-semibold tracking-tight">{guia}</span>
+        <span className="block text-[11px] text-sb-on-surface-variant sm:truncate" title={dealer ?? ""}>
+          {district || "—"} · {dealer || "—"}<span className="sm:hidden"> · 2W {n(w2)} · 3W {n(w3)}</span>
+          {late ? <b className="font-semibold text-sb-late"> · {n(late)} fuera de tiempo</b> : null}
+        </span>
+      </span>
+      <Mix w2={w2} w3={w3} />
+      <span className="w-12 shrink-0 text-right">
+        <span className="block text-sm font-semibold tabular-nums">{n(total)}</span>
+        <span className="block text-[10px] text-sb-on-surface-variant">motos</span>
+      </span>
+      <button type="button" onClick={onRemove} aria-label={`Quitar ${guia}`}
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sb-on-surface-variant transition-colors hover:bg-sb-late-soft hover:text-sb-late"><X className="h-4 w-4" /></button>
+    </div>
+  );
+}
+
+/** Fila de total debajo de las guías */
+export function TotalRow({ label, count, w2, w3, total }: { label: string; count: number; w2: number; w3: number; total: number }) {
+  return (
+    <div className="mt-1 flex items-center gap-3 rounded-xl bg-sb-surface-container-low px-3 py-2.5">
+      <span className="min-w-0 flex-1 text-xs font-semibold">{label}<span className="block text-[11px] font-normal text-sb-on-surface-variant">{plural(count, ["guía", "guías"])}</span></span>
+      <Mix w2={w2} w3={w3} />
+      <span className="w-12 shrink-0 text-right text-sm font-semibold tabular-nums">{n(total)}</span>
+      <span className="w-8 shrink-0" />
+    </div>
+  );
+}
+
+/** Chips para elegir rápido un valor ya usado (naves, choferes) */
+export function QuickChips({ items, value, onPick, icon: Icon, max = 6 }: { items: string[]; value: string; onPick: (v: string) => void; icon: LucideIcon; max?: number }) {
+  if (!items.length) return null;
+  return (
+    <div className="-mt-2 flex flex-wrap gap-1.5">
+      {items.slice(0, max).map((v) => {
+        const on = value.toUpperCase() === v.toUpperCase();
+        return (
+          <button key={v} type="button" onClick={() => onPick(v)} aria-pressed={on}
+            className={cn("flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+              on ? "bg-sb-primary text-sb-on-primary" : "bg-sb-surface text-sb-on-surface-variant hover:text-sb-on-surface")}>
+            <Icon className="h-3 w-3" />{v}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

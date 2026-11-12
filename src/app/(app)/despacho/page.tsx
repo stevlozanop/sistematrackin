@@ -1,17 +1,17 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { TableLabels } from "@/components/TableLabels";
 import { Button, toast } from "@heroui/react";
-import { ArrowDown, Eye, Plus, Truck, X } from "lucide-react";
+import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
+import { CheckCheck, ChevronRight, Inbox, Plus, Route, Truck, UserRound } from "lucide-react";
+import { GuiaRow, Head, Mix, PickList, QuickChips, Register, TotalRow, field, n, plural } from "@/components/stage/StageKit";
 import { Card, PageTitle } from "@/components/ui";
 import { Sheet } from "@/components/modal/Sheet";
 import { SuggestInput } from "@/components/SuggestInput";
-import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
 import { DATA_EVENT } from "@/components/UploadCenter";
-import { DELAY_REASONS, SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
+import { SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
-import { SoftSelect } from "@/components/SoftSelect";
 
 /**
  * 5. Despacho de almacén: se arma el viaje del camión agregando guías, con chofer, placa y fecha
@@ -23,9 +23,7 @@ type Trip = { id: number; dispatched_on: string; driver: string; plate: string |
 type Data = { site: Site; canDispatch: boolean; drivers: string[]; trips: Trip[]; error?: string };
 type TripRow = { guia: string | null; district: string | null; department: string | null; dealer: string | null; invoice: string | null; w2: number; w3: number; total: number; delivered: number; delivered_on: string | null; via_lima: number; reception: { kind: string; note: string | null } | null };
 
-const field = "h-10 w-full rounded-xl border border-sb-outline-variant bg-sb-surface px-3 text-sm text-sb-on-surface outline-none focus:border-sb-on-surface";
-const n = (v: number) => Number(v ?? 0).toLocaleString("es-PE");
-const Label = ({ t, children }: { t: string; children: React.ReactNode }) => <label className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">{t}{children}</label>;
+const EASE = [0.22, 1, 0.36, 1] as const;
 
 function TripDetail({ site, trip, onClose }: { site: Site; trip: Trip | null; onClose: () => void }) {
   const [rows, setRows] = useState<TripRow[] | null>(null);
@@ -198,113 +196,92 @@ export default function DespachoPage() {
         )}
       </PageTitle>
 
+      {/* 5. Armar el viaje */}
       <Card className="overflow-hidden">
-        <div className="border-b border-sb-outline-variant/40 px-4 py-3">
-          <h3 className="flex items-center gap-2 text-sm font-semibold"><Truck className="h-4 w-4" /> 5. Despacho · arma el viaje del camión</h3>
-        </div>
-        <div className="grid gap-4 p-4 lg:grid-cols-[1fr_17rem]">
+        <Head icon={Truck} title="5. Despacho · arma el viaje del camión"
+          sub={guias.length ? `${plural(guias.length, ["guía", "guías"])} · ${n(tot.total)} motos en el camión${driver.trim() ? ` de ${driver.trim().toUpperCase()}` : ""}` : "Busca las guías que lleva el camión o márcalas en «Stock en almacén»"} />
+        <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="flex min-w-0 flex-col gap-3">
             <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); add(); }}>
-              <SuggestInput inputClassName={field} mono placeholder="Guía de remisión (escribe para buscar)" value={input} onChange={setInput} disabled={ro}
+              <SuggestInput inputClassName={field} mono placeholder="Buscar guía…" value={input} onChange={setInput} disabled={ro} ariaLabel="Guía de remisión"
                 onPick={(v) => { setInput(v); add(v); }} onEnter={() => add()}
                 source={(q) => `/api/suggest?${new URLSearchParams({ kind: "guia", site: current, step: "d_despacho", q })}`} />
-              <Button type="submit" variant="primary" className="shrink-0 rounded-full" isDisabled={adding || !input.trim() || ro}><Plus className="h-4 w-4" /> {adding ? "Buscando…" : "Agregar"}</Button>
+              <Button type="submit" variant="primary" className="shrink-0 rounded-full" isDisabled={adding || !input.trim() || ro} aria-label="Agregar guía">
+                <Plus className="h-4 w-4" /><span className="hidden sm:inline">{adding ? "Buscando…" : "Agregar"}</span>
+              </Button>
             </form>
-            <TableLabels className="rounded-xl border border-sb-outline-variant/40">
-              <table className="w-full min-w-[560px] text-left text-xs">
-                <thead>
-                  <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
-                    <th className="px-3 py-2 font-semibold">Guía R.</th><th className="px-2 py-2 font-semibold">Distrito</th><th className="px-2 py-2 font-semibold">Dealer</th>
-                    <th className="px-2 py-2 text-right font-semibold">2W</th><th className="px-2 py-2 text-right font-semibold">3W</th><th className="px-2 py-2 text-right font-semibold">Total</th><th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {guias.map((g) => (
-                    <tr key={g.guia} className="border-b border-sb-outline-variant/20">
-                      <td className="px-3 py-2 font-mono font-semibold">{g.guia}{g.need ? <span className="ml-1.5 rounded-full bg-sb-late-soft px-1.5 font-sans text-[10px] text-sb-late">{g.need} tarde</span> : null}</td>
-                      <td className="px-2 py-2">{g.district || "—"}</td>
-                      <td className="max-w-[14rem] truncate px-2 py-2" title={g.dealer}>{g.dealer || "—"}</td>
-                      <td className="px-2 py-2 text-right tabular-nums">{g.w2 || ""}</td>
-                      <td className="px-2 py-2 text-right tabular-nums">{g.w3 || ""}</td>
-                      <td className="px-2 py-2 text-right font-semibold tabular-nums">{n(g.total)}</td>
-                      <td className="px-2 py-2 text-right">
-                        <button type="button" aria-label={`Quitar ${g.guia}`} onClick={() => setGuias((x) => x.filter((y) => y.guia !== g.guia))} className="rounded-full p-1 text-sb-on-surface-variant hover:bg-sb-surface-container"><X className="h-3.5 w-3.5" /></button>
-                      </td>
-                    </tr>
-                  ))}
-                  {!guias.length && <tr><td colSpan={7} className="px-3 py-8 text-center text-sb-on-surface-variant">Busca una guía y pulsa «Agregar». Se van sumando las unidades del viaje.</td></tr>}
-                </tbody>
-                {guias.length > 0 && (
-                  <tfoot><tr className="bg-sb-surface-container-low font-semibold">
-                    <td className="px-3 py-2" colSpan={3}>{guias.length} guía(s)</td>
-                    <td className="px-2 py-2 text-right tabular-nums">{tot.w2}</td><td className="px-2 py-2 text-right tabular-nums">{tot.w3}</td><td className="px-2 py-2 text-right tabular-nums">{tot.total}</td><td />
-                  </tr></tfoot>
-                )}
-              </table>
-            </TableLabels>
+            <PickList title={guias.length ? "Guías en el camión" : "Camión vacío"} loading={!!preload}
+              empty={guias.length ? null : <span>Busca una guía y pulsa «Agregar», o márcalas en <Link href="/stock" className="font-semibold text-sb-primary hover:underline">Stock en almacén</Link>.</span>}>
+              <AnimatePresence initial={false}>
+                {guias.map((g) => (
+                  <motion.div key={g.guia} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: 16, transition: { duration: 0.15 } }} transition={{ duration: 0.3, ease: EASE }}>
+                    <GuiaRow guia={g.guia} district={g.district} dealer={g.dealer} w2={g.w2} w3={g.w3} total={g.total} late={g.need} onRemove={() => setGuias((x) => x.filter((y) => y.guia !== g.guia))} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              {guias.length > 1 && <TotalRow label="Total del viaje" count={guias.length} w2={tot.w2} w3={tot.w3} total={tot.total} />}
+            </PickList>
           </div>
-          <div className="flex flex-col gap-3 border-t border-sb-outline-variant/40 pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
-            <div className="flex flex-col items-start gap-1 text-xs">
-              <span className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">Estado</span>
-              <span className="rounded-full border border-sb-outline-variant px-3 py-1 font-semibold">En almacén</span>
-              <ArrowDown className="ml-4 h-3.5 w-3.5 text-sb-on-surface-variant" />
-              <span className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">Estado siguiente</span>
-              <span className="rounded-full bg-sb-primary px-3 py-1 font-semibold text-sb-on-primary">Tránsito dealer</span>
+          <Register from="En almacén" to="Tránsito dealer" label="Despacho" noun={["guía", "guías"]} title="En el camión" hint="Agrega guías al viaje" action="Despachar"
+            date={date} setDate={setDate} min="" need={tot.need} reason={reason} setReason={setReason} count={guias.length} units={tot.total}
+            busy={saving} disabled={!guias.length} readOnly={ro} readOnlyText="Solo lectura: el despacho no es tu etapa." onSave={dispatch}>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+              <label className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Chofer
+                <input className={cn(field, "uppercase")} list="choferes" placeholder="Ej. VIDAL PARIONA" value={driver} onChange={(e) => setDriver(e.target.value)} disabled={ro} />
+                <datalist id="choferes">{(data?.drivers ?? []).map((d) => <option key={d} value={d} />)}</datalist>
+              </label>
+              <label className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Placa
+                <input className={cn(field, "font-mono uppercase")} placeholder="Ej. ABC-123" value={plate} onChange={(e) => setPlate(e.target.value)} disabled={ro} />
+              </label>
             </div>
-            <Label t="Chofer">
-              <input className={cn(field, "uppercase")} list="choferes" placeholder="Ej. VIDAL PARIONA" value={driver} onChange={(e) => setDriver(e.target.value)} disabled={ro} />
-              <datalist id="choferes">{(data?.drivers ?? []).map((d) => <option key={d} value={d} />)}</datalist>
-            </Label>
-            <Label t="Placa"><input className={cn(field, "uppercase")} placeholder="Ej. ABC-123" value={plate} onChange={(e) => setPlate(e.target.value)} disabled={ro} /></Label>
-            <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Fecha de despacho
-              <DatePicker label="Fecha de despacho" value={date} onChange={setDate} disabled={ro} quick={pastQuick(null, today())} />
-            </div>
-            {tot.need > 0 && (
-              <Label t={`Motivo de demora (${tot.need} fuera de tiempo · puedes dejarlo para después)`}>
-                <SoftSelect className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</SoftSelect>
-              </Label>
-            )}
-            <Button variant="primary" className="rounded-full" onPress={dispatch} isDisabled={saving || !guias.length || ro}>{saving ? "Despachando…" : "Despachar"}</Button>
-            {guias.length > 0 && <p className="text-[11px] text-sb-on-surface-variant">{n(tot.total)} unidades pasan a Tránsito dealer.</p>}
-            {ro && data && <p className="text-[11px] text-sb-on-surface-variant">Solo lectura: el despacho no es tu etapa.</p>}
-          </div>
+            {!ro && <QuickChips items={data?.drivers ?? []} value={driver} onPick={setDriver} icon={UserRound} />}
+          </Register>
         </div>
       </Card>
 
+      {/* Viajes despachados */}
       <Card className="overflow-hidden">
-        <div className="flex items-center justify-between border-b border-sb-outline-variant/40 px-4 py-3">
-          <h3 className="text-sm font-semibold">Resumen de viajes</h3>
-          <span className="text-[11px] text-sb-on-surface-variant">{data?.trips.length ?? 0} viaje(s)</span>
+        <Head icon={Route} title="Viajes despachados"
+          sub={data ? (data.trips.length ? `${plural(data.trips.length, ["viaje", "viajes"])} · ${n(data.trips.reduce((t, x) => t + Number(x.total), 0))} motos · ${n(data.trips.reduce((t, x) => t + Number(x.delivered), 0))} entregadas` : "Aún no hay viajes") : "Cargando…"} />
+        <div className="flex flex-col gap-0.5 p-2 sm:p-3">
+          {!data && [0, 1].map((i) => <div key={i} className="h-[64px] animate-pulse rounded-xl bg-sb-surface-container-low" />)}
+          {data && !data.trips.length && (
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-sb-outline-variant/60 px-4 py-10 text-center text-xs text-sb-on-surface-variant">
+              <Inbox className="h-5 w-5 opacity-50" />Aún no hay viajes despachados.
+            </div>
+          )}
+          {(data?.trips ?? []).map((t) => {
+            const done = Number(t.delivered) >= Number(t.total) && Number(t.total) > 0;
+            const pct = Number(t.total) ? (Number(t.delivered) / Number(t.total)) * 100 : 0;
+            return (
+              <button key={t.id} type="button" onClick={() => setView(t)}
+                className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-xl px-3 py-3 text-left transition-colors hover:bg-sb-surface-container-low lg:grid-cols-[2.25rem_minmax(0,1fr)_minmax(0,1.3fr)_7rem_8rem_3.5rem_1.25rem]">
+                <span className={cn("grid h-9 w-9 place-items-center rounded-xl", done ? "bg-sb-primary-soft text-sb-primary" : "bg-sb-surface-container text-sb-on-surface-variant")}>
+                  {done ? <CheckCheck className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold">{t.driver}{t.plate && <span className="ml-1.5 rounded-md bg-sb-surface-container px-1.5 py-0.5 font-mono text-[10px] font-normal text-sb-on-surface-variant">{t.plate}</span>}</span>
+                  <span className="block truncate text-[11px] text-sb-on-surface-variant">{fmtDate(t.dispatched_on)} · {t.destinos ?? "—"}</span>
+                </span>
+                <span className="hidden min-w-0 lg:block">
+                  <span className="block truncate text-[11px] text-sb-on-surface-variant" title={t.dealers ?? ""}>{t.dealers ?? "—"}</span>
+                </span>
+                <span className="hidden lg:block"><Mix w2={t.w2} w3={t.w3} /></span>
+                <span className="col-start-2 lg:col-start-auto">
+                  <span className="flex h-1.5 overflow-hidden rounded-full bg-sb-surface-container"><span className="bg-sb-primary transition-[width] duration-500" style={{ width: `${pct}%` }} /></span>
+                  <span className={cn("mt-1 block text-[10px] tabular-nums", done ? "font-semibold text-sb-primary" : "text-sb-on-surface-variant")}>
+                    {done ? "Todo entregado" : `${n(t.delivered)} de ${n(t.total)} entregadas`}
+                  </span>
+                </span>
+                <span className="col-start-3 row-span-2 row-start-1 text-right lg:col-start-auto lg:row-span-1 lg:row-start-auto">
+                  <span className="block text-sm font-semibold tabular-nums">{n(t.total)}</span>
+                  <span className="block text-[10px] text-sb-on-surface-variant">motos</span>
+                </span>
+                <ChevronRight className="hidden h-4 w-4 text-sb-on-surface-variant lg:block" />
+              </button>
+            );
+          })}
         </div>
-        <TableLabels className="">
-          <table className="w-full min-w-[760px] text-left text-xs">
-            <thead>
-              <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
-                <th className="px-4 py-2 font-semibold">Fecha</th><th className="px-2 py-2 font-semibold">Chofer</th><th className="px-2 py-2 font-semibold">Destino</th><th className="px-2 py-2 font-semibold">Dealer</th>
-                <th className="px-2 py-2 text-right font-semibold">2W</th><th className="px-2 py-2 text-right font-semibold">3W</th><th className="px-2 py-2 text-right font-semibold">Total</th>
-                <th className="px-2 py-2 text-right font-semibold">Entregadas</th><th className="px-4 py-2 text-center font-semibold">Viaje</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data?.trips ?? []).map((t) => (
-                <tr key={t.id} className="border-b border-sb-outline-variant/20 last:border-0 hover:bg-sb-surface-container-low">
-                  <td className="px-4 py-2.5 whitespace-nowrap">{fmtDate(t.dispatched_on)}</td>
-                  <td className="px-2 py-2.5 font-semibold">{t.driver}{t.plate && <span className="block font-mono text-[10px] font-normal text-sb-on-surface-variant">{t.plate}</span>}</td>
-                  <td className="max-w-[10rem] truncate px-2 py-2.5" title={t.destinos ?? ""}>{t.destinos ?? "—"}</td>
-                  <td className="max-w-[14rem] truncate px-2 py-2.5" title={t.dealers ?? ""}>{t.dealers ?? "—"}</td>
-                  <td className="px-2 py-2.5 text-right tabular-nums">{t.w2 || ""}</td>
-                  <td className="px-2 py-2.5 text-right tabular-nums">{t.w3 || ""}</td>
-                  <td className="px-2 py-2.5 text-right font-semibold tabular-nums">{n(t.total)}</td>
-                  <td className="px-2 py-2.5 text-right">
-                    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", t.delivered === t.total ? "bg-sb-primary-soft text-sb-primary" : "bg-sb-surface-container text-sb-on-surface-variant")}>{n(t.delivered)}/{n(t.total)}</span>
-                  </td>
-                  <td className="px-4 py-2.5 text-center"><Button size="sm" variant="secondary" className="rounded-full" onPress={() => setView(t)}><Eye className="h-3.5 w-3.5" /> Ver</Button></td>
-                </tr>
-              ))}
-              {data && !data.trips.length && <tr><td colSpan={9} className="px-4 py-8 text-center text-sb-on-surface-variant">Aún no hay viajes despachados.</td></tr>}
-            </tbody>
-          </table>
-        </TableLabels>
       </Card>
       <TripDetail site={current} trip={view} onClose={() => setView(null)} />
     </div>
