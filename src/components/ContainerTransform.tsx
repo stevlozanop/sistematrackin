@@ -2,15 +2,19 @@
 import { useEffect } from "react";
 
 /**
- * Las ventanas se abren como el botón «Opciones» del menú del celular (t-morph): el botón que tocaste SE CONVIERTE
- * en la ventana. Una «pieza» con el color y la forma del botón crece (de píldora a tarjeta, cambiando de color)
- * hasta el lugar de la ventana; el botón se oculta mientras tanto y el contenido entra deslizándose con un leve
- * desenfoque. Al cerrar, la tarjeta se encoge, recupera el color del botón y vuelve a ser el botón.
- * Aplica a todos los modales (HeroUI: .modal__container / .modal__dialog) y respeta «reducir movimiento».
+ * Las ventanas se abren con «container transform» (Material Design, como explica el video): el botón que tocaste
+ * SE CONVIERTE en la ventana. Un solo contenedor con el color y la forma del botón crece en línea recta hasta el
+ * lugar de la ventana (el botón se oculta mientras tanto); el texto del botón se desvanece y el contenido de la
+ * ventana aparece en su sitio con un fundido: nada se mueve por separado. Al cerrar, el contenedor se encoge,
+ * recupera el color y el texto del botón y vuelve a ser el botón. Aplica a todos los modales; respeta «reducir movimiento».
  */
-const OPEN_EASE = "cubic-bezier(0.34, 1.25, 0.64, 1)"; // el mismo rebote suave del botón «Opciones»
-const CLOSE_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
-const OPEN_MS = 380, CLOSE_MS = 260, CONTENT_MS = 220;
+// Reglas de Material «container transform» (el video): un solo contenedor se mueve por un camino recto, con la curva
+// «emphasized» (sin rebote); el contenido NO se mueve por su cuenta: el del botón se desvanece y el de la ventana aparece
+// (fundido cruzado). Nada vuela por separado.
+const OPEN_EASE = "cubic-bezier(0.2, 0, 0, 1)";        // emphasized
+const CLOSE_EASE = "cubic-bezier(0.3, 0, 0.8, 0.15)";  // emphasized accelerate
+const FADE_EASE = "cubic-bezier(0.05, 0.7, 0.1, 1)";
+const OPEN_MS = 400, CLOSE_MS = 300, CONTENT_MS = 210;
 
 type Box = { left: number; top: number; width: number; height: number };
 const boxOf = (el: Element): Box => { const r = el.getBoundingClientRect(); return { left: r.left, top: r.top, width: r.width, height: r.height }; };
@@ -66,26 +70,19 @@ export function ContainerTransform() {
       Object.assign(face.style, { position: "absolute", inset: "0", display: "flex", alignItems: "center", justifyContent: "center", gap: scs.gap, color: scs.color, font: scs.font, whiteSpace: "nowrap" });
       face.innerHTML = src.innerHTML;
       g.appendChild(face);
-      face.animate([{ opacity: 1, transform: "none", filter: "blur(0)" }, { opacity: 0, transform: "scale(0.9)", filter: "blur(2px)" }], { duration: OPEN_MS * 0.35, easing: CLOSE_EASE, fill: "forwards" });
+      face.animate([{ opacity: 1 }, { opacity: 0 }], { duration: OPEN_MS * 0.3, easing: "linear", fill: "forwards" });
       src.style.visibility = "hidden";
       // La ventana real espera invisible mientras la pieza crece
       dialog.animate([{ opacity: 0 }, { opacity: 0 }], { duration: OPEN_MS * 0.7, fill: "backwards" });
       const morph = g.animate(
         [
           { ...px(from), borderRadius: getComputedStyle(src).borderRadius || "9999px", offset: 0 },
-          { backgroundColor: paintOf(src, surface).color, offset: 0.3 },
           { ...px(to), borderRadius: dcs.borderRadius, backgroundColor: surface, backgroundImage: "none", offset: 1 },
         ],
         { duration: OPEN_MS, easing: OPEN_EASE, fill: "forwards" },
       );
-      // El contenido entra como el menú «Opciones»: desde la derecha, un poco más chico y desenfocado
-      dialog.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, delay: OPEN_MS * 0.7, easing: CLOSE_EASE, fill: "backwards" });
-      for (const child of Array.from(dialog.children) as HTMLElement[]) {
-        child.animate(
-          [{ opacity: 0, transform: "translateX(28px) scale(0.97)", filter: "blur(2px)" }, { opacity: 1, transform: "none", filter: "blur(0)" }],
-          { duration: CONTENT_MS, delay: OPEN_MS * 0.6, easing: CLOSE_EASE, fill: "backwards" },
-        );
-      }
+      // El contenido de la ventana aparece en su sitio, solo con un fundido, cuando el contenedor ya casi llegó
+      dialog.animate([{ opacity: 0 }, { opacity: 1 }], { duration: CONTENT_MS, delay: OPEN_MS * 0.6, easing: FADE_EASE, fill: "backwards" });
       morph.onfinish = () => { g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, fill: "forwards" }).onfinish = () => g.remove(); src.style.visibility = ""; };
       // Si la ventana se cierra antes de terminar, no dejar nada colgado
       setTimeout(() => { if (g.isConnected && !container.isConnected) { g.remove(); src.style.visibility = ""; } }, OPEN_MS + 400);
@@ -101,7 +98,7 @@ export function ContainerTransform() {
       src.style.visibility = "hidden";
       const g = ghost(from, { image: "none", color: dcs.backgroundColor || "#fff" }, dcs.borderRadius, "0 8px 32px -8px rgba(0,0,0,.35)");
       // El contenido se va primero; luego la tarjeta se encoge y vuelve a ser el botón
-      dialog.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 90, fill: "forwards" });
+      dialog.animate([{ opacity: 1 }, { opacity: 0 }], { duration: CLOSE_MS * 0.3, easing: "linear", fill: "forwards" });
       const paint = paintOf(src, dcs.backgroundColor);
       const morph = g.animate(
         [
