@@ -46,18 +46,29 @@ function paintOf(el: Element, fallback: string) {
   return { color, image: cs.backgroundImage && cs.backgroundImage !== "none" ? cs.backgroundImage : "none" };
 }
 
-/** La ventana se queda pegada a la esquina superior izquierda del botón y crece hacia abajo y a la derecha; si no cabe, se corre lo justo */
+/**
+ * Ventanas chicas (confirmaciones, formularios cortos): se quedan pegadas a la esquina del botón y crecen hacia abajo
+ * y a la derecha. Ventanas grandes (planos, detalles, listas, o casi toda la pantalla): igual nacen del botón, pero
+ * se asientan en su lugar normal (centro) para tener todo el espacio. Devuelve si la ancló.
+ */
 const MARGIN = 12;
+const isBig = (b: DOMRect) => b.width > Math.min(560, innerWidth * 0.6) || b.height > innerHeight * 0.55;
 function anchor(dialog: HTMLElement, btn: Box) {
   const nat = dialog.getBoundingClientRect();
+  if (innerWidth < 640 || isBig(nat)) return false;
   const w = Math.min(nat.width, innerWidth - MARGIN * 2);
-  const h = Math.min(nat.height, innerHeight - MARGIN * 2);
   const left = Math.max(MARGIN, Math.min(btn.left, innerWidth - w - MARGIN));
-  const top = Math.max(MARGIN, Math.min(btn.top, innerHeight - h - MARGIN));
   Object.assign(dialog.style, {
     position: "fixed", margin: "0", width: `${w}px`, maxWidth: `${innerWidth - MARGIN * 2}px`,
-    left: `${left}px`, top: `${top}px`, right: "", bottom: "", maxHeight: `${innerHeight - top - MARGIN}px`,
+    left: `${left}px`, right: "", bottom: "", maxHeight: `${innerHeight - MARGIN * 2}px`,
   });
+  place(dialog, btn.top);
+  return true;
+}
+/** Pone la ventana anclada lo más cerca posible del botón sin que se salga por abajo (se llama también cuando crece) */
+function place(dialog: HTMLElement, wanted: number) {
+  const h = dialog.getBoundingClientRect().height;
+  dialog.style.top = `${Math.max(MARGIN, Math.min(wanted, innerHeight - h - MARGIN))}px`;
 }
 
 /** Copia del botón en su lugar exacto: su texto no salta mientras la ventana crece */
@@ -93,8 +104,13 @@ export function ContainerTransform() {
       if (!dialog || !src) return;
       const from = boxOf(src);
       if (!from.width || !dialog.getBoundingClientRect().width || from.width > innerWidth * 0.7 || from.top + from.height < 0) return;
-      anchor(dialog, from);
+      const anchored = anchor(dialog, from);
       const to = boxOf(dialog);
+      // Si la ventana anclada crece después (contenido que carga, pestañas, errores), se corre hacia arriba para no cortarse
+      if (anchored) {
+        const ro = new ResizeObserver(() => { if (!dialog.isConnected) ro.disconnect(); else place(dialog, from.top); });
+        ro.observe(dialog);
+      }
       origin.set(container, src);
       container.dataset.ct = "";
       const dcs = getComputedStyle(dialog);
