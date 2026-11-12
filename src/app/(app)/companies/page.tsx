@@ -239,7 +239,7 @@ export default function CompaniesPage() {
                   ) : (
                     <>
                       {dev && c.kind === "transport" && u.role === "admin" && (
-                        <button className="rounded-full px-2 py-0.5 text-[10px] text-sb-on-surface-variant hover:bg-sb-surface-container hover:text-sb-on-surface"
+                        <button className="sb-pill-xs rounded-full px-2 py-0.5 text-[10px] text-sb-on-surface-variant hover:bg-sb-surface-container hover:text-sb-on-surface"
                           title="Que esta sea la cuenta de la empresa (se muestra como «Empresa»)" onClick={() => setOwner(c, u.id)}>
                           Hacer principal
                         </button>

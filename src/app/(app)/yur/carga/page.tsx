@@ -141,7 +141,7 @@ export default function YurCargaPage() {
                   const on = c === nave.toUpperCase(), busy = data.loading.find((x) => x.nave === c);
                   return (
                     <button key={c} type="button" onClick={() => setNave(c)} disabled={!data.canLoad} aria-pressed={on}
-                      className={cn("flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-200 disabled:opacity-50",
+                      className={cn("sb-pill flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium disabled:opacity-50",
                         on ? "bg-sb-primary text-sb-on-primary" : "bg-sb-surface-container-low text-sb-on-surface-variant hover:bg-sb-surface-container hover:text-sb-on-surface")}>
                       <Ship className="h-3.5 w-3.5" />{c.replace("EDUARDO ", "E-")}
                       {busy && <span className={cn("rounded-full px-1.5 text-[10px] font-semibold tabular-nums", on ? "bg-white/20" : "bg-sb-primary-soft text-sb-primary")}>{n(busy.total)}</span>}
@@ -211,7 +211,7 @@ export default function YurCargaPage() {
                     late={c.need} w2={c.w2} w3={c.w3} total={c.total}
                     aside={
                       <button type="button" onClick={() => setOpen((st) => { const y = new Set(st); if (y.has(c.nave)) y.delete(c.nave); else y.add(c.nave); return y; })}
-                        aria-expanded={isOpen} aria-label={`Ver guías de ${c.nave}`} className="grid h-8 w-8 place-items-center rounded-full bg-sb-surface text-sb-on-surface-variant shadow-sm ring-1 ring-sb-outline-variant/50 transition-colors hover:text-sb-on-surface">
+                        aria-expanded={isOpen} aria-label={`Ver guías de ${c.nave}`} className="sb-pill-icon grid h-8 w-8 place-items-center rounded-full bg-sb-surface text-sb-on-surface-variant shadow-sm ring-1 ring-sb-outline-variant/50 hover:text-sb-on-surface">
                         <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", isOpen && "rotate-180")} />
                       </button>
                     } />
@@ -229,7 +229,7 @@ export default function YurCargaPage() {
                               <b className="block tabular-nums">{n(g.total)}</b>
                               <span className="block text-[10px] text-sb-on-surface-variant tabular-nums">2W {n(g.w2)} · 3W {n(g.w3)}</span>
                             </span>
-                            {data.canLoad && <button type="button" onClick={() => unload(c, g)} className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium text-sb-late transition-colors hover:bg-sb-late-soft">Sacar</button>}
+                            {data.canLoad && <button type="button" onClick={() => unload(c, g)} className="sb-pill-sm shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium text-sb-late hover:bg-sb-late-soft">Sacar</button>}
                           </li>
                         ))}
                       </motion.ul>

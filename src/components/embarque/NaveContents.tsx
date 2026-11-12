@@ -92,7 +92,7 @@ export function NaveContents({ site, nave, rows, canUndo, onUndo, naves = [], on
         <div className="flex gap-1.5 px-1 pb-1">
           {[{ id: "all" as const, code: "Todos", units: rows, place: null }, ...containers].map((c) => (
             <button key={c.id} type="button" onClick={() => setPick(c.id)}
-              className={cn("flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+              className={cn("sb-pill flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
                 pick === c.id ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant text-sb-on-surface-variant hover:text-sb-on-surface")}>
               {c.id !== "all" && <Box className="h-3.5 w-3.5" />}{c.code}
               <span className={cn("rounded-full px-1.5 text-[10px]", pick === c.id ? "bg-white/20" : "bg-sb-surface-container")}>{c.units.length}</span>
@@ -128,10 +128,10 @@ export function NaveContents({ site, nave, rows, canUndo, onUndo, naves = [], on
             </div>
             {canUndo && (
               <span className="grid shrink-0 grid-cols-2 gap-1.5 sm:flex sm:items-center sm:gap-1">
-                <button type="button" onClick={() => setEditing(c.id)} className="flex h-9 items-center justify-center gap-1 rounded-full bg-sb-surface-container px-3 font-semibold text-sb-on-surface hover:bg-sb-surface-container-high sm:h-auto sm:bg-transparent sm:py-1">
+                <button type="button" onClick={() => setEditing(c.id)} className="sb-pill flex h-9 items-center justify-center gap-1 rounded-full bg-sb-surface-container px-3 font-semibold text-sb-on-surface hover:bg-sb-surface-container-high sm:h-auto sm:bg-transparent sm:py-1">
                   <Pencil className="h-3.5 w-3.5" /> Editar
                 </button>
-                <button type="button" onClick={() => onUndo(c.id, c.code)} className="flex h-9 items-center justify-center gap-1 rounded-full bg-sb-late-soft/60 px-3 font-semibold text-sb-late hover:bg-sb-late-soft sm:h-auto sm:bg-transparent sm:py-1 sm:font-medium sm:text-sb-on-surface-variant sm:hover:text-sb-late">
+                <button type="button" onClick={() => onUndo(c.id, c.code)} className="sb-pill flex h-9 items-center justify-center gap-1 rounded-full bg-sb-late-soft/60 px-3 font-semibold text-sb-late hover:bg-sb-late-soft sm:h-auto sm:bg-transparent sm:py-1 sm:font-medium sm:text-sb-on-surface-variant sm:hover:text-sb-late">
                   <Trash2 className="h-3.5 w-3.5" /> Quitar
                 </button>
               </span>

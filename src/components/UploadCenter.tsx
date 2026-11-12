@@ -134,7 +134,7 @@ function SavedBatches() {
             const on = wipeSites.includes(x);
             return (
               <button key={x} type="button" onClick={() => setWipeSites((w) => (on ? w.filter((y) => y !== x) : [...w, x]))}
-                className={cn("rounded-full border px-3 py-1 text-xs font-semibold transition-colors duration-200", on ? "border-sb-late bg-sb-late text-white" : "border-sb-outline-variant text-sb-on-surface-variant hover:text-sb-on-surface")}>
+                className={cn("sb-pill rounded-full border px-3 py-1 text-xs font-semibold transition-colors duration-200", on ? "border-sb-late bg-sb-late text-white" : "border-sb-outline-variant text-sb-on-surface-variant hover:text-sb-on-surface")}>
                 {x === "PCL" ? "PCL · Pucallpa" : "YUR · Yurimaguas"} ({(data.sites?.[x] ?? 0).toLocaleString()})
               </button>
             );
@@ -267,7 +267,7 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
               <div className="flex w-fit rounded-full bg-sb-surface-container p-1">
                 {([["upload", "Subir", Upload], ["history", "Cargas guardadas", History]] as const).map(([k, t, Icon]) => (
                   <button key={k} type="button" onClick={() => setTab(k)}
-                    className={cn("flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", tab === k ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+                    className={cn("sb-pill flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", tab === k ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
                     <Icon className="h-3.5 w-3.5" />{t}
                   </button>
                 ))}

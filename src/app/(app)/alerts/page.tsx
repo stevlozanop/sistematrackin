@@ -79,8 +79,8 @@ export default function AlertsPage() {
                   <div className="text-[11px] text-muted">Responsable: {areaFor(r.site, r.field)}</div>
                 </div>
                 <div className="flex gap-1.5">
-                  {r.overdue > 0 && <Link href={unitLink(r.site, { pending: r.field, alert: "VENCIDA" })} className="rounded-full bg-sb-late px-2.5 py-1 font-semibold text-white">{r.overdue} vencidas</Link>}
-                  {r.soon > 0 && <Link href={unitLink(r.site, { pending: r.field, alert: "POR VENCER" })} className="rounded-full bg-sb-late-soft px-2.5 py-1 font-semibold">{r.soon} por vencer</Link>}
+                  {r.overdue > 0 && <Link href={unitLink(r.site, { pending: r.field, alert: "VENCIDA" })} className="sb-pill-sm rounded-full bg-sb-late px-2.5 py-1 font-semibold text-white">{r.overdue} vencidas</Link>}
+                  {r.soon > 0 && <Link href={unitLink(r.site, { pending: r.field, alert: "POR VENCER" })} className="sb-pill-sm rounded-full bg-sb-late-soft px-2.5 py-1 font-semibold">{r.soon} por vencer</Link>}
                 </div>
               </li>
             ))}

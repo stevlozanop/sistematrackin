@@ -181,7 +181,7 @@ export default function GuiasPage() {
             <div className="flex rounded-full bg-sb-surface-container p-1">
               {sites.map((s) => (
                 <button key={s} type="button" onClick={() => { setSite(s); setStage(null); resetSelection(); }}
-                  className={cn("rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", current === s ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+                  className={cn("sb-pill rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", current === s ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
                   {SITE_INFO[s].title}
                 </button>
               ))}
@@ -193,7 +193,7 @@ export default function GuiasPage() {
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {stages.map((st) => (
             <button key={st} type="button" onClick={() => { setStage(st); resetSelection(); }}
-              className={cn("shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-200",
+              className={cn("sb-pill shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-200",
                 activeStage === st ? "border-sb-primary bg-sb-primary-soft text-sb-on-surface" : "border-sb-outline-variant text-sb-on-surface-variant hover:text-sb-on-surface")}>
               {stageLabel(current!, st)}
             </button>
@@ -230,7 +230,7 @@ export default function GuiasPage() {
               <div className="flex rounded-full bg-sb-surface-container p-0.5">
                 {([["dia", "Día de factura"], ["dealer", "Dealer"]] as const).map(([k, l]) => (
                   <button key={k} type="button" onClick={() => { setGroupBy(k); setOpenBlocks(new Set()); }}
-                    className={cn("rounded-full px-3 py-1 text-[11px] font-semibold transition-colors", groupBy === k ? "bg-sb-surface text-sb-on-surface shadow-sm" : "text-sb-on-surface-variant")}>{l}</button>
+                    className={cn("sb-pill rounded-full px-3 py-1 text-[11px] font-semibold transition-colors", groupBy === k ? "bg-sb-surface text-sb-on-surface shadow-sm" : "text-sb-on-surface-variant")}>{l}</button>
                 ))}
               </div>
             </div>

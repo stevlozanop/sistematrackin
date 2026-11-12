@@ -40,7 +40,7 @@ function DevActivity() {
         <Chips value={kind} onChange={setKind} options={[...KINDS]} />
         <div className="flex items-center gap-3">
           {user ? (
-            <Link href="/dev/activity" className="inline-flex items-center gap-1.5 rounded-full bg-sb-primary px-3 py-1 text-[11px] font-medium text-sb-on-primary">
+            <Link href="/dev/activity" className="sb-pill inline-flex items-center gap-1.5 rounded-full bg-sb-primary px-3 py-1 text-[11px] font-medium text-sb-on-primary">
               Solo {who ?? `la cuenta #${user}`} <X className="h-3 w-3" />
             </Link>
           ) : (

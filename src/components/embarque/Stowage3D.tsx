@@ -93,7 +93,7 @@ export function Stowage3D({ vessel, items, sel, canEdit, canDrop, onTapItem, onT
           <button type="button" aria-label="Girar a la izquierda" onClick={() => setView((v) => (v + VIEWS.length - 1) % VIEWS.length)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-sb-surface"><RotateCcw className="h-3.5 w-3.5" /></button>
           {VIEWS.map((v, i) => (
             <button key={v.label} type="button" onClick={() => setView(i)}
-              className={cn("rounded-full px-2.5 py-1 text-[11px] font-semibold", view === i ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>{v.label}</button>
+              className={cn("sb-pill-sm rounded-full px-2.5 py-1 text-[11px] font-semibold", view === i ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>{v.label}</button>
           ))}
           <button type="button" aria-label="Girar a la derecha" onClick={() => setView((v) => (v + 1) % VIEWS.length)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-sb-surface"><RotateCw className="h-3.5 w-3.5" /></button>
         </div>
@@ -102,7 +102,7 @@ export function Stowage3D({ vessel, items, sel, canEdit, canDrop, onTapItem, onT
             <span className="px-2 text-sb-on-surface-variant">Ver</span>
             {Array.from({ length: vessel.tiers }, (_, i) => i + 1).map((t) => (
               <button key={t} type="button" onClick={() => setUpTo(t)}
-                className={cn("rounded-full px-2.5 py-1 font-semibold", top === t ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+                className={cn("sb-pill-sm rounded-full px-2.5 py-1 font-semibold", top === t ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
                 {t === vessel.tiers ? "Todo" : t === 1 ? "Solo abajo" : `Hasta nivel ${t}`}
               </button>
             ))}

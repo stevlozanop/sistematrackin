@@ -77,7 +77,7 @@ export function InstallApp() {
           : <p className="text-white/60">Ábrelo como app desde tu inicio, a pantalla completa.</p>}
       </div>
       {!ios && (
-        <button type="button" onClick={install} className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#078a04] px-3.5 py-2 text-[13px] font-semibold">
+        <button type="button" onClick={install} className="sb-pill [--px:0.875rem] flex shrink-0 items-center gap-1.5 rounded-full bg-[#078a04] px-3.5 py-2 text-[13px] font-semibold">
           <Download className="h-4 w-4" /> Instalar
         </button>
       )}

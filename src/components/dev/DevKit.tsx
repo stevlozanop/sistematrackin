@@ -174,7 +174,7 @@ export function Chips<T extends string>({ value, options, onChange }: { value: T
     <div className="flex flex-wrap gap-1.5">
       {options.map((o) => (
         <button key={o.key} type="button" onClick={() => onChange(o.key)}
-          className={cn("rounded-full border px-3 py-1 text-[11px] font-medium transition-colors", value === o.key ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant text-sb-on-surface-variant hover:text-sb-on-surface")}>
+          className={cn("sb-pill rounded-full border px-3 py-1 text-[11px] font-medium transition-colors", value === o.key ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant text-sb-on-surface-variant hover:text-sb-on-surface")}>
           {o.label}
         </button>
       ))}

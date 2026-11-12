@@ -73,14 +73,14 @@ function NaveDetail({ site, nave, naves, canUndo, onClose, onChanged }: { site: 
       sub={rows ? `${containers.length} ${containers.length === 1 ? "contenedor" : "contenedores"} · ${n(rows.length)} unidades` : "Cargando…"}
       summary={rows ? <>Contenedores y unidades a bordo de <b className="text-sb-on-surface">{nave}</b></> : null}
       footer={nave ? (
-        <Link href={`/units/${site.toLowerCase()}?${new URLSearchParams({ nave })}`} className="rounded-full bg-sb-surface-container-high px-4 py-2 text-xs font-medium transition-colors hover:bg-sb-primary hover:text-sb-on-primary">
+        <Link href={`/units/${site.toLowerCase()}?${new URLSearchParams({ nave })}`} className="sb-pill [--px:1rem] rounded-full bg-sb-surface-container-high px-4 py-2 text-xs font-medium transition-colors hover:bg-sb-primary hover:text-sb-on-primary">
           Ver sus unidades en {SITE_INFO[site].short} →
         </Link>
       ) : null}>
               <div className="mb-3 flex w-max gap-1 rounded-full bg-sb-surface-container p-1">
                 {([["plano", "Plano de estiba"], ["contenido", "Contenido"]] as const).map(([k, l]) => (
                   <button key={k} type="button" onClick={() => setTab(k)}
-                    className={cn("rounded-full px-4 py-1.5 text-xs font-semibold transition-colors", tab === k ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>{l}</button>
+                    className={cn("sb-pill [--px:1rem] rounded-full px-4 py-1.5 text-xs font-semibold transition-colors", tab === k ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>{l}</button>
                 ))}
               </div>
               {tab === "plano" && nave ? <StowagePlan site={site} nave={nave} onChanged={onChanged} />
@@ -220,7 +220,7 @@ export default function EmbarquePage() {
             <div className="flex rounded-full bg-sb-surface-container p-1">
               {sites.map((s) => (
                 <button key={s} type="button" onClick={() => { setSite(s); setGuias([]); setChecked(new Set()); }}
-                  className={cn("rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", current === s ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+                  className={cn("sb-pill rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", current === s ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
                   {SITE_INFO[s].title}
                 </button>
               ))}

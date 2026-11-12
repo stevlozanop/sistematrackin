@@ -42,7 +42,7 @@ export function YurTramos({ unit, onUseReason }: {
           <AlertTriangle className="h-4 w-4 shrink-0 text-sb-late" />
           <span className="min-w-0 flex-1">El retraso está en <b>{worst.label.toLowerCase()}</b> (+{worst.days! - worst.target} d). Motivo que corresponde: <b>{worst.reason}</b>.</span>
           {onUseReason && !unit.delay_reason && (
-            <button type="button" onClick={() => onUseReason(worst.reason)} className="rounded-full bg-sb-late px-3 py-1 text-[11px] font-semibold text-white">Usar este motivo</button>
+            <button type="button" onClick={() => onUseReason(worst.reason)} className="sb-pill rounded-full bg-sb-late px-3 py-1 text-[11px] font-semibold text-white">Usar este motivo</button>
           )}
         </div>
       )}

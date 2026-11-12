@@ -171,7 +171,7 @@ export function SizePicker({ value, onChange, units }: { value: TruckSize; onCha
         const on = s.id === value.id;
         return (
           <button key={s.id} type="button" role="radio" aria-checked={on} onClick={() => onChange(s)} title={`${s.name} · hasta ${s.cap} motos`}
-            className={cn("relative z-[1] flex-1 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors duration-300", on ? "text-sb-on-surface" : "text-sb-on-surface-variant hover:text-sb-on-surface", units > s.cap && !on && "opacity-45")}>
+            className={cn("sb-pill relative z-[1] flex-1 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors duration-300", on ? "text-sb-on-surface" : "text-sb-on-surface-variant hover:text-sb-on-surface", units > s.cap && !on && "opacity-45")}>
             {on && <span className="cg-seg absolute inset-0 -z-[1] rounded-full bg-sb-surface shadow-[var(--sb-shadow-card)]" />}
             {s.label}
           </button>

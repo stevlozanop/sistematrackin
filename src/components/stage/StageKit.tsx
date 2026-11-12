@@ -85,7 +85,7 @@ export function PickList({ title, allOn = false, onAll, canAll = false, loading,
       <div className="flex items-center justify-between gap-2 px-3 pb-2">
         <p className="min-w-0 text-[11px] font-medium text-sb-on-surface-variant sm:truncate">{title}</p>
         {canAll && (
-          <button type="button" onClick={onAll} className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold text-sb-primary transition-colors hover:bg-sb-primary-soft">
+          <button type="button" onClick={onAll} className="sb-pill-sm shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold text-sb-primary hover:bg-sb-primary-soft">
             {allOn ? all[1] : all[0]}
           </button>
         )}
@@ -158,7 +158,7 @@ export function GuiaRow({ guia, district, dealer, w2, w3, total, late, onRemove 
         <span className="block text-[10px] text-sb-on-surface-variant">motos</span>
       </span>
       <button type="button" onClick={onRemove} aria-label={`Quitar ${guia}`}
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sb-on-surface-variant transition-colors hover:bg-sb-late-soft hover:text-sb-late"><X className="h-4 w-4" /></button>
+        className="sb-pill-icon grid h-8 w-8 shrink-0 place-items-center rounded-full text-sb-on-surface-variant hover:bg-sb-late-soft hover:text-sb-late"><X className="h-4 w-4" /></button>
     </div>
   );
 }
@@ -184,7 +184,7 @@ export function QuickChips({ items, value, onPick, icon: Icon, max = 6 }: { item
         const on = value.toUpperCase() === v.toUpperCase();
         return (
           <button key={v} type="button" onClick={() => onPick(v)} aria-pressed={on}
-            className={cn("flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+            className={cn("sb-pill-sm flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium",
               on ? "bg-sb-primary text-sb-on-primary" : "bg-sb-surface text-sb-on-surface-variant hover:text-sb-on-surface")}>
             <Icon className="h-3 w-3" />{v}
           </button>

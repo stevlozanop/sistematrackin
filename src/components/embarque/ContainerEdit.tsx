@@ -95,7 +95,7 @@ export function ContainerEdit({ site, id, code, nave, loadedOn, guias, naves, on
                 <span className="block truncate text-[11px] text-sb-on-surface-variant">{g.dealer} · {g.district} · {g.units} unid.</span>
               </span>
               <button type="button" onClick={() => toggleOut(g.guia)}
-                className={cn("flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium", off ? "text-sb-on-surface hover:bg-sb-surface-container" : "text-sb-on-surface-variant hover:bg-sb-late-soft hover:text-sb-late")}>
+                className={cn("sb-pill-xs flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium", off ? "text-sb-on-surface hover:bg-sb-surface-container" : "text-sb-on-surface-variant hover:bg-sb-late-soft hover:text-sb-late")}>
                 {off ? <><RotateCcw className="h-3 w-3" /> Dejar</> : <><Trash2 className="h-3 w-3" /> Quitar</>}
               </button>
             </div>

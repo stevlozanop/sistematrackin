@@ -119,7 +119,7 @@ export function ArriboScreen({ only }: { only: Site }) {
           <div className="flex rounded-full bg-sb-surface-container p-1">
             {sites.map((s) => (
               <button key={s} type="button" onClick={() => { setSite(s); setNaveSel(new Set()); setContSel(new Set()); setPickNave(null); }}
-                className={cn("rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", current === s ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+                className={cn("sb-pill rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", current === s ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
                 {SITE_INFO[s].title}
               </button>
             ))}
@@ -133,7 +133,7 @@ export function ArriboScreen({ only }: { only: Site }) {
             const count = k === "arribo" ? naves.length : port.length;
             return (
               <button key={k} type="button" onClick={() => setTab(k)}
-                className={cn("flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-semibold transition-colors", active === k ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+                className={cn("sb-pill [--px:1rem] flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-semibold transition-colors", active === k ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
                 {l}<span className={cn("rounded-full px-1.5 text-[10px]", active === k ? "bg-white/20" : "bg-sb-surface")}>{count}</span>
               </button>
             );

@@ -208,7 +208,7 @@ export default function AdminsPage() {
       <div className="flex w-full max-w-xl rounded-full bg-sb-surface-container p-1" role="tablist" aria-label="Tipo de usuarios">
         {([["staff", `Personal de ${myCompany}`, staffRows.length, Users], ["clients", "Clientes", clientRows.length, Building2]] as const).map(([k, l, n, I]) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => { setTab(k); setSelected(new Set()); setQ(""); }}
-            className={cn("relative flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-2 text-[13px] font-medium transition-colors", tab === k ? "text-sb-on-surface" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+            className={cn("sb-pill relative flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-2 text-[13px] font-medium transition-colors", tab === k ? "text-sb-on-surface" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
             {tab === k && <motion.span layoutId="users-tab" className="absolute inset-0 rounded-full bg-sb-surface shadow-[var(--sb-shadow-card)]" transition={{ type: "spring", stiffness: 420, damping: 36 }} />}
             <I className="relative h-4 w-4" />
             <span className="relative truncate">{l}</span>

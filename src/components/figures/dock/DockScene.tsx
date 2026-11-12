@@ -366,7 +366,7 @@ export function DockScene({ naves, checked, leaving, building, canSail, onOpen, 
             {/* En celular el zarpe se marca en la lista de abajo (aquí solo se muestra si ya está marcada) */}
             {canSail && (!compact || checked.has(v.nave)) && (
               <button type="button" onClick={() => onToggle(v.nave)} aria-pressed={checked.has(v.nave)}
-                className={cn("mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold", checked.has(v.nave) ? "border-white/70" : "border-sb-outline-variant")}>
+                className={cn("sb-pill-xs mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold", checked.has(v.nave) ? "border-white/70" : "border-sb-outline-variant")}>
                 <Check className="h-3 w-3" /> {checked.has(v.nave) ? "Zarpa" : "Marcar zarpe"}
               </button>
             )}

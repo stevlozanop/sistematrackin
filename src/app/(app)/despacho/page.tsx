@@ -245,7 +245,7 @@ export default function DespachoPage() {
           <div className="flex rounded-full bg-sb-surface-container p-1">
             {sites.map((s) => (
               <button key={s} type="button" onClick={() => { setSite(s); setGuias([]); }}
-                className={cn("rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", current === s ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+                className={cn("sb-pill rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", current === s ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
                 {SITE_INFO[s].title}
               </button>
             ))}

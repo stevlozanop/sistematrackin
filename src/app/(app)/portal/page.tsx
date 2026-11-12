@@ -206,7 +206,7 @@ export default function PortalPage() {
             <Button variant="secondary" className="rounded-full" onPress={() => {
               navigator.clipboard?.writeText(statusText(open)).then(() => toast.success("Estado copiado", { description: "Pégalo en el chat con tu comprador." })).catch(() => toast.danger("No se pudo copiar"));
             }}><Copy className="h-4 w-4" /> Copiar estado</Button>
-            <a className="inline-flex h-10 items-center gap-1.5 rounded-full bg-sb-surface-container-high px-4 text-sm font-medium hover:bg-sb-surface-container-highest"
+            <a className="sb-pill [--px:1rem] inline-flex h-10 items-center gap-1.5 rounded-full bg-sb-surface-container-high px-4 text-sm font-medium hover:bg-sb-surface-container-highest"
               href={`https://wa.me/?text=${encodeURIComponent(statusText(open))}`} target="_blank" rel="noopener noreferrer">
               <MessageCircle className="h-4 w-4" /> Enviar por WhatsApp
             </a>

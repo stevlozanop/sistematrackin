@@ -80,7 +80,7 @@ export function PendingGuias({ site, inBox, canEmbark, onAdd, onChanged }: {
             <div className="flex max-w-full overflow-x-auto rounded-full bg-sb-surface-container p-0.5">
               {([[false, "Todas", rows?.length ?? 0], [true, "Posibles duplicadas", dups.length]] as const).map(([k, l, c]) => (
                 <button key={l} type="button" onClick={() => setOnlyDup(k)} aria-pressed={onlyDup === k}
-                  className={cn("flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-semibold transition-colors duration-200",
+                  className={cn("sb-pill flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-semibold",
                     onlyDup === k ? "bg-sb-surface text-sb-on-surface shadow-sm" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
                   {k && <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />}{l}<span className="tabular-nums opacity-60">{n(c)}</span>
                 </button>
@@ -133,7 +133,7 @@ export function PendingGuias({ site, inBox, canEmbark, onAdd, onChanged }: {
                         {added ? <span className="flex items-center gap-1 rounded-full bg-sb-primary px-2.5 py-1 text-[11px] font-semibold text-sb-on-primary"><Check className="h-3 w-3" strokeWidth={3} />{where}</span>
                           : canEmbark && (
                             <button type="button" onClick={() => onAdd(r.guia)}
-                              className="flex items-center gap-1 rounded-full bg-sb-surface px-3 py-1.5 text-[11px] font-semibold text-sb-primary shadow-sm ring-1 ring-sb-outline-variant/60 transition-colors hover:bg-sb-primary hover:text-sb-on-primary active:scale-95">
+                              className="sb-pill flex items-center gap-1 rounded-full bg-sb-surface px-3 py-1.5 text-[11px] font-semibold text-sb-primary shadow-sm ring-1 ring-sb-outline-variant/60 hover:bg-sb-primary hover:text-sb-on-primary">
                               <Plus className="h-3.5 w-3.5" /> Agregar
                             </button>
                           )}
@@ -142,7 +142,7 @@ export function PendingGuias({ site, inBox, canEmbark, onAdd, onChanged }: {
                     {dup && (
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
                         {r.flags.map((f) => <span key={f} className="flex items-center gap-1 rounded-full bg-sb-surface px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400"><AlertTriangle className="h-3 w-3" />{f}</span>)}
-                        {canDelete && <button type="button" onClick={() => setAsk(r)} aria-label={`Eliminar guía ${r.guia}`} className="ml-auto flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium text-sb-late transition-colors hover:bg-sb-late-soft"><Trash2 className="h-3 w-3" /> Eliminar</button>}
+                        {canDelete && <button type="button" onClick={() => setAsk(r)} aria-label={`Eliminar guía ${r.guia}`} className="sb-pill-xs ml-auto flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium text-sb-late hover:bg-sb-late-soft"><Trash2 className="h-3 w-3" /> Eliminar</button>}
                       </div>
                     )}
                   </div>

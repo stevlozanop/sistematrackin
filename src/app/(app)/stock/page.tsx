@@ -77,7 +77,7 @@ export default function StockPage() {
           <div className="flex rounded-full bg-sb-surface-container p-1">
             {sites.map((s) => (
               <button key={s} type="button" onClick={() => { setSite(s); setSel(new Set()); setRows(null); }}
-                className={cn("rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", current === s ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+                className={cn("sb-pill rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", current === s ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
                 {SITE_INFO[s].title}
               </button>
             ))}
@@ -120,7 +120,7 @@ export default function StockPage() {
           <div className="flex rounded-full bg-sb-surface-container p-0.5 sm:ml-2">
             {([["all", "Todas", rows?.length ?? 0], ["late", "Vencidas", lateCount], ["ok", "Al día", (rows?.length ?? 0) - lateCount]] as const).map(([k, l, c]) => (
               <button key={k} type="button" onClick={() => setOnly(k)} aria-pressed={only === k}
-                className={cn("flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold transition-colors duration-200",
+                className={cn("sb-pill flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold",
                   only === k ? "bg-sb-surface text-sb-on-surface shadow-sm" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
                 {k !== "all" && <span className={cn("h-1.5 w-1.5 rounded-full", k === "late" ? "bg-sb-late" : "bg-sb-ontime")} />}
                 {l}<span className="tabular-nums opacity-60">{n(c)}</span>

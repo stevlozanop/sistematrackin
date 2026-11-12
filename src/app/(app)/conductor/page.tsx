@@ -112,7 +112,7 @@ export default function ConductorPage() {
           <div className="flex rounded-full bg-sb-surface-container p-1">
             {sites.map((s) => (
               <button key={s} type="button" onClick={() => { setSite(s); setSel(new Set()); setRows(null); setSearched(""); }}
-                className={cn("rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", current === s ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+                className={cn("sb-pill rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", current === s ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
                 {SITE_INFO[s].title}
               </button>
             ))}
@@ -152,7 +152,7 @@ export default function ConductorPage() {
               <div className="flex flex-wrap gap-1.5">
                 {drivers.map((d) => (
                   <button key={d.name} type="button" onClick={() => { setName(d.name); setSel(new Set()); setRows(null); setSearched(d.name); }}
-                    className="rounded-full border border-sb-outline-variant px-3 py-1 text-xs hover:border-sb-primary">{d.name} <span className="text-sb-on-surface-variant">· {d.units}</span></button>
+                    className="sb-pill rounded-full border border-sb-outline-variant px-3 py-1 text-xs hover:border-sb-primary">{d.name} <span className="text-sb-on-surface-variant">· {d.units}</span></button>
                 ))}
               </div>
             )}

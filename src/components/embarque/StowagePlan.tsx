@@ -80,7 +80,7 @@ export function StowagePlan({ site, nave, onChanged }: { site: Site; nave: strin
         <span className="rounded-full bg-sb-surface-container px-3 py-1"><b>{placed.length}</b> de {vessel.bays * vessel.rows * vessel.tiers} lugares ocupados</span>
         <span className="text-sb-on-surface-variant">{KIND_LABEL[vessel.kind ?? "chata"]} · {vessel.bays} bahías × {vessel.rows} filas × {vessel.tiers} niveles</span>
         {canEdit && !sizing && (
-          <button type="button" onClick={() => setSizing(vessel)} className="ml-auto flex items-center gap-1 rounded-full px-2 py-1 text-sb-on-surface-variant hover:bg-sb-surface-container"><Ruler className="h-3.5 w-3.5" /> Tamaño de la nave</button>
+          <button type="button" onClick={() => setSizing(vessel)} className="sb-pill-xs ml-auto flex items-center gap-1 rounded-full px-2 py-1 text-sb-on-surface-variant hover:bg-sb-surface-container"><Ruler className="h-3.5 w-3.5" /> Tamaño de la nave</button>
         )}
       </div>
       {sizing && (
@@ -115,7 +115,7 @@ export function StowagePlan({ site, nave, onChanged }: { site: Site; nave: strin
       <div className="flex w-max gap-1 rounded-full bg-sb-surface-container p-1">
         {([["3d", "Vista 3D"], ["plano", "Plano por niveles"]] as const).map(([k, l]) => (
           <button key={k} type="button" onClick={() => setMode(k)}
-            className={cn("rounded-full px-3 py-1.5 text-xs font-semibold transition-colors", mode === k ? "bg-sb-on-surface text-sb-surface" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>{l}</button>
+            className={cn("sb-pill rounded-full px-3 py-1.5 text-xs font-semibold transition-colors", mode === k ? "bg-sb-on-surface text-sb-surface" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>{l}</button>
         ))}
       </div>
 
@@ -123,7 +123,7 @@ export function StowagePlan({ site, nave, onChanged }: { site: Site; nave: strin
       <div className={cn("flex w-max max-w-full gap-1 overflow-x-auto rounded-full bg-sb-surface-container p-1", mode === "3d" && "hidden")}>
         {tiers.map((tt) => (
           <button key={tt} type="button" onClick={() => setTier(tt)}
-            className={cn("flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors", t === tt ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+            className={cn("sb-pill flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors", t === tt ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
             {tierName(tt, vessel)}<span className={cn("rounded-full px-1.5 text-[10px]", t === tt ? "bg-white/20" : "bg-sb-surface")}>{count(tt)}</span>
           </button>
         ))}
@@ -188,13 +188,13 @@ export function StowagePlan({ site, nave, onChanged }: { site: Site; nave: strin
           <div className="flex flex-wrap gap-1.5">
             {loose.map((i) => (
               <button key={i.id} type="button" disabled={!canEdit} onClick={() => setSel(sel === i.id ? null : i.id)}
-                className={cn("flex items-center gap-1 rounded-full border px-3 py-1 font-mono text-[11px] font-semibold", sel === i.id ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant hover:border-sb-primary")}>
+                className={cn("sb-pill flex items-center gap-1 rounded-full border px-3 py-1 font-mono text-[11px] font-semibold", sel === i.id ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant hover:border-sb-primary")}>
                 <Box className="h-3 w-3" />{i.code}<span className="font-sans font-normal opacity-70">· {i.units}</span>
               </button>
             ))}
             {picked?.slot && canEdit && (
               <button type="button" disabled={busy} onClick={() => post({ action: "unplace", id: picked.id }, `${picked.code} quedó sin ubicar`)}
-                className="rounded-full border border-dashed border-sb-outline-variant px-3 py-1 text-[11px] text-sb-on-surface-variant hover:border-sb-late hover:text-sb-late">Dejar {picked.code} sin ubicar</button>
+                className="sb-pill rounded-full border border-dashed border-sb-outline-variant px-3 py-1 text-[11px] text-sb-on-surface-variant hover:border-sb-late hover:text-sb-late">Dejar {picked.code} sin ubicar</button>
             )}
           </div>
         </div>

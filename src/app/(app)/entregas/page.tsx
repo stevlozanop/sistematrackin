@@ -90,7 +90,7 @@ export default function EntregasPage() {
           <div className="flex rounded-full bg-sb-surface-container p-1">
             {sites.map((s) => (
               <button key={s} type="button" onClick={() => { setSite(s); setRows(null); setDistrict(null); }}
-                className={cn("rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", current === s ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+                className={cn("sb-pill rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", current === s ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
                 {SITE_INFO[s].title}
               </button>
             ))}
@@ -119,10 +119,10 @@ export default function EntregasPage() {
       <Card className="overflow-hidden">
         <div className="flex flex-wrap items-center gap-3 border-b border-sb-outline-variant/40 px-4 py-3">
           <h3 className="text-sm font-semibold">{district ? `Entregas en ${district}` : "Todas las entregas"} <span className="font-normal text-sb-on-surface-variant">· {n(tot.delivered)} de {n(tot.total)} unidades entregadas</span></h3>
-          {district && <button type="button" onClick={() => setDistrict(null)} className="flex items-center gap-1 rounded-full bg-sb-surface-container px-2.5 py-1 text-[11px]"><X className="h-3 w-3" /> Quitar distrito</button>}
+          {district && <button type="button" onClick={() => setDistrict(null)} className="sb-pill-sm flex items-center gap-1 rounded-full bg-sb-surface-container px-2.5 py-1 text-[11px]"><X className="h-3 w-3" /> Quitar distrito</button>}
           <div className="flex rounded-full bg-sb-surface-container p-0.5">
             {([["all", "Todas"], ["route", "En ruta"], ["done", "Entregadas"]] as const).map(([k, l]) => (
-              <button key={k} type="button" onClick={() => setState(k)} className={cn("rounded-full px-3 py-1 text-[11px] font-semibold", state === k ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant")}>{l}</button>
+              <button key={k} type="button" onClick={() => setState(k)} className={cn("sb-pill rounded-full px-3 py-1 text-[11px] font-semibold", state === k ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant")}>{l}</button>
             ))}
           </div>
           <label className="relative ml-auto w-full sm:w-72">

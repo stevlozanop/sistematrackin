@@ -84,7 +84,7 @@ export default function DevControl() {
             <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Vuelta estimada
               <div className="grid grid-cols-4 gap-1 rounded-full bg-sb-surface-container p-1 sm:flex">
                 {[[15, "15 min"], [30, "30 min"], [60, "1 h"], [0, "Sin hora"]].map(([m, l]) => (
-                  <button key={m} type="button" onClick={() => setMinutes(Number(m))} className={cn("rounded-full px-3 py-1.5 text-xs font-semibold", minutes === m ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant")}>{l}</button>
+                  <button key={m} type="button" onClick={() => setMinutes(Number(m))} className={cn("sb-pill rounded-full px-3 py-1.5 text-xs font-semibold", minutes === m ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant")}>{l}</button>
                 ))}
               </div>
             </div>
@@ -156,7 +156,7 @@ export default function DevControl() {
               <SoftSelect value={table} onChange={(e) => setTable(e.target.value)} className="h-10 min-w-0 flex-1 rounded-xl border border-sb-outline-variant bg-sb-surface px-3 text-sm">
                 {d.tables.map((t) => <option key={t.name} value={t.name}>{t.name} · {Number(t.rows).toLocaleString("es-PE")} filas</option>)}
               </SoftSelect>
-              <a href={`/api/dev/export?table=${encodeURIComponent(table)}`} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-sb-primary px-4 text-sm font-semibold text-sb-on-primary">
+              <a href={`/api/dev/export?table=${encodeURIComponent(table)}`} className="sb-pill [--px:1rem] inline-flex h-10 items-center gap-1.5 rounded-full bg-sb-primary px-4 text-sm font-semibold text-sb-on-primary">
                 <Download className="h-4 w-4" /> Descargar
               </a>
             </div>

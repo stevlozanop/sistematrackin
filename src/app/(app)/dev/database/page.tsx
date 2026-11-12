@@ -110,7 +110,7 @@ export default function DevDatabase() {
               <Icon className="h-3 w-3 shrink-0" /><span className="truncate">{v}</span>
             </span>
           ))}
-          <Link href="/dev/sql" className="flex items-center gap-1.5 rounded-full bg-sb-primary px-3 py-1 font-semibold text-sb-on-primary transition-opacity hover:opacity-90"><Terminal className="h-3.5 w-3.5" /> Consola SQL</Link>
+          <Link href="/dev/sql" className="sb-pill flex items-center gap-1.5 rounded-full bg-sb-primary px-3 py-1 font-semibold text-sb-on-primary"><Terminal className="h-3.5 w-3.5" /> Consola SQL</Link>
         </div>
       </div>
 
@@ -165,7 +165,7 @@ export default function DevDatabase() {
             <div className="flex rounded-full bg-sb-surface-container p-0.5">
               {([["cols", "Estructura"], ["rows", `Filas${shown ? ` · ${shown.sample.length}` : ""}`]] as const).map(([k, l]) => (
                 <button key={k} type="button" onClick={() => setTab(k)} aria-pressed={tab === k}
-                  className={cn("rounded-full px-3 py-1 text-[11px] font-semibold transition-colors", tab === k ? "bg-sb-surface text-sb-on-surface shadow-sm" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>{l}</button>
+                  className={cn("sb-pill rounded-full px-3 py-1 text-[11px] font-semibold", tab === k ? "bg-sb-surface text-sb-on-surface shadow-sm" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>{l}</button>
               ))}
             </div>
           </div>

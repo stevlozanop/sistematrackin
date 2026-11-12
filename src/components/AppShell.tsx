@@ -495,18 +495,18 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
           <div className="flex shrink-0 items-center gap-2">
             {hasGuide && (
               <button type="button" onClick={() => setGuide(true)} title="Cómo funciona el sistema"
-                className="sb-glass flex h-8 items-center gap-1.5 rounded-full bg-sb-surface px-3 text-[11px] font-medium text-sb-on-surface-variant shadow-[var(--sb-shadow-card)] transition-colors hover:text-sb-on-surface">
+                className="sb-pill sb-glass flex h-8 items-center gap-1.5 rounded-full bg-sb-surface px-3 text-[11px] font-medium text-sb-on-surface-variant shadow-[var(--sb-shadow-card)] transition-colors hover:text-sb-on-surface">
                 <BookOpen className="h-3.5 w-3.5" /><span className="hidden sm:inline">Guía</span>
               </button>
             )}
             {hasAssistant && (
               <button type="button" onClick={() => setAssistant(true)} title="Asistente (Ctrl+J)" aria-label="Abrir asistente"
-                className="flex h-8 items-center gap-1.5 rounded-full bg-sb-primary px-3 text-[11px] font-semibold text-sb-on-primary md:hidden">
+                className="sb-pill flex h-8 items-center gap-1.5 rounded-full bg-sb-primary px-3 text-[11px] font-semibold text-sb-on-primary md:hidden">
                 <Sparkles className="h-3.5 w-3.5" />Asistente
               </button>
             )}
             {role !== "dev" && <AlertBell href={role === "operator" ? "/my" : role === "dealer" ? "/portal" : "/alerts"} />}
-            <Link href="/profile" title="Mi perfil" className="sb-glass flex items-center gap-2 rounded-full bg-sb-surface px-3 py-1.5 shadow-[var(--sb-shadow-card)] transition-colors hover:bg-sb-surface-container">
+            <Link href="/profile" title="Mi perfil" className="sb-pill sb-glass flex items-center gap-2 rounded-full bg-sb-surface px-3 py-1.5 shadow-[var(--sb-shadow-card)] transition-colors hover:bg-sb-surface-container">
               {own?.v ? (
                 <LogoBadge id={own.id} name={own.name} v={own.v} className="h-5 w-5 rounded-full text-[8px]" />
               ) : (

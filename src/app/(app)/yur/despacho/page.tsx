@@ -236,7 +236,7 @@ export default function YurDespachoPage() {
                             <div className="flex flex-wrap gap-1.5">
                               {data.routes.filter((x) => x.route).map((x) => (
                                 <button key={x.route} type="button" onClick={() => setEdit({ ...edit, route: x.route })}
-                                  className={cn("rounded-full border px-3 py-1 text-[11px] font-semibold", edit.route === x.route ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant")}>
+                                  className={cn("sb-pill rounded-full border px-3 py-1 text-[11px] font-semibold", edit.route === x.route ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant")}>
                                   {x.label}{x.route === normal ? " · la suya" : ""}
                                 </button>
                               ))}
@@ -271,7 +271,7 @@ export default function YurDespachoPage() {
                 <li key={t} className="flex items-center gap-1">
                   {i > 0 && <span className={cn("h-px w-3 sm:w-5", i <= cur ? "bg-sb-primary" : "bg-sb-outline-variant")} />}
                   <button type="button" disabled={!can} onClick={() => go(i)} aria-current={i === cur ? "step" : undefined}
-                    className={cn("flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] transition-colors", i === cur ? "bg-sb-surface-container font-semibold text-sb-on-surface" : "text-sb-on-surface-variant hover:bg-sb-surface-container-low", !can && "opacity-40")}>
+                    className={cn("sb-pill-sm flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] transition-colors", i === cur ? "bg-sb-surface-container font-semibold text-sb-on-surface" : "text-sb-on-surface-variant hover:bg-sb-surface-container-low", !can && "opacity-40")}>
                     <span className={cn("grid h-5 w-5 place-items-center rounded-full text-[10px] font-bold", i < cur ? "bg-sb-primary text-sb-on-primary" : i === cur ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container-high")}>{i < cur ? <Check className="h-3 w-3" /> : i + 1}</span>
                     <span className={cn(i !== cur && "hidden sm:inline")}>{t}</span>
                   </button>
@@ -421,7 +421,7 @@ export default function YurDespachoPage() {
       <Card className="overflow-hidden">
         <div className="flex items-center gap-2 border-b border-sb-outline-variant/40 px-4 py-3">
           <h3 className="flex flex-1 items-center gap-2 text-sm font-semibold"><Truck className="h-4 w-4" /> Camiones recientes</h3>
-          <Link href="/yur/viajes" className="inline-flex items-center gap-1.5 rounded-full bg-sb-primary px-3 py-1.5 text-[12px] font-semibold text-sb-on-primary"><MapIcon className="h-3.5 w-3.5" /> Ver en el mapa</Link>
+          <Link href="/yur/viajes" className="sb-pill inline-flex items-center gap-1.5 rounded-full bg-sb-primary px-3 py-1.5 text-[12px] font-semibold text-sb-on-primary"><MapIcon className="h-3.5 w-3.5" /> Ver en el mapa</Link>
         </div>
         {trips.slice(0, 12).map((t) => (
           <div key={t.id} className="flex flex-wrap items-center gap-2 border-b border-sb-outline-variant/15 px-4 py-2.5 text-xs last:border-0">
