@@ -63,7 +63,10 @@ export function MobileNav({
     return () => { document.removeEventListener("mousedown", down); document.removeEventListener("keydown", key); };
   }, [open]);
 
-  const row = "sb-pill-sm flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] text-sb-on-surface-variant hover:bg-sb-surface-container hover:text-sb-on-surface";
+  const rowBase = "sb-pill-sm flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px]";
+  const row = `${rowBase} text-sb-on-surface-variant hover:bg-sb-surface-container hover:text-sb-on-surface`;
+  // Pantalla actual: fondo suave del color y letra del mismo color (se lee con cualquier acento, en claro y oscuro)
+  const rowOn = `${rowBase} bg-sb-primary-soft font-semibold text-sb-primary ring-1 ring-sb-primary/30`;
 
   return (
     <div className="md:hidden">
@@ -107,7 +110,7 @@ export function MobileNav({
                   {!!extra.length && <p className="px-2.5 pb-1 pt-3 text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Más pantallas</p>}
                   {extra.map((i) => (
                     <button key={i.href} type="button" onClick={() => { close(); router.push(i.href); }}
-                      className={cn(row, isActive(i) && "bg-sb-primary font-semibold text-sb-on-primary hover:bg-sb-primary hover:text-sb-on-primary")}>
+                      className={isActive(i) ? rowOn : row} aria-current={isActive(i) ? "page" : undefined}>
                       <i.icon className="h-4 w-4 shrink-0" />{i.title}
                     </button>
                   ))}
