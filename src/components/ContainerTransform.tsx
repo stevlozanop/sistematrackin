@@ -2,77 +2,135 @@
 import { useEffect } from "react";
 
 /**
- * «Container transform» (Material Design): cada ventana nace del botón o tarjeta que la abrió, como UN solo bloque
- * que crece por un camino simple; su contenido aparece con un fundido corto, sin piezas volando por separado.
- * Al cerrarse, vuelve a encogerse hacia ese mismo elemento si sigue en pantalla.
- * Funciona para todos los modales (HeroUI Modal: .modal__container / .modal__dialog) sin tocar cada pantalla.
+ * Las ventanas se abren como el botón «Opciones» del menú del celular (t-morph): el botón que tocaste SE CONVIERTE
+ * en la ventana. Una «pieza» con el color y la forma del botón crece (de píldora a tarjeta, cambiando de color)
+ * hasta el lugar de la ventana; el botón se oculta mientras tanto y el contenido entra deslizándose con un leve
+ * desenfoque. Al cerrar, la tarjeta se encoge, recupera el color del botón y vuelve a ser el botón.
+ * Aplica a todos los modales (HeroUI: .modal__container / .modal__dialog) y respeta «reducir movimiento».
  */
-const EMPHASIZED = "cubic-bezier(0.2, 0, 0, 1)";
-const DECEL = "cubic-bezier(0.05, 0.7, 0.1, 1)";
+const OPEN_EASE = "cubic-bezier(0.34, 1.25, 0.64, 1)"; // el mismo rebote suave del botón «Opciones»
+const CLOSE_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+const OPEN_MS = 380, CLOSE_MS = 260, CONTENT_MS = 220;
+
+type Box = { left: number; top: number; width: number; height: number };
+const boxOf = (el: Element): Box => { const r = el.getBoundingClientRect(); return { left: r.left, top: r.top, width: r.width, height: r.height }; };
+const px = (b: Box) => ({ left: `${b.left}px`, top: `${b.top}px`, width: `${b.width}px`, height: `${b.height}px` });
+
+/** Fondo visible de un elemento (si es transparente, el de la ventana) */
+function paintOf(el: Element, fallback: string) {
+  const cs = getComputedStyle(el);
+  if (cs.backgroundImage && cs.backgroundImage !== "none") return { image: cs.backgroundImage, color: cs.backgroundColor };
+  const c = cs.backgroundColor;
+  return { image: "none", color: c && c !== "rgba(0, 0, 0, 0)" && c !== "transparent" ? c : fallback };
+}
+
+/** La pieza que se transforma: una caja fija por encima de todo */
+function ghost(from: Box, paint: { image: string; color: string }, radius: string, shadow: string) {
+  const g = document.createElement("div");
+  Object.assign(g.style, {
+    position: "fixed", zIndex: "2147483000", pointerEvents: "none", ...px(from),
+    backgroundColor: paint.color, backgroundImage: paint.image, borderRadius: radius, boxShadow: shadow, overflow: "hidden",
+  });
+  document.body.appendChild(g);
+  return g;
+}
 
 export function ContainerTransform() {
   useEffect(() => {
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let source: { el: Element; at: number } | null = null;
-    const origin = new WeakMap<Element, Element>();
+    let source: { el: HTMLElement; at: number } | null = null;
+    const origin = new WeakMap<Element, HTMLElement>();
 
-    // El elemento que se tocó justo antes de abrir la ventana
-    const down = (e: PointerEvent) => {
-      const el = (e.target as Element | null)?.closest("button, a, [role=button], [role=row], tr, .sb-card");
-      if (el && !el.closest(".modal__container")) source = { el, at: Date.now() };
+    const pick = (el: Element | null) => {
+      const t = el?.closest<HTMLElement>("button, a, [role=button], [role=row], tr, .sb-card");
+      if (t && !t.closest(".modal__container")) source = { el: t, at: Date.now() };
     };
-    const key = (e: KeyboardEvent) => {
-      if ((e.key === "Enter" || e.key === " ") && document.activeElement && !document.activeElement.closest(".modal__container")) source = { el: document.activeElement, at: Date.now() };
-    };
+    const down = (e: PointerEvent) => pick(e.target as Element | null);
+    const key = (e: KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") pick(document.activeElement); };
 
-    const grow = (container: HTMLElement) => {
+    const open = (container: HTMLElement) => {
       const dialog = container.querySelector<HTMLElement>(".modal__dialog");
       const src = source && Date.now() - source.at < 1500 && source.el.isConnected ? source.el : null;
+      source = null;
       if (!dialog || !src) return;
-      const from = src.getBoundingClientRect(), to = dialog.getBoundingClientRect();
-      if (!from.width || !to.width || from.width > innerWidth * 0.7) return;
+      const from = boxOf(src), to = boxOf(dialog);
+      if (!from.width || !to.width || from.width > innerWidth * 0.7 || from.top + from.height < 0) return;
       origin.set(container, src);
       container.dataset.ct = "";
-      const radius = getComputedStyle(src).borderRadius || "16px";
-      const dx = from.left + from.width / 2 - (to.left + to.width / 2), dy = from.top + from.height / 2 - (to.top + to.height / 2);
-      dialog.animate(
+      const dcs = getComputedStyle(dialog);
+      const surface = dcs.backgroundColor || "#fff";
+      const g = ghost(from, paintOf(src, surface), getComputedStyle(src).borderRadius || "9999px", "0 8px 32px -8px rgba(0,0,0,.35)");
+      // La pieza lleva el texto e ícono del botón, que se desvanecen al empezar a crecer (como el «+» del botón Opciones)
+      const face = document.createElement("div");
+      const scs = getComputedStyle(src);
+      Object.assign(face.style, { position: "absolute", inset: "0", display: "flex", alignItems: "center", justifyContent: "center", gap: scs.gap, color: scs.color, font: scs.font, whiteSpace: "nowrap" });
+      face.innerHTML = src.innerHTML;
+      g.appendChild(face);
+      face.animate([{ opacity: 1, transform: "none", filter: "blur(0)" }, { opacity: 0, transform: "scale(0.9)", filter: "blur(2px)" }], { duration: OPEN_MS * 0.35, easing: CLOSE_EASE, fill: "forwards" });
+      src.style.visibility = "hidden";
+      // La ventana real espera invisible mientras la pieza crece
+      dialog.animate([{ opacity: 0 }, { opacity: 0 }], { duration: OPEN_MS * 0.7, fill: "backwards" });
+      const morph = g.animate(
         [
-          { transform: `translate(${dx}px, ${dy}px) scale(${from.width / to.width}, ${from.height / to.height})`, borderRadius: radius, opacity: 0.4 },
-          { transform: "none", borderRadius: getComputedStyle(dialog).borderRadius, opacity: 1 },
+          { ...px(from), borderRadius: getComputedStyle(src).borderRadius || "9999px", offset: 0 },
+          { backgroundColor: paintOf(src, surface).color, offset: 0.3 },
+          { ...px(to), borderRadius: dcs.borderRadius, backgroundColor: surface, backgroundImage: "none", offset: 1 },
         ],
-        { duration: 420, easing: EMPHASIZED },
+        { duration: OPEN_MS, easing: OPEN_EASE, fill: "forwards" },
       );
-      // El contenido no se deforma: aparece cuando el bloque ya casi llegó
+      // El contenido entra como el menú «Opciones»: desde la derecha, un poco más chico y desenfocado
+      dialog.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, delay: OPEN_MS * 0.7, easing: CLOSE_EASE, fill: "backwards" });
       for (const child of Array.from(dialog.children) as HTMLElement[]) {
-        child.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, delay: 170, easing: DECEL, fill: "backwards" });
+        child.animate(
+          [{ opacity: 0, transform: "translateX(28px) scale(0.97)", filter: "blur(2px)" }, { opacity: 1, transform: "none", filter: "blur(0)" }],
+          { duration: CONTENT_MS, delay: OPEN_MS * 0.6, easing: CLOSE_EASE, fill: "backwards" },
+        );
       }
+      morph.onfinish = () => { g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, fill: "forwards" }).onfinish = () => g.remove(); src.style.visibility = ""; };
+      // Si la ventana se cierra antes de terminar, no dejar nada colgado
+      setTimeout(() => { if (g.isConnected && !container.isConnected) { g.remove(); src.style.visibility = ""; } }, OPEN_MS + 400);
     };
 
-    const shrink = (container: HTMLElement) => {
+    const close = (container: HTMLElement) => {
       const dialog = container.querySelector<HTMLElement>(".modal__dialog");
       const src = origin.get(container);
       if (!dialog || !src?.isConnected) return;
-      const from = dialog.getBoundingClientRect(), to = src.getBoundingClientRect();
-      if (!to.width || to.bottom < 0 || to.top > innerHeight) return;
-      const dx = to.left + to.width / 2 - (from.left + from.width / 2), dy = to.top + to.height / 2 - (from.top + from.height / 2);
-      dialog.animate(
-        [{ transform: "none", opacity: 1 }, { transform: `translate(${dx}px, ${dy}px) scale(${to.width / from.width}, ${to.height / from.height})`, borderRadius: getComputedStyle(src).borderRadius || "16px", opacity: 0 }],
-        { duration: 220, easing: "cubic-bezier(0.3, 0, 0.8, 0.15)", fill: "forwards" },
+      const from = boxOf(dialog), to = boxOf(src);
+      if (!to.width || to.top + to.height < 0 || to.top > innerHeight) return;
+      const dcs = getComputedStyle(dialog);
+      src.style.visibility = "hidden";
+      const g = ghost(from, { image: "none", color: dcs.backgroundColor || "#fff" }, dcs.borderRadius, "0 8px 32px -8px rgba(0,0,0,.35)");
+      // El contenido se va primero; luego la tarjeta se encoge y vuelve a ser el botón
+      dialog.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 90, fill: "forwards" });
+      const paint = paintOf(src, dcs.backgroundColor);
+      const morph = g.animate(
+        [
+          { ...px(from), borderRadius: dcs.borderRadius, backgroundColor: dcs.backgroundColor },
+          { ...px(to), borderRadius: getComputedStyle(src).borderRadius || "9999px", backgroundColor: paint.color },
+        ],
+        { duration: CLOSE_MS, easing: CLOSE_EASE, fill: "forwards" },
       );
+      const face = document.createElement("div");
+      const scs = getComputedStyle(src);
+      Object.assign(face.style, { position: "absolute", inset: "0", display: "flex", alignItems: "center", justifyContent: "center", gap: scs.gap, color: scs.color, font: scs.font, whiteSpace: "nowrap", opacity: "0" });
+      face.innerHTML = src.innerHTML;
+      g.appendChild(face);
+      face.animate([{ opacity: 0 }, { opacity: 1 }], { duration: CLOSE_MS * 0.4, delay: CLOSE_MS * 0.6, fill: "forwards" });
+      morph.onfinish = () => { src.style.visibility = ""; g.remove(); };
     };
 
-    // Las ventanas que entran y salen (HeroUI marca data-entering / data-exiting en el contenedor)
+    // Las ventanas que entran y salen (HeroUI marca data-exiting en el contenedor al cerrarse)
     const mo = new MutationObserver((list) => {
       for (const m of list) {
         if (m.type === "childList") {
           for (const n of Array.from(m.addedNodes)) {
             if (!(n instanceof HTMLElement)) continue;
             const c = n.matches(".modal__container") ? n : n.querySelector<HTMLElement>(".modal__container");
-            if (c) grow(c);
+            if (c) open(c);
           }
-        } else if (m.type === "attributes" && m.attributeName === "data-exiting") {
+        } else if (m.attributeName === "data-exiting") {
           const c = m.target as HTMLElement;
-          if (c.matches(".modal__container") && c.dataset.exiting === "true" && "ct" in c.dataset) shrink(c);
+          if (c.matches(".modal__container") && c.dataset.exiting === "true" && "ct" in c.dataset) close(c);
         }
       }
     });
