@@ -103,5 +103,5 @@
 .iso-swatch[data-mark="green"] path{stroke:var(--anatomy-green)}
 .iso-swatch[data-mark="blue"] path{stroke:var(--anatomy-blue)}
 .iso-swatch-crease{stroke:var(--anatomy-lo)!important}
-@media (max-width:560px){.iso-plate{padding:48px 12px 70px}.iso-plate-corner[data-corner="hint"]{bottom:18px}}
+@media (max-width:560px){.iso-plate{padding:40px 10px 64px;border-radius:20px}.iso-plate-corners{inset:16px 14px}.iso-plate-corner[data-corner="hint"],.iso-plate-corner[data-corner="readout"]{left:0;right:0;text-align:center;white-space:normal}.iso-plate-corner[data-corner="hint"]{display:none}.iso-plate-corner[data-corner="readout"]{bottom:0;font-size:11px;line-height:1.45;padding:6px 10px;border-radius:12px;background:color-mix(in oklab,var(--anatomy-mid) 35%,transparent)}.iso-plate-corner[data-corner="title"]{font-size:9.5px}}
 @media (prefers-reduced-motion:reduce){.iso-line[data-flow],.iso-dots circle[data-pulse]{animation:none}}
