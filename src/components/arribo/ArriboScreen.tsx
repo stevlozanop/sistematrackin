@@ -1,14 +1,13 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Button, toast } from "@heroui/react";
-import { ArrowRight, Check as CheckIcon, Inbox, Ship, Warehouse } from "lucide-react";
+import { toast } from "@heroui/react";
+import { Ship, Warehouse } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
-import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
+import { Head, PickList, PickRow, Register, n, plural } from "@/components/stage/StageKit";
 import { DATA_EVENT } from "@/components/UploadCenter";
-import { DELAY_REASONS, SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
+import { SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
-import { SoftSelect } from "@/components/SoftSelect";
 
 /**
  * Arribo e ingreso a almacén en destino (pasos 3 y 4), con el mismo diseño que Embarque y zarpe:
@@ -21,126 +20,7 @@ type Cont = { nave: string; container: string; w2: number; w3: number; total: nu
 type Data = { site: Site; canArrive: boolean; canStore: boolean; naves: Nave[]; port: Cont[]; error?: string };
 type Tab = "arribo" | "almacen";
 
-const field = "h-10 w-full rounded-xl border border-sb-outline-variant bg-sb-surface px-3 text-sm text-sb-on-surface outline-none focus:border-sb-on-surface";
-const n = (v: number) => Number(v ?? 0).toLocaleString("es-PE");
 const key = (c: { nave: string; container: string }) => `${c.nave}|${c.container}`;
-
-type Noun = [string, string];
-const plural = (c: number, [one, many]: Noun) => `${n(c)} ${c === 1 ? one : many}`;
-
-/** Encabezado del paso: ícono, título y un resumen en vivo */
-function Head({ icon: Icon, title, sub }: { icon: typeof Ship; title: React.ReactNode; sub: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 border-b border-sb-outline-variant/40 px-4 py-3.5">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sb-primary-soft text-sb-primary"><Icon className="h-[18px] w-[18px]" /></span>
-      <div className="min-w-0">
-        <h3 className="text-sm font-semibold sm:truncate">{title}</h3>
-        <p className="text-[11px] text-sb-on-surface-variant sm:truncate">{sub}</p>
-      </div>
-    </div>
-  );
-}
-
-/** Motos (2W) y motokares (3W) en una barra fina */
-function Mix({ w2, w3 }: { w2: number; w3: number }) {
-  const t = Number(w2) + Number(w3) || 1;
-  return (
-    <span className="hidden w-28 shrink-0 flex-col gap-1 sm:flex">
-      <span className="flex h-1.5 overflow-hidden rounded-full bg-sb-surface-container">
-        <span className="bg-sb-primary transition-[width] duration-500" style={{ width: `${(Number(w2) / t) * 100}%` }} />
-        <span className="bg-sb-primary/35 transition-[width] duration-500" style={{ width: `${(Number(w3) / t) * 100}%` }} />
-      </span>
-      <span className="flex justify-between text-[10px] tabular-nums text-sb-on-surface-variant"><span>2W {n(w2)}</span><span>3W {n(w3)}</span></span>
-    </span>
-  );
-}
-
-/** Fila que se marca entera (nave o contenedor): marca redonda, nombre, detalle, mezcla 2W/3W y total */
-function PickRow({ on, disabled, onToggle, title, mono, meta, late, w2, w3, total, label }: {
-  on: boolean; disabled: boolean; onToggle: () => void; title: string; mono?: boolean; meta: string; late: number;
-  w2: number; w3: number; total: number; label: string;
-}) {
-  return (
-    <button type="button" role="checkbox" aria-checked={on} aria-label={label} disabled={disabled} onClick={onToggle}
-      className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors duration-200 disabled:cursor-default",
-        on ? "bg-sb-primary-soft" : "enabled:hover:bg-sb-surface-container-low")}>
-      <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-full border transition-all duration-200",
-        on ? "scale-105 border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant bg-sb-surface", disabled && "opacity-40")}>
-        <CheckIcon className={cn("h-3 w-3 transition-opacity", on ? "opacity-100" : "opacity-0")} strokeWidth={3} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className={cn("block truncate text-sm font-semibold", mono && "font-mono tracking-tight")}>{title}</span>
-        <span className="block text-[11px] text-sb-on-surface-variant sm:truncate">
-          {meta}<span className="sm:hidden"> · 2W {n(w2)} · 3W {n(w3)}</span>{late ? <b className="font-semibold text-sb-late"> · {n(late)} fuera de tiempo</b> : null}
-        </span>
-      </span>
-      <Mix w2={w2} w3={w3} />
-      <span className="w-14 shrink-0 text-right">
-        <span className="block text-sm font-semibold tabular-nums">{n(total)}</span>
-        <span className="block text-[10px] text-sb-on-surface-variant">motos</span>
-      </span>
-    </button>
-  );
-}
-
-/** Lista con su encabezado («Marcar todos»), vacío explicado y siluetas mientras carga */
-function PickList({ title, allOn, onAll, canAll, loading, empty, children }: {
-  title: React.ReactNode; allOn: boolean; onAll: () => void; canAll: boolean; loading: boolean; empty: string | null; children: React.ReactNode;
-}) {
-  return (
-    <div className="flex min-w-0 flex-col">
-      <div className="flex items-center justify-between gap-2 px-3 pb-2">
-        <p className="min-w-0 text-[11px] font-medium text-sb-on-surface-variant sm:truncate">{title}</p>
-        {canAll && (
-          <button type="button" onClick={onAll} className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold text-sb-primary transition-colors hover:bg-sb-primary-soft">
-            {allOn ? "Quitar todos" : "Marcar todos"}
-          </button>
-        )}
-      </div>
-      <div className="flex flex-col gap-0.5">
-        {loading
-          ? [0, 1, 2].map((i) => <div key={i} className="h-[60px] animate-pulse rounded-xl bg-sb-surface-container-low" />)
-          : empty
-            ? <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-sb-outline-variant/60 px-4 py-10 text-center text-xs text-sb-on-surface-variant"><Inbox className="h-5 w-5 opacity-50" />{empty}</div>
-            : children}
-      </div>
-    </div>
-  );
-}
-
-/** Panel de la derecha: lo marcado, el cambio de estado, fecha, motivo de demora y botón */
-function Register({ from, to, label, noun, date, setDate, min, need, reason, setReason, count, units, busy, disabled, readOnly, onSave }: {
-  from: string; to: string; label: string; noun: Noun; date: string; setDate: (v: string) => void; min: string; need: number;
-  reason: string; setReason: (v: string) => void; count: number; units: number; busy: boolean; disabled: boolean; readOnly: boolean; onSave: () => void;
-}) {
-  return (
-    <div className="flex flex-col gap-4 rounded-2xl bg-sb-surface-container-low p-4 lg:sticky lg:top-4 lg:self-start">
-      <div>
-        <p className="text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Marcado</p>
-        <p className="mt-1 text-3xl font-semibold leading-none tabular-nums">{n(units)}<span className="ml-1.5 text-sm font-normal text-sb-on-surface-variant">motos</span></p>
-        <p className="mt-1.5 text-xs text-sb-on-surface-variant">{count ? `en ${plural(count, noun)}` : `Marca ${noun[1]} en la lista`}</p>
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold">
-        <span className="rounded-full border border-sb-outline-variant px-2.5 py-1 text-sb-on-surface-variant">{from}</span>
-        <ArrowRight className="h-3.5 w-3.5 text-sb-on-surface-variant" />
-        <span className="rounded-full bg-sb-primary px-2.5 py-1 text-sb-on-primary">{to}</span>
-      </div>
-      <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Fecha de {label.toLowerCase()}
-        <DatePicker label={`Fecha de ${label.toLowerCase()}`} value={date} min={min || null} onChange={setDate} disabled={readOnly} quick={pastQuick(min || null, today())} />
-      </div>
-      {need > 0 && (
-        <label className="flex flex-col gap-1 rounded-xl bg-sb-late-soft p-2.5 text-[11px] text-sb-late">
-          <span><b>{n(need)} fuera de tiempo.</b> Motivo de demora (puedes dejarlo para después)</span>
-          <SoftSelect className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</SoftSelect>
-        </label>
-      )}
-      <Button variant="primary" className="w-full rounded-full" onPress={onSave} isDisabled={busy || disabled || readOnly}>
-        {busy ? "Registrando…" : `Registrar ${label.toLowerCase()}`}
-      </Button>
-      {readOnly && <p className="-mt-2 text-center text-[11px] text-sb-on-surface-variant">Solo lectura: no es tu etapa.</p>}
-    </div>
-  );
-}
 
 export function ArriboScreen({ only }: { only: Site }) {
   const [me, setMe] = useState<{ role: string; stages: { site: Site; field: string }[] } | null>(null);
