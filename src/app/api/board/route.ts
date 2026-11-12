@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { queryList } from "@/lib/db";
 import { guard, READ } from "@/lib/guard";
+import { consortiumAnd } from "@/lib/clients";
 
 /**
  * Tablero de Honda (por año de facturación), por ruta (PCL Pucallpa · YUR Yurimaguas) y mes:
@@ -10,11 +11,12 @@ import { guard, READ } from "@/lib/guard";
  * GET /api/board?year=2026
  */
 export async function GET(req: Request) {
-  const { err } = await guard(READ);
+  const { s, err } = await guard(READ);
   if (err) return err;
+  const { and: cs, args: ca } = await consortiumAnd(s);
 
   const years = await queryList<{ v: number }>(
-    "SELECT DISTINCT YEAR(billing_date) v FROM units WHERE billing_date IS NOT NULL ORDER BY v DESC",
+    `SELECT DISTINCT YEAR(billing_date) v FROM units WHERE billing_date IS NOT NULL${cs} ORDER BY v DESC`, ca,
   );
   const asked = Number(new URL(req.url).searchParams.get("year"));
   const year = years.some((y) => y.v === asked) ? asked : years[0]?.v ?? new Date().getFullYear();
@@ -24,21 +26,21 @@ export async function GET(req: Request) {
       `SELECT site, MONTH(billing_date) m, COUNT(*) total, SUM(d_entrega IS NOT NULL) delivered,
          SUM(service = 'A TIEMPO') on_time, SUM(service IS NOT NULL) measured,
          ROUND(AVG(CASE WHEN service = 'FUERA DE TIEMPO' THEN DATEDIFF(COALESCE(d_entrega, CURDATE()), est_date) END), 1) delay
-       FROM v_units WHERE YEAR(billing_date) = ?
+       FROM v_units WHERE YEAR(billing_date) = ?${cs}
        GROUP BY site, m ORDER BY site ASC, m ASC`,
-      [year],
+      [year, ...ca],
     ),
     queryList<{ site: string; m: number; reason: string; n: number }>(
       `SELECT site, MONTH(billing_date) m, COALESCE(delay_reason, 'SIN MOTIVO') reason, COUNT(*) n
-       FROM v_units WHERE YEAR(billing_date) = ? AND service = 'FUERA DE TIEMPO'
+       FROM v_units WHERE YEAR(billing_date) = ? AND service = 'FUERA DE TIEMPO'${cs}
        GROUP BY site, m, reason ORDER BY site ASC, m ASC, n DESC`,
-      [year],
+      [year, ...ca],
     ),
     queryList<{ site: string; m: number; service: string | null; status: string; n: number }>(
       `SELECT site, MONTH(billing_date) m, service, status, COUNT(*) n
-       FROM v_units WHERE YEAR(billing_date) = ?
+       FROM v_units WHERE YEAR(billing_date) = ?${cs}
        GROUP BY site, m, service, status ORDER BY site ASC, m ASC, service ASC, status ASC`,
-      [year],
+      [year, ...ca],
     ),
     queryList<{ target: number }>("SELECT target FROM settings WHERE id = 1"),
   ]);

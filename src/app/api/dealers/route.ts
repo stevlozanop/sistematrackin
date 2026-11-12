@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { query, run } from "@/lib/db";
 import { guard, READ } from "@/lib/guard";
+import { consortiumScope } from "@/lib/clients";
 
 export async function GET() {
-  const { err } = await guard(READ);
+  const { s, err } = await guard(READ);
   if (err) return err;
+  // Personal de un consorcio: solo las tiendas de su consorcio
+  const cs = await consortiumScope(s);
   return NextResponse.json(
     await query(
       // Por módulo: unidades, sin entregar y región (PCL: departamento más frecuente · YUR: ruta más frecuente)
@@ -17,7 +20,9 @@ export async function GET() {
          (SELECT x.route FROM units x WHERE x.dealer_id = d.id AND x.site = 'YUR' AND x.route IS NOT NULL
             GROUP BY x.route ORDER BY COUNT(*) DESC LIMIT 1) AS yur_route
        FROM dealers d LEFT JOIN units u ON u.dealer_id = d.id
+       ${cs ? "WHERE d.company_id = ?" : ""}
        GROUP BY d.id ORDER BY d.department NULLS FIRST, d.name`,
+      cs?.args ?? [],
     ),
   );
 }

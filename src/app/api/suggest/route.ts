@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { queryList } from "@/lib/db";
 import { getScope, guard } from "@/lib/guard";
 import { isSite } from "@/lib/hsp";
-import { dealerScope } from "@/lib/clients";
+import { consortiumScope, dealerScope } from "@/lib/clients";
 
 /**
  * Sugerencias para los buscadores mientras se escribe (desde la primera letra):
@@ -33,6 +33,9 @@ export async function GET(req: Request) {
   } else if (s.role === "operator") {
     const sc = await getScope(s.id);
     if (sc.carrier) { where.push("carrier = ?"); args.push(sc.carrier); }
+  } else {
+    const cs = await consortiumScope(s);
+    if (cs) { where.push(cs.sql); args.push(...cs.args); }
   }
   if (isSite(site)) { where.push("site = ?"); args.push(site); }
 

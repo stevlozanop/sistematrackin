@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { query, queryList } from "@/lib/db";
 import { EVERYONE, getScope, guard } from "@/lib/guard";
 import { seesAll } from "@/lib/workflow";
-import { dealerScope } from "@/lib/clients";
+import { consortiumScope, dealerScope } from "@/lib/clients";
 
 /**
  * Alertas de unidades sin entregar: VENCIDA (pasó la fecha estimada) y POR VENCER (faltan pocos días),
@@ -32,6 +32,9 @@ export async function GET(req: Request) {
     if (!sc) return NextResponse.json({ total: 0, bySite: [], byStage: [], noReason: 0, alertDays: 2, units: [] });
     where.push(sc.sql); args.push(...sc.args);
   }
+  // Personal de un consorcio: solo las alertas de las unidades de su consorcio
+  const cs = await consortiumScope(s);
+  if (cs) { where.push(cs.sql); args.push(...cs.args); }
   const w = where.join(" AND ");
 
   const [bySite, byStage, [noReason], [settings]] = await Promise.all([
@@ -40,7 +43,7 @@ export async function GET(req: Request) {
       `SELECT site, next_step, alert, COUNT(*) n FROM v_units WHERE ${w} GROUP BY site, next_step, alert ORDER BY site ASC, next_step ASC, alert ASC`, args,
     ),
     sup
-      ? query<{ n: number }>("SELECT COUNT(*) n FROM v_units WHERE service = 'FUERA DE TIEMPO' AND delay_reason IS NULL")
+      ? query<{ n: number }>(`SELECT COUNT(*) n FROM v_units WHERE service = 'FUERA DE TIEMPO' AND delay_reason IS NULL${cs ? ` AND ${cs.sql}` : ""}`, cs?.args ?? [])
       : Promise.resolve([{ n: 0 }]),
     query<{ alert_days: number }>("SELECT alert_days FROM settings WHERE id = 1"),
   ]);

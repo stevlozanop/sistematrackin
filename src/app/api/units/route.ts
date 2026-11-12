@@ -4,6 +4,7 @@ import { getScope, guard, READ } from "@/lib/guard";
 import { DATE_FIELDS, isSite, type DateField, type Site } from "@/lib/hsp";
 import { checkDateEdit, isSuper, needsDelayReason, seesAll } from "@/lib/workflow";
 import { unitFilters } from "@/lib/unit-filters";
+import { consortiumScope } from "@/lib/clients";
 import { notifyDelivered, notifyDispatched, notifyNextStage, pushLater } from "@/lib/push";
 
 const SORTABLE = new Set([
@@ -33,15 +34,18 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "No tienes acceso a este módulo" }, { status: 403 });
   }
 
+  const cs = await consortiumScope(s);
   if (p.get("meta")) {
+    // Personal de un consorcio: solo las opciones de sus unidades
+    const m = cs ? ` AND ${cs.sql.replace(/^dealer_id/, "u.dealer_id")}` : "", ma = cs?.args ?? [];
     const [dealers, zones, years, reasons, naves] = await Promise.all([
-      queryList<{ v: string }>("SELECT DISTINCT d.name v FROM units u JOIN dealers d ON d.id=u.dealer_id WHERE u.site=? ORDER BY v", [site]),
+      queryList<{ v: string }>(`SELECT DISTINCT d.name v FROM units u JOIN dealers d ON d.id=u.dealer_id WHERE u.site=?${m} ORDER BY v`, [site, ...ma]),
       // Zona = departamento (PCL) o ruta (YUR); en YUR, las que vienen de la facturación sin ruta usan su distrito
-      queryList<{ v: string }>(`SELECT DISTINCT ${site === "PCL" ? "department" : "COALESCE(route, district)"} v FROM units WHERE site=? AND ${site === "PCL" ? "department" : "COALESCE(route, district)"} IS NOT NULL ORDER BY v`, [site]),
-      queryList<{ v: number }>("SELECT DISTINCT YEAR(billing_date) v FROM units WHERE site=? AND billing_date IS NOT NULL ORDER BY v DESC", [site]),
-      queryList<{ v: string }>("SELECT DISTINCT delay_reason v FROM units WHERE site=? AND delay_reason IS NOT NULL ORDER BY v", [site]),
+      queryList<{ v: string }>(`SELECT DISTINCT ${site === "PCL" ? "department" : "COALESCE(route, district)"} v FROM units u WHERE site=? AND ${site === "PCL" ? "department" : "COALESCE(route, district)"} IS NOT NULL${m} ORDER BY v`, [site, ...ma]),
+      queryList<{ v: number }>(`SELECT DISTINCT YEAR(billing_date) v FROM units u WHERE site=? AND billing_date IS NOT NULL${m} ORDER BY v DESC`, [site, ...ma]),
+      queryList<{ v: string }>(`SELECT DISTINCT delay_reason v FROM units u WHERE site=? AND delay_reason IS NOT NULL${m} ORDER BY v`, [site, ...ma]),
       // Naves en las que viajan (las registra «Embarque y zarpe»)
-      queryList<{ v: string }>("SELECT DISTINCT nave v FROM units WHERE site=? AND nave IS NOT NULL AND nave <> '' ORDER BY v", [site]),
+      queryList<{ v: string }>(`SELECT DISTINCT nave v FROM units u WHERE site=? AND nave IS NOT NULL AND nave <> ''${m} ORDER BY v`, [site, ...ma]),
     ]);
     return NextResponse.json({
       dealers: dealers.map((r) => r.v), zones: zones.map((r) => r.v), years: years.map((r) => r.v), reasons: reasons.map((r) => r.v),
@@ -50,6 +54,7 @@ export async function GET(req: Request) {
   }
 
   const { where, args } = unitFilters(p, site, scope);
+  if (cs) { where.push(cs.sql); args.push(...cs.args); }
   const size = Math.min(200, Math.max(5, Number(p.get("size")) || 25));
   const page = Math.max(1, Number(p.get("page")) || 1);
   const sort = p.get("sort") === "recent" || SORTABLE.has(p.get("sort") ?? "") ? p.get("sort")! : "billing_date";

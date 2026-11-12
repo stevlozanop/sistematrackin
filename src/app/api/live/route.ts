@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { query, queryList } from "@/lib/db";
 import { guard, SUPER } from "@/lib/guard";
+import { consortiumAnd } from "@/lib/clients";
 import { SITES, SITE_INFO, type DateField, type Site } from "@/lib/hsp";
 
 /**
@@ -8,13 +9,15 @@ import { SITES, SITE_INFO, type DateField, type Site } from "@/lib/hsp";
  * lo que registraron hoy y la actividad reciente. La pantalla lo consulta cada pocos segundos.
  */
 export async function GET(req: Request) {
-  const { err } = await guard([...SUPER, "viewer"]);
+  const { s, err } = await guard([...SUPER, "viewer"]);
   if (err) return err;
+  const { and: cs, args: ca } = await consortiumAnd(s);
+  const { and: cv } = await consortiumAnd(s, "v");
   const after = Number(new URL(req.url).searchParams.get("after")) || 0;
 
   const [groups, users, stages, todayByUser, events] = await Promise.all([
     query<{ site: Site; next_step: DateField | null; n: number }>(
-      `SELECT site, next_step, COUNT(*) n FROM v_units WHERE next_step IS NOT NULL GROUP BY site, next_step ORDER BY site ASC, next_step ASC`,
+      `SELECT site, next_step, COUNT(*) n FROM v_units WHERE next_step IS NOT NULL${cs} GROUP BY site, next_step ORDER BY site ASC, next_step ASC`, ca,
     ),
     query<{ id: number; name: string; email: string; role: string; area: string | null; carrier: string | null; last_seen: string | null; online: number }>(
       `SELECT id, name, email, role, area, carrier, DATE_FORMAT(last_seen,'%Y-%m-%d %H:%i:%s') last_seen,
@@ -33,9 +36,9 @@ export async function GET(req: Request) {
        JOIN units u ON u.id = e.unit_id
        JOIN v_units v ON v.id = e.unit_id
        LEFT JOIN users us ON us.id = e.user_id
-       WHERE e.id > ?
+       WHERE e.id > ?${cv}
        ORDER BY e.id DESC LIMIT 60`,
-      [after],
+      [after, ...ca],
     ),
   ]);
 

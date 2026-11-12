@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { queryList } from "@/lib/db";
 import { guard, READ } from "@/lib/guard";
+import { consortiumScope } from "@/lib/clients";
 import { isSite } from "@/lib/hsp";
 
 /**
@@ -8,7 +9,7 @@ import { isSite } from "@/lib/hsp";
  * GET /api/board/detail?site=YUR&year=2026[&m=10][&service=A TIEMPO][&status=ENTREGADO][&delivered=1]
  */
 export async function GET(req: Request) {
-  const { err } = await guard(READ);
+  const { s, err } = await guard(READ);
   if (err) return err;
   const p = new URL(req.url).searchParams;
   const site = p.get("site");
@@ -25,6 +26,9 @@ export async function GET(req: Request) {
   if (status) { where.push("status = ?"); args.push(status.toUpperCase()); }
   if (p.get("delivered") === "1") where.push("d_entrega IS NOT NULL");
   if (p.get("delivered") === "0") where.push("d_entrega IS NULL");
+
+  const cs = await consortiumScope(s);
+  if (cs) { where.push(cs.sql); args.push(...cs.args); }
 
   const rows = await queryList<{ district: string | null; dealer: string | null; w2: number; w3: number; total: number }>(
     `SELECT COALESCE(district, 'SIN DISTRITO') district, COALESCE(dealer, 'SIN DEALER') dealer,

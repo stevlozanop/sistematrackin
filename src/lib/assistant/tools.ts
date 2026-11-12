@@ -1,7 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { query } from "@/lib/db";
-import { dealerScope } from "@/lib/clients";
+import { consortiumScope, dealerScope } from "@/lib/clients";
 import { getScope } from "@/lib/guard";
 import type { Session } from "@/lib/auth";
 
@@ -23,6 +23,8 @@ export async function scopeFor(s: Session): Promise<Scope | null> {
     const sc = await getScope(s.id);
     if (sc.carrier) return { sql: "carrier = ?", args: [sc.carrier], label: `solo las unidades de la empresa de transporte ${sc.carrier}`, dealer: false };
   }
+  const cs = await consortiumScope(s);
+  if (cs) return { sql: cs.sql, args: cs.args, label: "solo las unidades de su consorcio", dealer: false };
   return { sql: "TRUE", args: [], label: "todo el sistema", dealer: false };
 }
 

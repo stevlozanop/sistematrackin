@@ -4,6 +4,7 @@ import { getScope, guard, READ } from "@/lib/guard";
 import { isSite } from "@/lib/hsp";
 import { seesAll } from "@/lib/workflow";
 import { unitFilters } from "@/lib/unit-filters";
+import { consortiumScope } from "@/lib/clients";
 
 const num = (v: unknown) => Number(v ?? 0);
 
@@ -22,6 +23,8 @@ export async function GET(req: Request) {
   if (scope && !scope.stages.some((st) => st.site === site)) return NextResponse.json({ error: "No tienes acceso a este módulo" }, { status: 403 });
   // La ruta muestra todos los estados aunque en la tabla haya uno elegido
   const { where, args } = unitFilters(p, site, scope, ["status"]);
+  const cs = await consortiumScope(s);
+  if (cs) { where.push(cs.sql); args.push(...cs.args); }
   const w = where.join(" AND ");
 
   const [stages, naves, [river]] = await Promise.all([

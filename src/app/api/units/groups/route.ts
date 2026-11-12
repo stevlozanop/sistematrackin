@@ -4,6 +4,7 @@ import { getScope, guard, READ } from "@/lib/guard";
 import { isSite } from "@/lib/hsp";
 import { seesAll } from "@/lib/workflow";
 import { unitFilters } from "@/lib/unit-filters";
+import { consortiumScope } from "@/lib/clients";
 
 const num = (v: unknown) => Number(v ?? 0);
 
@@ -21,6 +22,8 @@ export async function GET(req: Request) {
   const scope = seesAll(s.role) ? null : await getScope(s.id);
   if (scope && !scope.stages.some((st) => st.site === site)) return NextResponse.json({ error: "No tienes acceso a este módulo" }, { status: 403 });
   const { where, args } = unitFilters(p, site, scope);
+  const cs = await consortiumScope(s);
+  if (cs) { where.push(cs.sql); args.push(...cs.args); }
   const w = where.join(" AND ");
   const size = 50;
   const page = Math.max(1, Number(p.get("page")) || 1);

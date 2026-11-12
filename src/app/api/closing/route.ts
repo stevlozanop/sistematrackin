@@ -2,6 +2,7 @@ import { today } from "@/lib/workflow";
 import { NextResponse } from "next/server";
 import { queryList } from "@/lib/db";
 import { guard, READ } from "@/lib/guard";
+import { consortiumAnd } from "@/lib/clients";
 
 /**
  * Cierre de mes (FIFO): por mes de facturación, cuántas unidades siguen sin entregar.
@@ -12,24 +13,25 @@ import { guard, READ } from "@/lib/guard";
  * También devuelve las unidades sin entregar más antiguas (las primeras que hay que cerrar).
  */
 export async function GET() {
-  const { err } = await guard(READ);
+  const { s, err } = await guard(READ);
   if (err) return err;
+  const { and: cs, args: ca } = await consortiumAnd(s);
   const [months, oldest] = await Promise.all([
     queryList<{ ym: string; total: number; delivered: number; open: number; late: number; pcl: number; yur: number }>(
       `SELECT * FROM (
          SELECT DATE_FORMAT(billing_date, '%Y-%m') ym, COUNT(*) total, SUM(d_entrega IS NOT NULL) delivered,
            SUM(d_entrega IS NULL) open, SUM(alert = 'VENCIDA') late,
            SUM(d_entrega IS NULL AND site = 'PCL') pcl, SUM(d_entrega IS NULL AND site = 'YUR') yur
-         FROM v_units WHERE billing_date IS NOT NULL
+         FROM v_units WHERE billing_date IS NOT NULL${cs}
          GROUP BY ym
        ) m
        WHERE open > 0 OR ym >= DATE_FORMAT(CURDATE() - INTERVAL 3 MONTH, '%Y-%m')
-       ORDER BY ym`,
+       ORDER BY ym`, ca,
     ),
     queryList(
       `SELECT id, site, chassis, dealer, status, billing_date, est_date, DATEDIFF(CURDATE(), billing_date) age
-       FROM v_units WHERE d_entrega IS NULL AND billing_date IS NOT NULL
-       ORDER BY billing_date, id LIMIT 8`,
+       FROM v_units WHERE d_entrega IS NULL AND billing_date IS NOT NULL${cs}
+       ORDER BY billing_date, id LIMIT 8`, ca,
     ),
   ]);
   const current = today().slice(0, 7); // mes actual en hora de Perú

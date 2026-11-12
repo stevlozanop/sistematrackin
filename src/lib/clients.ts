@@ -32,6 +32,28 @@ function key(name: string) {
 
 /** Asigna el cliente a las tiendas que todavía no lo tienen. Devuelve cuántas se actualizaron. */
 export async function fillDealerClients() {
+  const n = await fillClients();
+  await fillConsortia();
+  return n;
+}
+
+/**
+ * Consorcio de las tiendas nuevas: el de otras tiendas del mismo cliente; si no, y la empresa trabaja con un solo
+ * consorcio, ese. Si hay varios y el cliente es nuevo, queda sin consorcio hasta que se le cree su cuenta.
+ */
+async function fillConsortia() {
+  await run(
+    `UPDATE dealers d SET company_id = o.company_id
+       FROM (SELECT DISTINCT ON (client) client, company_id FROM dealers WHERE company_id IS NOT NULL AND client IS NOT NULL ORDER BY client, id) o
+      WHERE d.company_id IS NULL AND d.client = o.client`,
+  );
+  await run(
+    `UPDATE dealers SET company_id = (SELECT id FROM companies WHERE kind = 'client' ORDER BY id LIMIT 1)
+      WHERE company_id IS NULL AND (SELECT COUNT(*) FROM companies WHERE kind = 'client') = 1`,
+  );
+}
+
+async function fillClients() {
   const missing = await query<{ id: number; name: string }>("SELECT id, name FROM dealers WHERE client IS NULL");
   if (!missing.length) return 0;
   // Grupo de YUR más frecuente de cada tienda
@@ -66,4 +88,35 @@ export async function dealerScope(userId: number): Promise<{ sql: string; args: 
   if (u?.client) return { sql: "dealer_id IN (SELECT id FROM dealers WHERE client = ?)", args: [u.client], client: u.client, dealerId: null };
   if (u?.dealer_id) return { sql: "dealer_id = ?", args: [u.dealer_id], client: null, dealerId: u.dealer_id };
   return null;
+}
+
+const consortiumCache = new Map<number, { at: number; v: { sql: string; args: unknown[] } | null }>();
+
+/**
+ * Filtro SQL de las unidades que ve el personal de un consorcio (viewer), sobre v_units o units:
+ * solo las de las tiendas de su consorcio. Mientras la empresa trabaje con un solo consorcio, ve todo
+ * (todas las unidades son suyas). El resto de roles (personal de Leyva, The Iceberg Labs) no tiene filtro.
+ * El dealer usa dealerScope().
+ */
+export async function consortiumScope(s: { id: number; role: string }): Promise<{ sql: string; args: unknown[] } | null> {
+  if (s.role !== "viewer") return null;
+  const hit = consortiumCache.get(s.id);
+  if (hit && Date.now() - hit.at < 30_000) return hit.v;
+  const [c] = await query<{ id: number; kind: string; siblings: number }>(
+    `SELECT c.id, c.kind, (SELECT COUNT(*) FROM companies o WHERE o.kind = 'client' AND o.parent_id IS NOT DISTINCT FROM c.parent_id)::int siblings
+       FROM users u JOIN companies c ON c.id = u.company_id WHERE u.id = ?`,
+    [s.id],
+  );
+  // Lector de la propia empresa de transporte (cuentas antiguas) o único consorcio: ve todo, como antes
+  const v = !c || c.kind !== "client" || c.siblings <= 1 ? null
+    : { sql: "dealer_id IN (SELECT id FROM dealers WHERE company_id = ?)", args: [c.id] };
+  consortiumCache.set(s.id, { at: Date.now(), v });
+  return v;
+}
+
+/** Igual que consortiumScope, pero listo para pegar en un WHERE: « AND (…)» o vacío. */
+export async function consortiumAnd(s: { id: number; role: string }, alias = "") {
+  const sc = await consortiumScope(s);
+  if (!sc) return { and: "", args: [] as unknown[] };
+  return { and: ` AND (${alias ? sc.sql.replace(/^dealer_id/, `${alias}.dealer_id`) : sc.sql})`, args: sc.args };
 }

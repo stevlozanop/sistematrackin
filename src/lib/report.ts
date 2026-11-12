@@ -1,4 +1,4 @@
-import { dealerScope } from "./clients";
+import { consortiumScope, dealerScope } from "./clients";
 import type { Session } from "./auth";
 import { MONTHS } from "./hsp";
 
@@ -25,6 +25,9 @@ export async function reportScope(s: Session, p: URLSearchParams): Promise<Repor
     args.push(...sc.args);
     title = sc.client ?? "Tu tienda";
   } else {
+    // Personal de un consorcio: solo las unidades de su consorcio
+    const cs = await consortiumScope(s);
+    if (cs) { where.push(cs.sql); args.push(...cs.args); }
     const client = (p.get("client") ?? "").trim().toUpperCase();
     if (client) {
       where.push("dealer_id IN (SELECT id FROM dealers WHERE client = ?)");
