@@ -62,14 +62,14 @@ export function LicenseBilling({ companyId, company, billing, payments }: { comp
   const reported = payments.filter((p) => p.status === "reportado").length;
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-sb-outline-variant/40 p-3">
+    <div className="flex min-w-0 flex-col gap-2 rounded-2xl border border-sb-outline-variant/40 p-3">
       <div className="flex flex-wrap items-center gap-2">
         <p className="flex items-center gap-1.5 text-xs font-semibold"><Receipt className="h-3.5 w-3.5" /> Pagos</p>
         <span className="text-[11px] text-sb-on-surface-variant">{billing.fee !== null ? `${money(billing.fee, billing.currency)} ${billing.cycle === "anual" ? "al año" : "al mes"}` : "Cuota sin definir"}</span>
         {reported > 0 && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400">{reported} por confirmar</span>}
-        <span className="ml-auto flex gap-1.5">
-          <Button size="sm" variant="ghost" className="rounded-full" onPress={() => setMode(mode === "setup" ? null : "setup")}><Settings2 className="h-3.5 w-3.5" /> Cuota y datos</Button>
-          <Button size="sm" variant="secondary" className="rounded-full" onPress={() => { setCharge((c) => ({ ...c, period: sug.period, dueOn: sug.due, amount: c.amount || (billing.fee ? String(billing.fee) : "") })); setMode(mode === "charge" ? null : "charge"); }}><Plus className="h-3.5 w-3.5" /> Nuevo cobro</Button>
+        <span className="grid w-full grid-cols-2 gap-1.5 sm:ml-auto sm:flex sm:w-auto">
+          <Button size="sm" variant="ghost" className="w-full rounded-full sm:w-auto" onPress={() => setMode(mode === "setup" ? null : "setup")}><Settings2 className="h-3.5 w-3.5" /> Cuota y datos</Button>
+          <Button size="sm" variant="secondary" className="w-full rounded-full sm:w-auto" onPress={() => { setCharge((c) => ({ ...c, period: sug.period, dueOn: sug.due, amount: c.amount || (billing.fee ? String(billing.fee) : "") })); setMode(mode === "charge" ? null : "charge"); }}><Plus className="h-3.5 w-3.5" /> Nuevo cobro</Button>
         </span>
       </div>
 
