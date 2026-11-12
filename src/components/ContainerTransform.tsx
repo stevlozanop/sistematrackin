@@ -18,6 +18,8 @@ const OPEN_MS = 400, CLOSE_MS = 300, CONTENT_MS = 210;
 
 type Box = { left: number; top: number; width: number; height: number };
 const boxOf = (el: Element): Box => { const r = el.getBoundingClientRect(); return { left: r.left, top: r.top, width: r.width, height: r.height }; };
+/** Redondez real del botón (una píldora «9999px» es en realidad la mitad de su alto): así pasa de píldora a tarjeta sin óvalos */
+const roundOf = (el: Element, b: Box) => `${Math.min(parseFloat(getComputedStyle(el).borderRadius) || 0, b.height / 2, b.width / 2)}px`;
 const px = (b: Box) => ({ left: `${b.left}px`, top: `${b.top}px`, width: `${b.width}px`, height: `${b.height}px` });
 
 /** Fondo visible de un elemento (si es transparente, el de la ventana) */
@@ -39,6 +41,35 @@ function ghost(from: Box, paint: { image: string; color: string }, radius: strin
   return g;
 }
 
+/**
+ * La ventana se queda donde está el botón (no viaja al centro): se pega a una esquina del botón y crece hacia donde
+ * hay espacio. Botón a la derecha → crece hacia la izquierda; botón abajo → crece hacia arriba. Nunca se sale de la pantalla.
+ */
+const MARGIN = 12;
+function anchor(dialog: HTMLElement, btn: Box) {
+  const nat = dialog.getBoundingClientRect();
+  const w = Math.min(nat.width, innerWidth - MARGIN * 2);
+  const h = Math.min(nat.height, innerHeight - MARGIN * 2);
+  const st = dialog.style;
+  Object.assign(st, { position: "fixed", margin: "0", width: `${w}px`, maxWidth: `${innerWidth - MARGIN * 2}px`, left: "", right: "", top: "", bottom: "" });
+  // Horizontal: alinea con el borde del botón del lado donde hay más espacio
+  const right = btn.left + btn.width / 2 > innerWidth / 2;
+  if (right) st.right = `${Math.max(MARGIN, Math.min(innerWidth - (btn.left + btn.width), innerWidth - w - MARGIN))}px`;
+  else st.left = `${Math.max(MARGIN, Math.min(btn.left, innerWidth - w - MARGIN))}px`;
+  // Vertical: empieza en el botón y crece hacia abajo; si el botón está en la mitad de abajo, crece hacia arriba
+  const up = btn.top + btn.height / 2 > innerHeight / 2;
+  // Si no cabe completa desde el botón, se corre lo justo para entrar entera (sigue lo más cerca posible del botón)
+  if (up) {
+    const bottom = Math.max(MARGIN, Math.min(innerHeight - (btn.top + btn.height), innerHeight - h - MARGIN));
+    st.bottom = `${bottom}px`;
+    st.maxHeight = `${innerHeight - bottom - MARGIN}px`;
+  } else {
+    const top = Math.max(MARGIN, Math.min(btn.top, innerHeight - h - MARGIN));
+    st.top = `${top}px`;
+    st.maxHeight = `${innerHeight - top - MARGIN}px`;
+  }
+}
+
 export function ContainerTransform() {
   useEffect(() => {
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -57,13 +88,16 @@ export function ContainerTransform() {
       const src = source && Date.now() - source.at < 1500 && source.el.isConnected ? source.el : null;
       source = null;
       if (!dialog || !src) return;
-      const from = boxOf(src), to = boxOf(dialog);
-      if (!from.width || !to.width || from.width > innerWidth * 0.7 || from.top + from.height < 0) return;
+      const from = boxOf(src);
+      const natural = boxOf(dialog);
+      if (!from.width || !natural.width || from.width > innerWidth * 0.7 || from.top + from.height < 0) return;
+      anchor(dialog, from);
+      const to = boxOf(dialog);
       origin.set(container, src);
       container.dataset.ct = "";
       const dcs = getComputedStyle(dialog);
       const surface = dcs.backgroundColor || "#fff";
-      const g = ghost(from, paintOf(src, surface), getComputedStyle(src).borderRadius || "9999px", "0 8px 32px -8px rgba(0,0,0,.35)");
+      const g = ghost(from, paintOf(src, surface), roundOf(src, from), "0 8px 32px -8px rgba(0,0,0,.35)");
       // La pieza lleva el texto e ícono del botón, que se desvanecen al empezar a crecer (como el «+» del botón Opciones)
       const face = document.createElement("div");
       const scs = getComputedStyle(src);
@@ -76,7 +110,7 @@ export function ContainerTransform() {
       dialog.animate([{ opacity: 0 }, { opacity: 0 }], { duration: OPEN_MS * 0.7, fill: "backwards" });
       const morph = g.animate(
         [
-          { ...px(from), borderRadius: getComputedStyle(src).borderRadius || "9999px", offset: 0 },
+          { ...px(from), borderRadius: roundOf(src, from), offset: 0 },
           { ...px(to), borderRadius: dcs.borderRadius, backgroundColor: surface, backgroundImage: "none", offset: 1 },
         ],
         { duration: OPEN_MS, easing: OPEN_EASE, fill: "forwards" },
@@ -103,7 +137,7 @@ export function ContainerTransform() {
       const morph = g.animate(
         [
           { ...px(from), borderRadius: dcs.borderRadius, backgroundColor: dcs.backgroundColor },
-          { ...px(to), borderRadius: getComputedStyle(src).borderRadius || "9999px", backgroundColor: paint.color },
+          { ...px(to), borderRadius: roundOf(src, to), backgroundColor: paint.color },
         ],
         { duration: CLOSE_MS, easing: CLOSE_EASE, fill: "forwards" },
       );
