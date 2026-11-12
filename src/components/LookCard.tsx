@@ -59,9 +59,41 @@ function setAccent(a: (typeof ACCENTS)[number]) {
 }
 export const useLook = () => useSyncExternalStore(subscribe, readLook, () => "clasica" as Look);
 
-export function LookCard() {
+/** Colores y estilos de navegación (lo usan la tarjeta de Mi perfil y el menú Opciones del celular) */
+export function AppearancePicker({ compact = false }: { compact?: boolean }) {
   const look = useLook();
   const accent = useSyncExternalStore(subscribe, readAccent, () => "");
+  return (
+    <div className={cn("flex flex-col", compact ? "gap-3" : "gap-4")}>
+      <div className={cn("flex flex-wrap", compact ? "gap-1.5" : "gap-2")}>
+        {ACCENTS.map((a) => {
+          const on = a[1] ? accent === a[1] : !accent;
+          return (
+            <button key={a[0]} type="button" onClick={() => setAccent(a)} title={a[0]} aria-label={`Color ${a[0]}`} aria-pressed={on}
+              className={cn("sb-pill-icon grid place-items-center rounded-full ring-offset-2 ring-offset-sb-surface", compact ? "h-7 w-7" : "h-9 w-9", on ? "ring-2 ring-sb-on-surface" : "ring-1 ring-black/5")}
+              style={{ background: a[1] ? `radial-gradient(circle at 35% 30%, color-mix(in oklab, ${a[1]} 55%, #fff), ${a[1]} 70%)` : "conic-gradient(from 200deg, #078a04, #09ae04, #bedf3c, #078a04)" }}>
+              {on && <Check className="h-3.5 w-3.5 text-white drop-shadow" strokeWidth={3} />}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex flex-col gap-2">
+        <p className="text-[11px] font-medium text-sb-on-surface-variant">Navegación</p>
+        <div className="grid grid-cols-3 gap-1.5">
+          {LOOKS.map(([k, name, desc]) => (
+            <button key={k} type="button" onClick={() => setLook(k)} aria-pressed={look === k} title={desc}
+              className={cn("sb-pill rounded-full px-3 font-semibold", compact ? "py-1.5 text-[11px]" : "py-2 text-xs", look === k ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container text-sb-on-surface-variant hover:text-sb-on-surface")}>
+              {name}
+            </button>
+          ))}
+        </div>
+        {!compact && <p className="text-[11px] text-sb-on-surface-variant">{LOOKS.find(([k]) => k === look)?.[2]}</p>}
+      </div>
+    </div>
+  );
+}
+
+export function LookCard() {
   return (
     <Card className="flex flex-col gap-4 p-5">
       <div className="flex items-center gap-3">
@@ -71,34 +103,7 @@ export function LookCard() {
           <p className="text-[11px] text-sb-on-surface-variant">Color y estilo del menú en este dispositivo. Tus datos no cambian.</p>
         </div>
       </div>
-
-      {/* Colores */}
-      <div className="flex flex-wrap gap-2">
-        {ACCENTS.map((a) => {
-          const on = a[1] ? accent === a[1] : !accent;
-          return (
-            <button key={a[0]} type="button" onClick={() => setAccent(a)} title={a[0]} aria-label={`Color ${a[0]}`} aria-pressed={on}
-              className={cn("sb-pill-icon grid h-9 w-9 place-items-center rounded-full ring-offset-2 ring-offset-sb-surface", on ? "ring-2 ring-sb-on-surface" : "ring-1 ring-black/5")}
-              style={{ background: a[1] ? `radial-gradient(circle at 35% 30%, color-mix(in oklab, ${a[1]} 55%, #fff), ${a[1]} 70%)` : "conic-gradient(from 200deg, #078a04, #09ae04, #bedf3c, #078a04)" }}>
-              {on && <Check className="h-3.5 w-3.5 text-white drop-shadow" strokeWidth={3} />}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Navegación */}
-      <div className="flex flex-col gap-2">
-        <p className="text-[11px] font-medium text-sb-on-surface-variant">Navegación</p>
-        <div className="grid grid-cols-3 gap-1.5">
-          {LOOKS.map(([k, name, desc]) => (
-            <button key={k} type="button" onClick={() => setLook(k)} aria-pressed={look === k} title={desc}
-              className={cn("sb-pill rounded-full px-3 py-2 text-xs font-semibold", look === k ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container text-sb-on-surface-variant hover:text-sb-on-surface")}>
-              {name}
-            </button>
-          ))}
-        </div>
-        <p className="text-[11px] text-sb-on-surface-variant">{LOOKS.find(([k]) => k === look)?.[2]}</p>
-      </div>
+      <AppearancePicker />
     </Card>
   );
 }

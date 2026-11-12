@@ -596,3 +596,8 @@ html.dark[data-accent] {
   --sb-outline-variant: color-mix(in oklab, var(--acc-d) 14%, #26262b) !important;
 }
 html[data-accent] ::selection { background: color-mix(in oklab, var(--sb-primary) 30%, transparent); }
+
+/* Menú «Opciones» del celular (como Stepbro): tarjeta gris que crece desde el botón redondo */
+.m-options { background-color: var(--sb-surface-container-low); }
+.m-options[data-open="true"] { width: 272px; margin-left: -224px; }
+@media (max-width: 380px) { .m-options[data-open="true"] { width: 250px; margin-left: -202px; } }
