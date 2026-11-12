@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!s) redirect("/login");
   // Sesión cerrada por The Iceberg Labs → al login · Mantenimiento → aviso (The Iceberg Labs sigue entrando)
   const acc = await cachedAccess(s.id);
-  if (sessionClosed(s.iat, acc)) redirect("/api/auth/closed");
+  if (sessionClosed(s.iat, acc, s.role)) redirect("/api/auth/closed");
   if (acc.platform.maintenance && s.role !== "dev") return <MaintenanceWall message={maintenanceText(acc.platform)} until={acc.platform.until} />;
   // Licencia de su empresa: si está suspendida o vencida, no ve nada del sistema (The Iceberg Labs siempre entra)
   const lic = s.role === "dev" ? null : await licenseOfUser(s.id);

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectionInfo, query, queryList } from "@/lib/db";
+import { SECRET_COLUMN } from "@/lib/platform";
 import { guard } from "@/lib/guard";
 
 /**
@@ -7,7 +8,6 @@ import { guard } from "@/lib/guard";
  * GET           -> conexión, motor y tablas (filas, tamaño, actualización)
  * GET ?table=x  -> columnas, índices y las últimas 20 filas de esa tabla (sin contraseñas)
  */
-const HIDDEN = new Set(["password_hash"]);
 
 export async function GET(req: Request) {
   const { err } = await guard(["dev"]);
@@ -71,7 +71,7 @@ export async function GET(req: Request) {
     table: t,
     columns,
     indexes,
-    sample: sample.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, HIDDEN.has(k) ? "••••••" : Buffer.isBuffer(v) ? `[archivo ${Math.ceil(v.length / 1024)} KB]` : v]))),
+    sample: sample.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, SECRET_COLUMN.test(k) && v != null ? "••••••" : Buffer.isBuffer(v) ? `[archivo ${Math.ceil(v.length / 1024)} KB]` : v]))),
   });
 }
 

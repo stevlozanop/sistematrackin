@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import { query } from "@/lib/db";
+import { SECRET_COLUMN } from "@/lib/platform";
 import { guard } from "@/lib/guard";
 import { logDev } from "@/lib/platform";
 
@@ -7,7 +8,7 @@ import { logDev } from "@/lib/platform";
  * Respaldo de una tabla en Excel (solo dev), antes de una operación delicada.
  * Las columnas con contraseñas, llaves o tokens salen ocultas. Máximo 100 000 filas.
  */
-const SECRET = /pass|hash|token|secret|key|credential|endpoint|p256dh|auth/i;
+const SECRET = SECRET_COLUMN;
 
 export async function GET(req: Request) {
   const { s, err } = await guard(["dev"]);

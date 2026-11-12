@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { readOnlyQuery } from "@/lib/db";
+import { SECRET_COLUMN } from "@/lib/platform";
 import { guard } from "@/lib/guard";
 
 /**
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
     const list = Array.isArray(rows) ? (rows as Record<string, unknown>[]) : [];
     // Nunca devolver contraseñas, aunque se pidan
     const hash = (v: unknown) => typeof v === "string" && /^\$2[aby]\$\d\d\$/.test(v);
-    const safe = list.slice(0, MAX_ROWS).map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, k === "password_hash" || hash(v) ? "••••••" : Buffer.isBuffer(v) ? `[archivo ${Math.ceil(v.length / 1024)} KB]` : v])));
+    const safe = list.slice(0, MAX_ROWS).map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, (SECRET_COLUMN.test(k) && v != null) || hash(v) ? "••••••" : Buffer.isBuffer(v) ? `[archivo ${Math.ceil(v.length / 1024)} KB]` : v])));
     return NextResponse.json({ columns: fields, rows: safe, total: list.length, truncated: list.length > MAX_ROWS, ms: Date.now() - start });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message, ms: Date.now() - start }, { status: 400 });
