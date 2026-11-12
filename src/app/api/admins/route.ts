@@ -113,6 +113,12 @@ export async function POST(req: Request) {
   }
   if (!asg) return NextResponse.json({ error: "Área o etapas inválidas" }, { status: 400 });
   if (role === "operator" && !asg.stages.length) return NextResponse.json({ error: "Elige el área o al menos una etapa" }, { status: 400 });
+  // Un cliente pertenece a un solo consorcio: no se crea su cuenta en otro
+  if (role === "dealer" && companyId && client) {
+    const [other] = await query<{ name: string }>(
+      "SELECT c.name FROM dealers d JOIN companies c ON c.id = d.company_id WHERE d.client = ? AND d.company_id <> ? LIMIT 1", [client, companyId]);
+    if (other) return NextResponse.json({ error: `${client} es cliente de ${other.name}, no de este consorcio` }, { status: 400 });
+  }
   const full = await seatsError(companyId);
   if (full) return NextResponse.json({ error: full }, { status: 409 });
   try {
@@ -121,6 +127,10 @@ export async function POST(req: Request) {
         name, email, bcrypt.hashSync(password, 10), role, asg.area, asg.carrier, asg.canImport, companyId, client ? null : dealerId, client, s.id,
       ]);
       const id = (r as { insertId: number }).insertId;
+      // Cliente de un consorcio: sus tiendas quedan en ese consorcio (si todavía no tenían)
+      if (role === "dealer" && companyId) {
+        await c.query("UPDATE dealers SET company_id=? WHERE company_id IS NULL AND (client=? OR id=?)", [companyId, client ?? "", dealerId ?? 0]);
+      }
       // La primera cuenta de supervisor de una transportista es su cuenta principal («Empresa»);
       // la primera cuenta de solo lectura de un consorcio (Honda) es la principal del consorcio
       if (role === "admin" && companyId) {

@@ -8,7 +8,7 @@ export async function GET() {
   return NextResponse.json(
     await query(
       // Por módulo: unidades, sin entregar y región (PCL: departamento más frecuente · YUR: ruta más frecuente)
-      `SELECT d.id, d.name, d.department, d.district, d.coast, d.client,
+      `SELECT d.id, d.name, d.department, d.district, d.coast, d.client, d.company_id,
          SUM(u.site='PCL') AS pcl, SUM(u.site='YUR') AS yur,
          SUM(u.d_entrega IS NULL AND u.id IS NOT NULL) AS pending,
          SUM(u.site='PCL' AND u.d_entrega IS NULL) AS pending_pcl, SUM(u.site='YUR' AND u.d_entrega IS NULL) AS pending_yur,

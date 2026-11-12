@@ -6,7 +6,7 @@ import { Sheet } from "@/components/modal/Sheet";
 import { CheckCircle2, Download, Search, Store, X } from "lucide-react";
 import { Checkbox, Pill } from "@/components/ui";
 
-/** Cliente de Honda (SORSA, CREDIVARGAS…) con sus tiendas. */
+/** Cliente de un consorcio (sus distribuidores o tiendas) con sus tiendas. */
 type Client = { client: string; stores: string[]; departments: string | null; units: number; open: number; accounts: string | null };
 type Created = { client: string; stores: number; departments: string | null; name: string; email: string; password: string };
 
@@ -23,7 +23,7 @@ function download(rows: Created[]) {
   XLSX.writeFile(wb, `accesos-clientes-${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
-export function DealerAccounts({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
+export function DealerAccounts({ open, onClose, onCreated, consortium }: { open: boolean; onClose: () => void; onCreated: () => void; consortium?: { id: number; name: string } | null }) {
   const [dealers, setDealers] = useState<Client[] | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [q, setQ] = useState("");
@@ -32,12 +32,12 @@ export function DealerAccounts({ open, onClose, onCreated }: { open: boolean; on
 
   useEffect(() => {
     if (!open) return;
-    fetch("/api/dealer-accounts").then((r) => r.json()).then((d: Client[]) => {
+    fetch(`/api/dealer-accounts${consortium ? `?consortium=${consortium.id}` : ""}`).then((r) => r.json()).then((d: Client[]) => {
       setDealers(d);
       // Por defecto: todos los clientes con unidades que todavía no tienen cuenta
       setPicked(new Set(d.filter((x) => !x.accounts && x.units > 0).map((x) => x.client)));
     });
-  }, [open]);
+  }, [open, consortium]);
 
   const list = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -48,7 +48,7 @@ export function DealerAccounts({ open, onClose, onCreated }: { open: boolean; on
 
   async function create() {
     setSaving(true);
-    const r = await fetch("/api/dealer-accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clients: [...picked] }) });
+    const r = await fetch("/api/dealer-accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clients: [...picked], consortium: consortium?.id }) });
     const j = await r.json().catch(() => ({ error: "Error del servidor" }));
     setSaving(false);
     if (!r.ok) return toast.danger(j.error);
@@ -61,10 +61,10 @@ export function DealerAccounts({ open, onClose, onCreated }: { open: boolean; on
   const close = () => { setCreated(null); setQ(""); onClose(); };
 
   return (
-    <Sheet open={open} onClose={close} size="lg" busy={saving} icon={created ? CheckCircle2 : Store} title={created ? "Clientes creados" : "Crear clientes"}
+    <Sheet open={open} onClose={close} size="lg" busy={saving} icon={created ? CheckCircle2 : Store} title={created ? "Clientes creados" : consortium ? `Crear clientes de ${consortium.name}` : "Crear clientes"}
       sub={created
         ? "Guarda el Excel: las contraseñas no se vuelven a mostrar. Si alguien la pierde, restablécela en Usuarios."
-        : "Crea la cuenta de cada cliente (SORSA, CREDIVARGAS…): entra a «Mi resumen» y ve los pedidos de todas sus tiendas, nada de otros clientes."}
+        : `Crea la cuenta de cada cliente${consortium ? ` de ${consortium.name}` : ""}: entra a «Mi resumen» y ve los pedidos de todas sus tiendas, nada de otros clientes ni de otros consorcios.`}
       summary={created ? <>{created.length} {created.length === 1 ? "cuenta lista" : "cuentas listas"} · el Excel ya se descargó</> : picked.size ? <><b className="text-sb-on-surface">{picked.size}</b> {picked.size === 1 ? "cliente elegido" : "clientes elegidos"}</> : "Marca los clientes que tendrán cuenta."}
       footer={created ? (
         <>
