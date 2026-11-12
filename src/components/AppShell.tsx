@@ -356,11 +356,19 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
   };
 
   useEffect(() => {
-    setOpen(localStorage.getItem("sb-sidebar-open") !== "0");
+    // Taksice: riel de solo íconos (como Stepbro); se puede abrir con la flecha y se recuerda aparte
+    const tk = document.documentElement.dataset.look === "taksice";
+    setOpen(tk ? localStorage.getItem("sb-sidebar-open-tk") === "1" : localStorage.getItem("sb-sidebar-open") !== "0");
     setDark(document.documentElement.classList.contains("dark"));
   }, []);
 
-  const toggleSidebar = () => setOpen((o) => (localStorage.setItem("sb-sidebar-open", o ? "0" : "1"), !o));
+  // Al cambiar de apariencia, el menú toma el modo de ese estilo
+  useEffect(() => {
+    const on = () => setOpen(document.documentElement.dataset.look === "taksice" ? localStorage.getItem("sb-sidebar-open-tk") === "1" : localStorage.getItem("sb-sidebar-open") !== "0");
+    window.addEventListener("sb-look", on);
+    return () => window.removeEventListener("sb-look", on);
+  }, []);
+  const toggleSidebar = () => setOpen((o) => (localStorage.setItem(document.documentElement.dataset.look === "taksice" ? "sb-sidebar-open-tk" : "sb-sidebar-open", o ? "0" : "1"), !o));
   const toggleTheme = () => {
     const next = !dark;
     document.documentElement.classList.toggle("dark", next);
