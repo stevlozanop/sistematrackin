@@ -1,8 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { TableLabels } from "@/components/TableLabels";
 import { Button, toast } from "@heroui/react";
-import { ArrowDown, Box, Ship, Warehouse } from "lucide-react";
+import { ArrowRight, Check as CheckIcon, Inbox, Ship, Warehouse } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
 import { DATA_EVENT } from "@/components/UploadCenter";
@@ -26,46 +25,122 @@ const field = "h-10 w-full rounded-xl border border-sb-outline-variant bg-sb-sur
 const n = (v: number) => Number(v ?? 0).toLocaleString("es-PE");
 const key = (c: { nave: string; container: string }) => `${c.nave}|${c.container}`;
 
-function StateChange({ from, to }: { from: string; to: string }) {
+type Noun = [string, string];
+const plural = (c: number, [one, many]: Noun) => `${n(c)} ${c === 1 ? one : many}`;
+
+/** Encabezado del paso: ícono, título y un resumen en vivo */
+function Head({ icon: Icon, title, sub }: { icon: typeof Ship; title: React.ReactNode; sub: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-start gap-1 text-xs">
-      <span className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">Estado</span>
-      <span className="rounded-full border border-sb-outline-variant px-3 py-1 font-semibold">{from}</span>
-      <ArrowDown className="ml-4 h-3.5 w-3.5 text-sb-on-surface-variant" />
-      <span className="text-[10px] uppercase tracking-wider text-sb-on-surface-variant">Estado siguiente</span>
-      <span className="rounded-full bg-sb-primary px-3 py-1 font-semibold text-sb-on-primary">{to}</span>
+    <div className="flex items-center gap-3 border-b border-sb-outline-variant/40 px-4 py-3.5">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sb-primary-soft text-sb-primary"><Icon className="h-[18px] w-[18px]" /></span>
+      <div className="min-w-0">
+        <h3 className="text-sm font-semibold sm:truncate">{title}</h3>
+        <p className="text-[11px] text-sb-on-surface-variant sm:truncate">{sub}</p>
+      </div>
     </div>
   );
 }
 
-/** Panel de la derecha: estado → siguiente, fecha, motivo de demora y botón */
-function Register({ from, to, label, date, setDate, min, need, reason, setReason, count, units, busy, disabled, readOnly, onSave }: {
-  from: string; to: string; label: string; date: string; setDate: (v: string) => void; min: string; need: number;
+/** Motos (2W) y motokares (3W) en una barra fina */
+function Mix({ w2, w3 }: { w2: number; w3: number }) {
+  const t = Number(w2) + Number(w3) || 1;
+  return (
+    <span className="hidden w-28 shrink-0 flex-col gap-1 sm:flex">
+      <span className="flex h-1.5 overflow-hidden rounded-full bg-sb-surface-container">
+        <span className="bg-sb-primary transition-[width] duration-500" style={{ width: `${(Number(w2) / t) * 100}%` }} />
+        <span className="bg-sb-primary/35 transition-[width] duration-500" style={{ width: `${(Number(w3) / t) * 100}%` }} />
+      </span>
+      <span className="flex justify-between text-[10px] tabular-nums text-sb-on-surface-variant"><span>2W {n(w2)}</span><span>3W {n(w3)}</span></span>
+    </span>
+  );
+}
+
+/** Fila que se marca entera (nave o contenedor): marca redonda, nombre, detalle, mezcla 2W/3W y total */
+function PickRow({ on, disabled, onToggle, title, mono, meta, late, w2, w3, total, label }: {
+  on: boolean; disabled: boolean; onToggle: () => void; title: string; mono?: boolean; meta: string; late: number;
+  w2: number; w3: number; total: number; label: string;
+}) {
+  return (
+    <button type="button" role="checkbox" aria-checked={on} aria-label={label} disabled={disabled} onClick={onToggle}
+      className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors duration-200 disabled:cursor-default",
+        on ? "bg-sb-primary-soft" : "enabled:hover:bg-sb-surface-container-low")}>
+      <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-full border transition-all duration-200",
+        on ? "scale-105 border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant bg-sb-surface", disabled && "opacity-40")}>
+        <CheckIcon className={cn("h-3 w-3 transition-opacity", on ? "opacity-100" : "opacity-0")} strokeWidth={3} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className={cn("block truncate text-sm font-semibold", mono && "font-mono tracking-tight")}>{title}</span>
+        <span className="block text-[11px] text-sb-on-surface-variant sm:truncate">
+          {meta}<span className="sm:hidden"> · 2W {n(w2)} · 3W {n(w3)}</span>{late ? <b className="font-semibold text-sb-late"> · {n(late)} fuera de tiempo</b> : null}
+        </span>
+      </span>
+      <Mix w2={w2} w3={w3} />
+      <span className="w-14 shrink-0 text-right">
+        <span className="block text-sm font-semibold tabular-nums">{n(total)}</span>
+        <span className="block text-[10px] text-sb-on-surface-variant">motos</span>
+      </span>
+    </button>
+  );
+}
+
+/** Lista con su encabezado («Marcar todos»), vacío explicado y siluetas mientras carga */
+function PickList({ title, allOn, onAll, canAll, loading, empty, children }: {
+  title: React.ReactNode; allOn: boolean; onAll: () => void; canAll: boolean; loading: boolean; empty: string | null; children: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col">
+      <div className="flex items-center justify-between gap-2 px-3 pb-2">
+        <p className="min-w-0 text-[11px] font-medium text-sb-on-surface-variant sm:truncate">{title}</p>
+        {canAll && (
+          <button type="button" onClick={onAll} className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold text-sb-primary transition-colors hover:bg-sb-primary-soft">
+            {allOn ? "Quitar todos" : "Marcar todos"}
+          </button>
+        )}
+      </div>
+      <div className="flex flex-col gap-0.5">
+        {loading
+          ? [0, 1, 2].map((i) => <div key={i} className="h-[60px] animate-pulse rounded-xl bg-sb-surface-container-low" />)
+          : empty
+            ? <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-sb-outline-variant/60 px-4 py-10 text-center text-xs text-sb-on-surface-variant"><Inbox className="h-5 w-5 opacity-50" />{empty}</div>
+            : children}
+      </div>
+    </div>
+  );
+}
+
+/** Panel de la derecha: lo marcado, el cambio de estado, fecha, motivo de demora y botón */
+function Register({ from, to, label, noun, date, setDate, min, need, reason, setReason, count, units, busy, disabled, readOnly, onSave }: {
+  from: string; to: string; label: string; noun: Noun; date: string; setDate: (v: string) => void; min: string; need: number;
   reason: string; setReason: (v: string) => void; count: number; units: number; busy: boolean; disabled: boolean; readOnly: boolean; onSave: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 border-t border-sb-outline-variant/40 pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
-      <StateChange from={from} to={to} />
-      <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Fecha
+    <div className="flex flex-col gap-4 rounded-2xl bg-sb-surface-container-low p-4 lg:sticky lg:top-4 lg:self-start">
+      <div>
+        <p className="text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Marcado</p>
+        <p className="mt-1 text-3xl font-semibold leading-none tabular-nums">{n(units)}<span className="ml-1.5 text-sm font-normal text-sb-on-surface-variant">motos</span></p>
+        <p className="mt-1.5 text-xs text-sb-on-surface-variant">{count ? `en ${plural(count, noun)}` : `Marca ${noun[1]} en la lista`}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold">
+        <span className="rounded-full border border-sb-outline-variant px-2.5 py-1 text-sb-on-surface-variant">{from}</span>
+        <ArrowRight className="h-3.5 w-3.5 text-sb-on-surface-variant" />
+        <span className="rounded-full bg-sb-primary px-2.5 py-1 text-sb-on-primary">{to}</span>
+      </div>
+      <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Fecha de {label.toLowerCase()}
         <DatePicker label={`Fecha de ${label.toLowerCase()}`} value={date} min={min || null} onChange={setDate} disabled={readOnly} quick={pastQuick(min || null, today())} />
       </div>
       {need > 0 && (
-        <label className="flex flex-col gap-1 text-[11px] text-sb-late">Motivo de demora ({need} fuera de tiempo · puedes dejarlo para después)
+        <label className="flex flex-col gap-1 rounded-xl bg-sb-late-soft p-2.5 text-[11px] text-sb-late">
+          <span><b>{n(need)} fuera de tiempo.</b> Motivo de demora (puedes dejarlo para después)</span>
           <SoftSelect className={field} value={reason} onChange={(e) => setReason(e.target.value)}><option value="">Elegir…</option>{DELAY_REASONS.map((r) => <option key={r}>{r}</option>)}</SoftSelect>
         </label>
       )}
-      <Button variant="primary" className="rounded-full" onPress={onSave} isDisabled={busy || disabled || readOnly}>
-        {busy ? "Registrando…" : count ? `Registrar ${label.toLowerCase()} (${count})` : `Registrar ${label.toLowerCase()}`}
+      <Button variant="primary" className="w-full rounded-full" onPress={onSave} isDisabled={busy || disabled || readOnly}>
+        {busy ? "Registrando…" : `Registrar ${label.toLowerCase()}`}
       </Button>
-      {count > 0 && <p className="text-[11px] text-sb-on-surface-variant">{n(units)} unidades pasan a {to}.</p>}
-      {readOnly && <p className="text-[11px] text-sb-on-surface-variant">Solo lectura: no es tu etapa.</p>}
+      {readOnly && <p className="-mt-2 text-center text-[11px] text-sb-on-surface-variant">Solo lectura: no es tu etapa.</p>}
     </div>
   );
 }
-
-const Check = ({ on, disabled, label, onChange, big }: { on: boolean; disabled: boolean; label: string; onChange: () => void; big?: boolean }) => (
-  <input type="checkbox" className={cn("shrink-0 accent-[var(--sb-primary)]", big ? "h-5 w-5" : "h-4 w-4")} aria-label={label} checked={on} disabled={disabled} onChange={onChange} />
-);
 
 export function ArriboScreen({ only }: { only: Site }) {
   const [me, setMe] = useState<{ role: string; stages: { site: Site; field: string }[] } | null>(null);
@@ -152,6 +227,7 @@ export function ArriboScreen({ only }: { only: Site }) {
   if (!me) return <div className="p-6 text-sm text-sb-on-surface-variant">Cargando…</div>;
   if (!sites.length || !current) return <div className="p-6 text-sm text-sb-on-surface-variant">El arribo y el ingreso a almacén no son etapas asignadas a ti. Pídelas a tu supervisor.</div>;
   const dest = SITE_INFO[current].short;
+  const yur = only === "YUR";
 
   return (
     <div className="flex flex-col gap-4">
@@ -187,111 +263,77 @@ export function ArriboScreen({ only }: { only: Site }) {
 
       {active === "arribo" ? (
         <Card className="overflow-hidden">
-          <div className="border-b border-sb-outline-variant/40 px-4 py-3">
-            <h3 className="flex items-center gap-2 text-sm font-semibold"><Ship className="h-4 w-4" /> 3. Arribo · naves en camino a {dest}</h3>
-          </div>
-          <div className="grid gap-4 p-4 lg:grid-cols-[1fr_17rem]">
-            <TableLabels className="rounded-xl border border-sb-outline-variant/40">
-              <table className="w-full min-w-[480px] text-left text-xs">
-                <thead>
-                  <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
-                    <th className="px-3 py-2 font-semibold">Nave</th><th className="px-2 py-2 text-right font-semibold">2W</th><th className="px-2 py-2 text-right font-semibold">3W</th>
-                    <th className="px-2 py-2 text-right font-semibold">Total</th><th className="px-3 py-2 text-center font-semibold">Llegó</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {naves.map((x) => {
-                    const on = naveSel.has(x.nave);
-                    return (
-                      <tr key={x.nave} onClick={() => data?.canArrive && flip(setNaveSel, x.nave)}
-                        className={cn("cursor-pointer border-b border-sb-outline-variant/20 transition-colors last:border-0", on ? "bg-sb-primary-soft" : "hover:bg-sb-surface-container-low")}>
-                        <td className="px-3 py-2.5 font-semibold">{x.nave}
-                          <span className="block text-[10px] font-normal text-sb-on-surface-variant">zarpó {fmtDate(x.sailed)} · {x.containers} cont.{x.need ? <b className="text-sb-late"> · {x.need} tarde</b> : null}</span></td>
-                        <td className="px-2 py-2.5 text-right tabular-nums">{n(x.w2)}</td>
-                        <td className="px-2 py-2.5 text-right tabular-nums">{n(x.w3)}</td>
-                        <td className="px-2 py-2.5 text-right font-semibold tabular-nums">{n(x.total)}</td>
-                        <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
-                          <Check on={on} disabled={!data?.canArrive} label={`Marcar arribo de ${x.nave}`} onChange={() => flip(setNaveSel, x.nave)} big />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {data && !naves.length && <tr><td colSpan={5} className="px-3 py-8 text-center text-sb-on-surface-variant">No hay naves en camino a {dest}.</td></tr>}
-                  {!data && <tr><td colSpan={5} className="px-3 py-8 text-center text-sb-on-surface-variant">Cargando…</td></tr>}
-                </tbody>
-              </table>
-            </TableLabels>
-            <Register from="Tránsito fluvial" to="Arribo puerto" label="Arribo" date={arrDate} setDate={setArrDate} min={arrMin} need={arrNeed}
-              reason={arrReason} setReason={setArrReason} count={chosenNaves.length} units={chosenNaves.reduce((t, x) => t + x.total, 0)}
+          <Head icon={Ship} title={`3. Arribo · naves en camino a ${dest}`}
+            sub={data ? (naves.length ? `${plural(naves.length, ["nave", "naves"])} · ${n(naves.reduce((t, x) => t + Number(x.total), 0))} motos en el río` : "Nada en el río ahora") : "Cargando…"} />
+          <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <PickList title="Marca las naves que llegaron" loading={!data} canAll={naves.length > 1 && !!data?.canArrive}
+              allOn={naves.length > 0 && naves.every((x) => naveSel.has(x.nave))}
+              onAll={() => setNaveSel((s) => (naves.every((x) => s.has(x.nave)) ? new Set() : new Set(naves.map((x) => x.nave))))}
+              empty={naves.length ? null : `No hay naves en camino a ${dest}.`}>
+              {naves.map((x) => (
+                <PickRow key={x.nave} on={naveSel.has(x.nave)} disabled={!data?.canArrive} onToggle={() => flip(setNaveSel, x.nave)}
+                  title={x.nave} meta={`zarpó ${fmtDate(x.sailed)} · ${plural(x.containers, ["contenedor", "contenedores"])}`} late={x.need}
+                  w2={x.w2} w3={x.w3} total={x.total} label={`Marcar arribo de ${x.nave}`} />
+              ))}
+            </PickList>
+            <Register from="Tránsito fluvial" to="Arribo puerto" label="Arribo" noun={["nave", "naves"]} date={arrDate} setDate={setArrDate} min={arrMin} need={arrNeed}
+              reason={arrReason} setReason={setArrReason} count={chosenNaves.length} units={chosenNaves.reduce((t, x) => t + Number(x.total), 0)}
               busy={busy} disabled={!chosenNaves.length} readOnly={!data?.canArrive} onSave={arrive} />
           </div>
         </Card>
       ) : (
         <Card className="overflow-hidden">
-          <div className="border-b border-sb-outline-variant/40 px-4 py-3">
-            <h3 className="flex items-center gap-2 text-sm font-semibold"><Warehouse className="h-4 w-4" /> {only === "YUR" ? "4. Ingreso a ENAPU · carga en el puerto de Yurimaguas" : <>4. Ingreso a almacén · contenedores en el puerto de {dest}</>}</h3>
-          </div>
-          <div className="grid gap-4 p-4 lg:grid-cols-[11rem_1fr_17rem]">
-            {/* Naves que llegaron */}
-            <div className="flex gap-1.5 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
-              <p className="hidden text-[10px] uppercase tracking-wider text-sb-on-surface-variant lg:block">Nave</p>
-              {portNaves.map((v) => {
-                const cs = port.filter((c) => c.nave === v);
-                const marked = cs.filter((c) => contSel.has(key(c))).length;
-                return (
-                  <button key={v} type="button" onClick={() => setPickNave(v)}
-                    className={cn("flex shrink-0 items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-xs transition-colors",
-                      curNave === v ? "border-sb-primary bg-sb-primary-soft font-semibold" : "border-sb-outline-variant/50 hover:bg-sb-surface-container-low")}>
-                    <span><span className="block">{v}</span><span className="block text-[10px] font-normal text-sb-on-surface-variant">{cs.length} cont.{marked ? ` · ${marked} marcados` : ""}</span></span>
-                    <Ship className="h-3.5 w-3.5 opacity-50" />
-                  </button>
-                );
-              })}
-              {data && !portNaves.length && <p className="text-xs text-sb-on-surface-variant">Ninguna nave en el puerto.</p>}
+          <Head icon={Warehouse} title={only === "YUR" ? "4. Ingreso a ENAPU · carga en el puerto de Yurimaguas" : `4. Ingreso a almacén · contenedores en el puerto de ${dest}`}
+            sub={data ? (port.length ? `${plural(portNaves.length, yur ? ["chata", "chatas"] : ["nave", "naves"])} en el puerto · ${yur ? "" : `${plural(port.length, ["contenedor", "contenedores"])} · `}${n(port.reduce((t, c) => t + Number(c.total), 0))} motos esperando` : "Nada esperando en el puerto") : "Cargando…"} />
+          <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[12.5rem_minmax(0,1fr)_18rem]">
+            {/* Naves en el puerto */}
+            <div className="flex min-w-0 flex-col">
+              <p className="hidden px-1 pb-2 text-[11px] font-medium text-sb-on-surface-variant lg:block">{yur ? "Chata" : "Nave"}</p>
+              <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 lg:flex-col lg:overflow-visible">
+                {!data && [0, 1].map((i) => <div key={i} className="h-[58px] w-40 shrink-0 animate-pulse rounded-xl bg-sb-surface-container-low lg:w-auto" />)}
+                {portNaves.map((v) => {
+                  const cs = port.filter((c) => c.nave === v);
+                  const marked = cs.filter((c) => contSel.has(key(c))).length;
+                  const sel = curNave === v;
+                  return (
+                    <button key={v} type="button" onClick={() => setPickNave(v)} aria-pressed={sel}
+                      className={cn("flex w-40 shrink-0 items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors duration-200 lg:w-auto",
+                        sel ? "bg-sb-primary-soft" : "hover:bg-sb-surface-container-low")}>
+                      <span className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors", sel ? "bg-sb-primary text-sb-on-primary" : "bg-sb-surface-container text-sb-on-surface-variant")}>
+                        <Ship className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className={cn("block truncate text-xs font-semibold", sel && "text-sb-primary")}>{v}</span>
+                        <span className="block truncate text-[10px] text-sb-on-surface-variant">
+                          {marked ? `${marked} de ${cs.length} marcado${cs.length > 1 ? "s" : ""}` : `${yur ? "" : `${plural(cs.length, ["cont.", "cont."])} · `}${n(cs.reduce((t, c) => t + Number(c.total), 0))} motos`}
+                        </span>
+                      </span>
+                      {marked > 0 && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-sb-primary" />}
+                    </button>
+                  );
+                })}
+                {data && !portNaves.length && <p className="px-1 text-xs text-sb-on-surface-variant">Ninguna {yur ? "chata" : "nave"} en el puerto.</p>}
+              </div>
             </div>
 
             {/* Contenedores de la nave elegida */}
-            <TableLabels className="rounded-xl border border-sb-outline-variant/40">
-              <table className="w-full min-w-[480px] text-left text-xs">
-                <thead>
-                  <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
-                    <th className="px-3 py-2 font-semibold">Contenedor</th><th className="px-2 py-2 text-right font-semibold">2W</th><th className="px-2 py-2 text-right font-semibold">3W</th>
-                    <th className="px-2 py-2 text-right font-semibold">Total</th>
-                    <th className="px-3 py-2 text-center font-semibold">
-                      {conts.length > 1 && data?.canStore ? (
-                        <button type="button" className="font-semibold uppercase hover:text-sb-on-surface"
-                          onClick={() => setContSel((s) => { const y = new Set(s); const all = conts.every((c) => y.has(key(c))); for (const c of conts) { if (all) y.delete(key(c)); else y.add(key(c)); } return y; })}>
-                          Ingresa · todos
-                        </button>
-                      ) : "Ingresa"}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {conts.map((c) => {
-                    const k = key(c), on = contSel.has(k);
-                    return (
-                      <tr key={k} onClick={() => data?.canStore && flip(setContSel, k)}
-                        className={cn("cursor-pointer border-b border-sb-outline-variant/20 transition-colors last:border-0", on ? "bg-sb-primary-soft" : "hover:bg-sb-surface-container-low")}>
-                        <td className="px-3 py-2.5"><span className="flex items-center gap-1.5 font-mono font-semibold"><Box className="h-3.5 w-3.5 opacity-60" />{c.container === "(sin contenedor)" ? "Toda la carga de la chata" : c.container}</span>
-                          <span className="block text-[10px] text-sb-on-surface-variant">llegó {fmtDate(c.arrived)} · {c.guias} guía(s){c.need ? <b className="text-sb-late"> · {c.need} tarde</b> : null}</span></td>
-                        <td className="px-2 py-2.5 text-right tabular-nums">{c.w2 ? n(c.w2) : ""}</td>
-                        <td className="px-2 py-2.5 text-right tabular-nums">{c.w3 ? n(c.w3) : ""}</td>
-                        <td className="px-2 py-2.5 text-right font-semibold tabular-nums">{n(c.total)}</td>
-                        <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
-                          <Check on={on} disabled={!data?.canStore} label={`Marcar ingreso de ${c.container === "(sin contenedor)" ? `la carga de ${c.nave}` : c.container}`} onChange={() => flip(setContSel, k)} big />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {data && !conts.length && <tr><td colSpan={5} className="px-3 py-8 text-center text-sb-on-surface-variant">{only === "YUR" ? "No hay carga esperando el ingreso a ENAPU." : "No hay contenedores esperando el ingreso a almacén."}</td></tr>}
-                  {!data && <tr><td colSpan={5} className="px-3 py-8 text-center text-sb-on-surface-variant">Cargando…</td></tr>}
-                </tbody>
-              </table>
-            </TableLabels>
+            <PickList title={curNave ? <>{yur ? "Carga de" : "Contenedores de"} <b className="font-semibold text-sb-on-surface">{curNave}</b> · marca lo que ingresa</> : "Contenedores"}
+              loading={!data} canAll={conts.length > 1 && !!data?.canStore} allOn={conts.length > 0 && conts.every((c) => contSel.has(key(c)))}
+              onAll={() => setContSel((s) => { const y = new Set(s); const all = conts.every((c) => y.has(key(c))); for (const c of conts) { if (all) y.delete(key(c)); else y.add(key(c)); } return y; })}
+              empty={conts.length ? null : yur ? "No hay carga esperando el ingreso a ENAPU." : "No hay contenedores esperando el ingreso a almacén."}>
+              {conts.map((c) => {
+                const whole = c.container === "(sin contenedor)";
+                return (
+                  <PickRow key={key(c)} on={contSel.has(key(c))} disabled={!data?.canStore} onToggle={() => flip(setContSel, key(c))}
+                    title={whole ? "Toda la carga de la chata" : c.container} mono={!whole}
+                    meta={`llegó ${fmtDate(c.arrived)} · ${plural(c.guias, ["guía", "guías"])}`} late={c.need}
+                    w2={c.w2} w3={c.w3} total={c.total} label={`Marcar ingreso de ${whole ? `la carga de ${c.nave}` : c.container}`} />
+                );
+              })}
+            </PickList>
 
-            <Register from="Arribo puerto" to="En almacén" label="Ingreso" date={stoDate} setDate={setStoDate} min={stoMin} need={stoNeed}
-              reason={stoReason} setReason={setStoReason} count={chosenConts.length} units={chosenConts.reduce((t, x) => t + x.total, 0)}
+            <Register from="Arribo puerto" to="En almacén" label="Ingreso" noun={yur ? ["carga", "cargas"] : ["contenedor", "contenedores"]} date={stoDate} setDate={setStoDate} min={stoMin} need={stoNeed}
+              reason={stoReason} setReason={setStoReason} count={chosenConts.length} units={chosenConts.reduce((t, x) => t + Number(x.total), 0)}
               busy={busy} disabled={!chosenConts.length} readOnly={!data?.canStore} onSave={store} />
           </div>
         </Card>
