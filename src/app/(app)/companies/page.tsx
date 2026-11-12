@@ -295,13 +295,13 @@ export default function CompaniesPage() {
           {transports.map((t) => {
             const kids = rows.filter((c) => c.parent_id === t.id);
             return (
-              <section key={t.id} className="flex flex-col gap-3">
+              <section key={t.id} className="flex min-w-0 flex-col gap-3">
                 {card(t)}
-                <div className="flex flex-col gap-3 border-l-2 border-sb-primary/25 pl-4 sm:ml-6">
+                <div className="flex min-w-0 flex-col gap-3 border-l-2 border-sb-primary/25 pl-3 sm:ml-6 sm:pl-4">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-sb-on-surface-variant/60">
                     Consorcios creados por {t.name} ({kids.length})
                   </p>
-                  {kids.length ? <div className="grid gap-4 xl:grid-cols-2">{kids.map(card)}</div> : (
+                  {kids.length ? <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2 [&>*]:min-w-0">{kids.map(card)}</div> : (
                     <p className="text-[12px] text-sb-on-surface-variant">Todavía no creó consorcios.</p>
                   )}
                 </div>

@@ -58,8 +58,8 @@ export function ConsortiumCard({ c, onEdit, onDelete, onAddAccount }: {
   const logo = c.logo_v ? `/api/companies/logo?id=${c.id}&v=${c.logo_v}` : null;
 
   return (
-    <Card>
-      <Card.Header className="flex flex-row items-start gap-3">
+    <Card className="min-w-0">
+      <Card.Header className="flex min-w-0 flex-row items-start gap-3">
         <Avatar size="lg" className="rounded-xl">
           {logo && <Avatar.Image alt={`Logo de ${c.name}`} src={logo} />}
           <Avatar.Fallback style={c.color ? { background: c.color, color: "#fff" } : undefined}>{initials(c.name)}</Avatar.Fallback>
@@ -85,19 +85,19 @@ export function ConsortiumCard({ c, onEdit, onDelete, onAddAccount }: {
         </ButtonGroup>
       </Card.Header>
 
-      <Card.Content className="flex flex-col gap-4">
+      <Card.Content className="flex min-w-0 flex-col gap-4">
         {/* Cifras */}
-        <div className="flex items-stretch gap-4 text-sm">
+        <div className="grid grid-cols-3 items-stretch gap-2 text-sm sm:flex sm:gap-4">
           {[
             { k: "Equipo", v: team.length },
             { k: "Clientes con cuenta", v: clients.length },
             { k: "En línea ahora", v: online },
           ].map((s, i) => (
-            <div key={s.k} className="flex items-stretch gap-4">
+            <div key={s.k} className="flex min-w-0 items-stretch gap-2 sm:gap-4">
               {i > 0 && <Separator orientation="vertical" />}
-              <div>
+              <div className="min-w-0">
                 <p className="text-xl font-semibold tabular-nums">{s.v}</p>
-                <p className="text-xs text-sb-on-surface-variant">{s.k}</p>
+                <p className="text-[11px] leading-tight text-sb-on-surface-variant sm:text-xs">{s.k}</p>
               </div>
             </div>
           ))}
