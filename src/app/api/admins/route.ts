@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { passwordProblem } from "@/lib/password";
 import { accountEvent } from "@/lib/security";
 import { seatsError } from "@/lib/license";
 import bcrypt from "bcryptjs";
@@ -108,9 +109,11 @@ export async function POST(req: Request) {
   if (role === "admin" && s.role !== "dev" && !creator?.company_id) {
     return NextResponse.json({ error: "Solo un supervisor de una empresa puede crear otros supervisores" }, { status: 403 });
   }
-  if (!name || !/^\S+@\S+\.\S+$/.test(email) || password.length < 8) {
-    return NextResponse.json({ error: "Nombre, correo válido y contraseña (mín. 8) son obligatorios" }, { status: 400 });
+  if (!name || !/^\S+@\S+\.\S+$/.test(email)) {
+    return NextResponse.json({ error: "Nombre y correo válido son obligatorios" }, { status: 400 });
   }
+  const weak = passwordProblem(password, { email, name });
+  if (weak) return NextResponse.json({ error: weak }, { status: 400 });
   if (!asg) return NextResponse.json({ error: "Área o etapas inválidas" }, { status: 400 });
   if (role === "operator" && !asg.stages.length) return NextResponse.json({ error: "Elige el área o al menos una etapa" }, { status: 400 });
   // Un cliente pertenece a un solo consorcio: no se crea su cuenta en otro
@@ -176,8 +179,11 @@ export async function PATCH(req: Request) {
     await accountEvent(s.id, id, null, "Cambió etapas o área de una cuenta");
     return NextResponse.json({ ok: true });
   }
-  if (String(b.password ?? "").length < 8) return NextResponse.json({ error: "Contraseña mínima de 8 caracteres" }, { status: 400 });
-  await run("UPDATE users SET password_hash=? WHERE id=?", [bcrypt.hashSync(String(b.password), 10), id]);
+  const [who] = await query<{ email: string; name: string }>("SELECT email, name FROM users WHERE id=?", [id]);
+  const weak = passwordProblem(String(b.password ?? ""), who ?? {});
+  if (weak) return NextResponse.json({ error: weak }, { status: 400 });
+  // Al cambiarle la clave, sus sesiones abiertas se cierran (tendrá que entrar con la nueva)
+  await run("UPDATE users SET password_hash=?, sessions_after=LOCALTIMESTAMP(0) WHERE id=?", [bcrypt.hashSync(String(b.password), 10), id]);
   await accountEvent(s.id, id, null, "Cambió la contraseña de una cuenta");
   return NextResponse.json({ ok: true });
 }

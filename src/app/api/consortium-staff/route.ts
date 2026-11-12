@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { passwordProblem } from "@/lib/password";
 import { seatsError } from "@/lib/license";
 import bcrypt from "bcryptjs";
 import { query, run } from "@/lib/db";
@@ -43,9 +44,11 @@ export async function POST(req: Request) {
   const name = String(b.name ?? "").trim().slice(0, 120);
   const email = String(b.email ?? "").trim().toLowerCase();
   const password = String(b.password ?? "");
-  if (!name || !/^\S+@\S+\.\S+$/.test(email) || password.length < 8) {
-    return NextResponse.json({ error: "Nombre, usuario válido y contraseña (mín. 8) son obligatorios" }, { status: 400 });
+  if (!name || !/^\S+@\S+\.\S+$/.test(email)) {
+    return NextResponse.json({ error: "Nombre y usuario válido son obligatorios" }, { status: 400 });
   }
+  const weak = passwordProblem(password, { email, name });
+  if (weak) return NextResponse.json({ error: weak }, { status: 400 });
   const full = await seatsError(c.company);
   if (full) return NextResponse.json({ error: full }, { status: 409 });
   try {
@@ -70,8 +73,9 @@ export async function PATCH(req: Request) {
   const b = await req.json().catch(() => ({}));
   const id = Number(b.id);
   if (!c?.isOwner || !(await isStaff(c.company, id))) return NextResponse.json({ error: "No puedes cambiar esa cuenta" }, { status: 403 });
-  if (String(b.password ?? "").length < 8) return NextResponse.json({ error: "Contraseña mínima de 8 caracteres" }, { status: 400 });
-  await run("UPDATE users SET password_hash=? WHERE id=?", [bcrypt.hashSync(String(b.password), 10), id]);
+  const weak = passwordProblem(String(b.password ?? ""));
+  if (weak) return NextResponse.json({ error: weak }, { status: 400 });
+  await run("UPDATE users SET password_hash=?, sessions_after=LOCALTIMESTAMP(0) WHERE id=?", [bcrypt.hashSync(String(b.password), 10), id]);
   return NextResponse.json({ ok: true });
 }
 

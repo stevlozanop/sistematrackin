@@ -13,6 +13,7 @@ import { ConsortiumCard } from "@/components/ConsortiumCard";
 import { DEFAULT_COLOR, PRESETS, onColor } from "@/lib/theme";
 import { useRouter } from "next/navigation";
 import { SoftSelect } from "@/components/SoftSelect";
+import { generatePassword } from "@/lib/password";
 
 
 type Stats = { units: number; delivered: number; onTime: number; open: number } | null;
@@ -30,10 +31,7 @@ const KIND = {
 };
 const input = "h-9 w-full rounded-xl border border-sb-outline-variant bg-sb-surface-container-low px-3 text-sm text-sb-on-surface outline-none transition-colors focus:border-sb-primary";
 
-function genPassword() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$";
-  return Array.from(crypto.getRandomValues(new Uint32Array(14)), (n) => chars[n % chars.length]).join("");
-}
+const genPassword = () => generatePassword(12);
 const pct = (a: number, b: number) => (b ? Math.round((100 * a) / b) : 0);
 
 function Field({ label, hint, children, wide }: { label: string; hint?: string; children: React.ReactNode; wide?: boolean }) {

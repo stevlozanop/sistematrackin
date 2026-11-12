@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { passwordProblem } from "@/lib/password";
 import bcrypt from "bcryptjs";
 import { query, run } from "@/lib/db";
 import { guard, SUPER } from "@/lib/guard";
@@ -53,8 +54,9 @@ export async function PATCH(req: Request) {
   const b = await req.json().catch(() => ({}));
   const id = Number(b.id);
   if (!(await canTouch(s, id))) return NextResponse.json({ error: "No puedes cambiar esa cuenta" }, { status: 403 });
-  if (String(b.password ?? "").length < 8) return NextResponse.json({ error: "Contraseña mínima de 8 caracteres" }, { status: 400 });
-  await run("UPDATE users SET password_hash=? WHERE id=?", [bcrypt.hashSync(String(b.password), 10), id]);
+  const weak = passwordProblem(String(b.password ?? ""));
+  if (weak) return NextResponse.json({ error: weak }, { status: 400 });
+  await run("UPDATE users SET password_hash=?, sessions_after=LOCALTIMESTAMP(0) WHERE id=?", [bcrypt.hashSync(String(b.password), 10), id]);
   return NextResponse.json({ ok: true });
 }
 

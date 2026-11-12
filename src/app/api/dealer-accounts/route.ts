@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { generatePassword } from "@/lib/password";
 import { seatsError } from "@/lib/license";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
@@ -22,10 +23,7 @@ function slug(name: string) {
   return name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 24) || "cliente";
 }
 
-function password() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-  return Array.from(crypto.randomBytes(10), (n) => chars[n % chars.length]).join("") + "!";
-}
+const password = () => generatePassword(12);
 
 const title = (s: string) => s.toLowerCase().replace(/(^|[\s\-(&.])(\p{L})/gu, (_, a, b) => a + b.toUpperCase());
 

@@ -16,6 +16,9 @@ import { AreaPicker, type Assignment } from "@/components/AreaPicker";
 import { DealerAccounts } from "@/components/DealerAccounts";
 import { ROLE_LABEL, USER_DOMAIN, companyCode, roleLabel, areaOf, stageLabel, suggestEmail, type Role, type Stage } from "@/lib/workflow";
 import { SoftSelect } from "@/components/SoftSelect";
+import { generatePassword } from "@/lib/password";
+import { PasswordMeter } from "@/components/PasswordMeter";
+import { passwordProblem } from "@/lib/password";
 
 type Admin = {
   id: number; name: string; email: string; role: Exclude<Role, "dev">; created_at: string; last_seen: string | null; online: number;
@@ -49,11 +52,7 @@ function Scope({ a }: { a: Admin }) {
 
 const initials = (n: string) => n.split(" ").filter(Boolean).map((x) => x[0]).join("").toUpperCase().slice(0, 2);
 
-function genPassword() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$";
-  const a = crypto.getRandomValues(new Uint32Array(14));
-  return Array.from(a, (n) => chars[n % chars.length]).join("");
-}
+const genPassword = () => generatePassword(12);
 
 const copy = (text: string, msg: string) => navigator.clipboard?.writeText(text).then(() => toast.success(msg)).catch(() => toast.danger("No se pudo copiar"));
 
@@ -138,6 +137,8 @@ export default function AdminsPage() {
     e.preventDefault();
     if (role === "operator" && !asg.area) return toast.danger("Elige el área del encargado");
     if (role === "dealer" && !dealerId) return toast.danger("Elige el cliente");
+    const weak = passwordProblem(password, { email: shownEmail, name });
+    if (weak) return toast.danger(weak);
     setSaving(true);
     const r = await fetch("/api/admins", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email: shownEmail, password, role, client: role === "dealer" ? dealerId : undefined, companyId: role === "viewer" || role === "dealer" ? consortium?.id : undefined, ...(role === "operator" ? asg : {}) }) });
     setSaving(false);
@@ -444,6 +445,7 @@ export default function AdminsPage() {
                     </TextField>
                     {auto && <Button variant="secondary" className="rounded-full" onPress={() => setPassword(genPassword())}>Otra</Button>}
                   </div>
+                  {!auto && <PasswordMeter value={password} email={shownEmail} name={name} />}
                   {role === "operator" && (
                     <div className="flex flex-col gap-1.5">
                       <Label>Área de trabajo</Label>

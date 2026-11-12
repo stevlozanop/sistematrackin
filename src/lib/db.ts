@@ -147,6 +147,8 @@ function ready() {
     for (const sql of MIGRATIONS) await pool.query(sql);
     const { rows } = await pool.query("SELECT 1 FROM users WHERE role='dev' LIMIT 1");
     if (rows.length) return;
+    // En producción solo se crea con DEV_PASSWORD (nunca con una clave conocida); en local, la de ejemplo
+    if (!process.env.DEV_PASSWORD && process.env.NODE_ENV === "production") return;
     await pool.query("INSERT INTO users(name,email,password_hash,role) VALUES ($1,$2,$3,'dev') ON CONFLICT DO NOTHING", [
       "Desarrollador",
       process.env.DEV_EMAIL ?? "dev@trackin.local",

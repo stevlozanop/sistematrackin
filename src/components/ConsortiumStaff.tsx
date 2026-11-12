@@ -6,13 +6,11 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Copy, KeyRound, Trash2, UserPlus } from "lucide-react";
 import { Card, Pill } from "@/components/ui";
 import { suggestEmail } from "@/lib/workflow";
+import { generatePassword } from "@/lib/password";
 
 type Staff = { id: number; name: string; email: string; created_at: string; last_seen: string | null; online: number; is_owner: number };
 
-function genPassword() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-  return Array.from(crypto.getRandomValues(new Uint32Array(10)), (n) => chars[n % chars.length]).join("") + "!";
-}
+const genPassword = () => generatePassword(12);
 const input = "h-9 w-full rounded-xl border border-sb-outline-variant bg-sb-surface-container-low px-3 text-sm outline-none focus:border-sb-primary";
 
 /**

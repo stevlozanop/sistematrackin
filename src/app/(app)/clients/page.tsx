@@ -7,16 +7,14 @@ import { Card, PageTitle, Pill } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
 import { DealerAccounts } from "@/components/DealerAccounts";
 import { ConsortiumStaff } from "@/components/ConsortiumStaff";
+import { generatePassword } from "@/lib/password";
 
 type Account = {
   id: number; name: string; email: string; client: string | null; created_at: string; last_seen: string | null; online: number;
   created_by: string | null; created_by_company: string | null; stores: number;
 };
 
-function genPassword() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-  return Array.from(crypto.getRandomValues(new Uint32Array(10)), (n) => chars[n % chars.length]).join("") + "!";
-}
+const genPassword = () => generatePassword(12);
 
 /**
  * «Clientes»: Honda da acceso a sus clientes (SORSA, SERVIHONDA…) para que vean el estado de sus pedidos.

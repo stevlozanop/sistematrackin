@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { passwordProblem } from "@/lib/password";
 import { accountEvent } from "@/lib/security";
 import bcrypt from "bcryptjs";
 import { query, run } from "@/lib/db";
@@ -50,7 +51,8 @@ export async function PATCH(req: Request) {
   }
 
   const password = String(b.password ?? "");
-  if (password.length < 8) return NextResponse.json({ error: "La nueva contraseña debe tener al menos 8 caracteres" }, { status: 400 });
+  const weak = passwordProblem(password, { email: s.email, name: s.name });
+  if (weak) return NextResponse.json({ error: weak }, { status: 400 });
   const [u] = await query<{ password_hash: string }>("SELECT password_hash FROM users WHERE id=?", [s.id]);
   if (!u || !bcrypt.compareSync(String(b.current ?? ""), u.password_hash)) {
     return NextResponse.json({ error: "La contraseña actual no es correcta" }, { status: 400 });

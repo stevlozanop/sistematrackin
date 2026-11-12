@@ -12,6 +12,8 @@ import { TwoFactorCard } from "@/components/TwoFactorCard";
 import { PushCard } from "@/components/PushNotifications";
 import { LookCard } from "@/components/LookCard";
 import { PasswordInput } from "@/components/PasswordInput";
+import { PasswordMeter } from "@/components/PasswordMeter";
+import { passwordProblem } from "@/lib/password";
 
 type Profile = {
   id: number; name: string; email: string; role: Role; created_at: string; last_seen: string | null;
@@ -179,13 +181,14 @@ export default function ProfilePage() {
               <input type="email" value={p.email} autoComplete="username" readOnly hidden />
               <PasswordInput className={input} placeholder="Contraseña actual" aria-label="Contraseña actual" autoComplete="current-password"
                 value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} />
-              <PasswordInput className={input} placeholder="Nueva contraseña (mín. 8)" aria-label="Nueva contraseña" autoComplete="new-password"
+              <PasswordInput className={input} placeholder="Nueva contraseña" aria-label="Nueva contraseña" autoComplete="new-password"
                 value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} />
+              <PasswordMeter value={pw.next} email={p.email} name={p.name} />
               <PasswordInput className={input} placeholder="Repite la nueva contraseña" aria-label="Repite la nueva contraseña" autoComplete="new-password"
                 value={pw.again} onChange={(e) => setPw({ ...pw, again: e.target.value })} />
               {pw.again && pw.next !== pw.again && <p className="text-[11px] text-red-500">No coinciden.</p>}
               <div className="flex justify-end">
-                <Button type="submit" variant="primary" className="rounded-full" isDisabled={busy !== "" || !pw.current || pw.next.length < 8 || pw.next !== pw.again}>
+                <Button type="submit" variant="primary" className="rounded-full" isDisabled={busy !== "" || !pw.current || !!passwordProblem(pw.next, { email: p.email, name: p.name }) || pw.next !== pw.again}>
                   <KeyRound className="h-4 w-4" /> {busy === "pw" ? "Cambiando…" : "Cambiar contraseña"}
                 </Button>
               </div>
