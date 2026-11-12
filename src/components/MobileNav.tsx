@@ -41,6 +41,7 @@ export function MobileNav({
   const [height, setHeight] = useState(48);
   const morph = useRef<HTMLDivElement>(null);
   const menu = useRef<HTMLDivElement>(null);
+  const foot = useRef<HTMLDivElement>(null);
 
   // Con el botón de Excel entra un ícono menos de navegación (cabe en 360 px)
   const shown = onUpload ? maxVisible - 1 : maxVisible;
@@ -50,7 +51,7 @@ export function MobileNav({
   const close = () => { setOpen(false); setLook(false); };
 
   useLayoutEffect(() => {
-    if (open && menu.current) setHeight(Math.min(Math.max(menu.current.scrollHeight, 48), Math.round(window.innerHeight * 0.72)));
+    if (open && menu.current) setHeight(Math.min(Math.max(menu.current.scrollHeight + (foot.current?.offsetHeight ?? 0), 48), Math.round(window.innerHeight * 0.72)));
   }, [open, look, extra.length]);
 
   useEffect(() => {
@@ -71,7 +72,8 @@ export function MobileNav({
       <motion.nav className="mobile-navbar fixed left-0 right-0 z-[60]"
         initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 400, damping: 32, mass: 0.6, delay: 0.1 }}>
         <div className="mobile-nav-inner relative flex w-full items-end justify-between gap-2 px-4">
-          <div className="flex items-center gap-1">
+          {/* Al abrir Opciones los íconos de la izquierda se apartan: la tarjeta queda limpia, sin nada encima */}
+          <div className={cn("flex items-center gap-1 transition-[opacity,transform,filter] duration-300", open && "pointer-events-none -translate-x-3 opacity-0 blur-[2px]")} aria-hidden={open || undefined}>
             {visible.map((i) => <NavButton key={i.href} item={i} active={isActive(i)} onGo={() => router.push(i.href)} />)}
             {onUpload && (
               <motion.button type="button" onClick={onUpload} aria-label="Subir Excel" whileTap={{ scale: 0.9 }}
@@ -83,8 +85,9 @@ export function MobileNav({
 
           <div className="relative bottom-0">
             <div ref={morph} className="t-morph m-options" data-open={open ? "true" : "false"} style={open ? { height } : undefined}>
-              <div ref={menu} className="t-morph-menu scroll-hidden max-h-[72vh] overflow-y-auto overscroll-contain" role="menu">
-                <div className="flex flex-col gap-0.5 p-3 pb-14">
+              <div className="t-morph-menu flex flex-col" role="menu">
+                <div className="scroll-hidden min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                <div ref={menu} className="flex flex-col gap-0.5 p-3 pb-2">
                   <p className="px-2.5 pb-2 pt-1 text-xl font-semibold tracking-tight">Opciones</p>
                   <button type="button" onClick={() => setLook((v) => !v)} aria-expanded={look} className={row}>
                     <Palette className="h-4 w-4 shrink-0" /><span className="flex-1">Apariencia</span>
@@ -97,16 +100,10 @@ export function MobileNav({
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  <button type="button" onClick={onToggleTheme} className={row}>
-                    {dark ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}{dark ? "Tema claro" : "Tema oscuro"}
-                  </button>
                   {onGuide && (
                     <button type="button" onClick={() => { close(); onGuide(); }} className={row}><BookOpen className="h-4 w-4 shrink-0" />Guía del sistema</button>
                   )}
                   <button type="button" onClick={() => location.reload()} className={row}><RotateCw className="h-4 w-4 shrink-0" />Recargar app</button>
-                  <button type="button" onClick={() => { close(); onLogout(); }} className={cn(row, "text-sb-late hover:bg-sb-late-soft hover:text-sb-late")}>
-                    <LogOut className="h-4 w-4 shrink-0" />Cerrar sesión
-                  </button>
                   {!!extra.length && <p className="px-2.5 pb-1 pt-3 text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Más pantallas</p>}
                   {extra.map((i) => (
                     <button key={i.href} type="button" onClick={() => { close(); router.push(i.href); }}
@@ -114,6 +111,22 @@ export function MobileNav({
                       <i.icon className="h-4 w-4 shrink-0" />{i.title}
                     </button>
                   ))}
+                </div>
+                </div>
+                {/* Pie fijo: tema y cerrar sesión siempre a la vista, aunque la lista sea larga */}
+                <div ref={foot} className="flex shrink-0 items-center gap-2 border-t border-sb-outline-variant/60 p-2.5">
+                  <div className="flex flex-1 rounded-full bg-sb-surface-container p-0.5" role="group" aria-label="Tema">
+                    {([[false, "Claro", Sun], [true, "Oscuro", Moon]] as const).map(([d, l, Icon]) => (
+                      <button key={l} type="button" onClick={() => dark !== d && onToggleTheme()} aria-pressed={dark === d}
+                        className={cn("sb-pill-xs flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-1.5 text-[11px] font-semibold", dark === d ? "bg-sb-surface text-sb-on-surface shadow-sm" : "text-sb-on-surface-variant")}>
+                        <Icon className="h-3.5 w-3.5" />{l}
+                      </button>
+                    ))}
+                  </div>
+                  <button type="button" onClick={() => { close(); onLogout(); }} aria-label="Cerrar sesión"
+                    className="sb-pill-sm flex shrink-0 items-center gap-1.5 rounded-full bg-sb-late-soft px-2.5 py-2 text-[11px] font-semibold text-sb-late">
+                    <LogOut className="h-3.5 w-3.5" />Salir
+                  </button>
                 </div>
               </div>
               <button type="button" className="t-morph-plus" aria-expanded={open} aria-label="Opciones"
