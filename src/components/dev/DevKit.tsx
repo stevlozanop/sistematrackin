@@ -138,13 +138,13 @@ export function Bars({ data, height = 140, unit = "", tick }: { data: { label: s
   return (
     <div className="relative">
       <div className="relative" style={{ height }} onMouseLeave={() => setHover(null)}>
-        <div className="absolute inset-x-0 top-0 border-t border-dashed border-sb-outline-variant/60" />
+        <div className="absolute inset-x-0 top-0 border-t border-dashed border-sb-outline-variant/60" /><div className="absolute inset-x-0 top-1/2 border-t border-dashed border-sb-outline-variant/40" />
         <span className="absolute right-0 top-0 -translate-y-full pb-0.5 text-[10px] text-sb-on-surface-variant">{max.toLocaleString()}{unit}</span>
         <div className="absolute inset-0 flex items-end">
           {data.map((d, i) => (
             <div key={d.label} className="relative flex h-full items-end justify-center" style={{ width: `${W}%`, paddingInline: 1 }} onMouseEnter={() => setHover(i)}>
               <div
-                className={cn("w-full max-w-[22px] rounded-t-[4px] transition-[height,background-color] duration-500 ease-out", hover === i ? "bg-sb-on-surface" : "bg-sb-primary")}
+                className={cn("w-full max-w-[22px] rounded-t-[6px] rounded-b-[2px] transition-[height,background-color] duration-500 ease-out", hover === i || d.value === max ? "bg-sb-primary" : "bg-sb-primary/35")}
                 style={{ height: d.value ? `${Math.max(2, (d.value / max) * 100)}%` : 0 }}
               />
             </div>
