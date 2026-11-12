@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Receipt, Route, Sparkles, Activity, Bell, ChartColumn, Container, FileStack, Upload, BookOpen, Building2, ChevronLeft, CalendarClock, Database, FileSpreadsheet, Gauge, KeyRound, HeartPulse, ShieldCheck, TrendingUp, MousePointerClick, SquareTerminal, CircleUser, ClipboardCheck, LayoutDashboard, LogOut, Moon, PackageSearch, Ship, SlidersHorizontal, Store, Sun, Truck, Users, Warehouse, Forklift, PackageCheck, Boxes, MapPinned, Power, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { MobileNav } from "@/components/MobileNav";
+import { ContainerTransform } from "@/components/ContainerTransform";
 import { AlertBell } from "@/components/AlertBell";
 import { GuideModal } from "@/components/GuideModal";
 import { AssistantPanel } from "@/components/AssistantPanel";
@@ -415,6 +416,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
   return (
     <div className="sb-shell relative flex h-screen overflow-hidden bg-[var(--page-bg)] text-sb-on-background">
       <LiveSync />
+      <ContainerTransform />
       <PushNudge />
       {/* Sidebar */}
       <aside className={cn("z-10 hidden h-screen shrink-0 flex-col overflow-hidden bg-transparent transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] md:flex", open ? "w-[244px]" : "w-[68px]")}>
