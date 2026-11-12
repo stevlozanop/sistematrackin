@@ -257,9 +257,10 @@ function NavLink({ item, active, open, badge }: { item: Item; active: boolean; o
   return (
     <Link
       href={item.href}
+      data-active={active || undefined}
       title={open ? undefined : item.title}
       className={cn(
-        "group relative flex items-center gap-2.5 transition-colors duration-300 ease-out",
+        "sb-nav-link group relative flex items-center gap-2.5 transition-colors duration-300 ease-out",
         open ? "h-[34px] rounded-full px-3" : "mx-auto h-9 w-9 justify-center rounded-[14px]",
         active ? "text-sb-on-surface" : "text-sb-on-surface-variant hover:bg-sb-on-surface/[0.04] hover:text-sb-on-surface",
       )}
@@ -278,7 +279,7 @@ function NavLink({ item, active, open, badge }: { item: Item; active: boolean; o
         <item.icon className="h-[16px] w-[16px] shrink-0" />
       </motion.span>
       {open && (
-        <span className={cn("relative z-10 truncate text-[13px] transition-transform duration-300 ease-out group-hover:translate-x-0.5", active ? "font-semibold" : "font-normal")}>
+        <span className={cn("sb-nav-label relative z-10 truncate text-[13px] transition-transform duration-300 ease-out group-hover:translate-x-0.5", active ? "font-semibold" : "font-normal")}>
           {item.title}
         </span>
       )}
@@ -315,8 +316,16 @@ function ToolButton({ open, label, onClick, children, muted }: { open: boolean; 
   );
 }
 
+/** Menú abierto o en íconos según la apariencia: Taksice es un riel de íconos; Bonita, Guapa, Melon y Tunnel son menús de texto */
+function navOpen() {
+  const look = document.documentElement.dataset.look;
+  if (look === "taksice") return localStorage.getItem("sb-sidebar-open-tk") === "1";
+  if (look) return localStorage.getItem("sb-sidebar-open-tx") !== "0";
+  return localStorage.getItem("sb-sidebar-open") !== "0";
+}
+
 const Heading = ({ children }: { children: React.ReactNode }) => (
-  <h3 className="mb-1 px-3 text-[11px] font-medium text-sb-on-surface-variant opacity-60">{children}</h3>
+  <h3 className="sb-nav-section mb-1 px-3 text-[11px] font-medium text-sb-on-surface-variant opacity-60">{children}</h3>
 );
 
 export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firstGuide = false, brand = null, own = null, swm = false, isOwner = false, upload = null, licenseNotice = null, mustChange = false, children }: {
@@ -357,18 +366,17 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
 
   useEffect(() => {
     // Taksice: riel de solo íconos (como Stepbro); se puede abrir con la flecha y se recuerda aparte
-    const tk = document.documentElement.dataset.look === "taksice";
-    setOpen(tk ? localStorage.getItem("sb-sidebar-open-tk") === "1" : localStorage.getItem("sb-sidebar-open") !== "0");
+    setOpen(navOpen());
     setDark(document.documentElement.classList.contains("dark"));
   }, []);
 
   // Al cambiar de apariencia, el menú toma el modo de ese estilo
   useEffect(() => {
-    const on = () => setOpen(document.documentElement.dataset.look === "taksice" ? localStorage.getItem("sb-sidebar-open-tk") === "1" : localStorage.getItem("sb-sidebar-open") !== "0");
+    const on = () => setOpen(navOpen());
     window.addEventListener("sb-look", on);
     return () => window.removeEventListener("sb-look", on);
   }, []);
-  const toggleSidebar = () => setOpen((o) => (localStorage.setItem(document.documentElement.dataset.look === "taksice" ? "sb-sidebar-open-tk" : "sb-sidebar-open", o ? "0" : "1"), !o));
+  const toggleSidebar = () => setOpen((o) => (localStorage.setItem(document.documentElement.dataset.look === "taksice" ? "sb-sidebar-open-tk" : document.documentElement.dataset.look ? "sb-sidebar-open-tx" : "sb-sidebar-open", o ? "0" : "1"), !o));
   const toggleTheme = () => {
     const next = !dark;
     document.documentElement.classList.toggle("dark", next);

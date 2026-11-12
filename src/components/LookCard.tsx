@@ -4,11 +4,38 @@ import { Check, Palette } from "lucide-react";
 import { Card } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
-/** Aspecto de todo el sistema: «Clásica» (el original) o «Taksice» (réplica de Stepbro Tasks). */
-export type Look = "clasica" | "taksice";
+/** Apariencia de todo el sistema en este dispositivo: estilo de navegación y color de acento (como Stepbro). */
+export type Look = "clasica" | "bonita" | "guapa" | "taksice" | "melon" | "tunnel";
 const EVENT = "sb-look";
+export const LOOK_EVENT = EVENT;
 
-const read = (): Look => (typeof document !== "undefined" && document.documentElement.dataset.look === "taksice" ? "taksice" : "clasica");
+export const LOOKS: [Look, string, string][] = [
+  ["clasica", "Clásica", "El diseño original: menú con secciones y tarjetas suaves."],
+  ["bonita", "Bonita", "Píldoras de texto flotando a la izquierda, sin íconos."],
+  ["guapa", "Guapa", "Menú con íconos y la opción activa en un bloque gris."],
+  ["taksice", "Tasks", "Riel de íconos redondos y contenido en un panel (Stepbro Tasks)."],
+  ["melon", "Melon", "Menú compacto con letra pequeña y la activa marcada."],
+  ["tunnel", "Tunnel", "Solo texto: la opción activa grande y las demás tenues."],
+];
+
+/** Colores de acento: el primero vuelve al color de la empresa. [nombre, claro, oscuro, texto encima claro, texto encima oscuro] */
+const ACCENTS: [string, string, string, string, string][] = [
+  ["Empresa", "", "", "", ""],
+  ["Gris", "#71717a", "#d4d4d8", "#fff", "#0a0a0b"],
+  ["Negro", "#161618", "#fafafa", "#fff", "#0a0a0b"],
+  ["Rojo", "#dc2626", "#f87171", "#fff", "#0a0a0b"],
+  ["Naranja", "#ea7a0c", "#fb923c", "#fff", "#0a0a0b"],
+  ["Verde", "#16a34a", "#4ade80", "#fff", "#0a0a0b"],
+  ["Azul", "#2563eb", "#60a5fa", "#fff", "#0a0a0b"],
+  ["Índigo", "#4f46e5", "#818cf8", "#fff", "#0a0a0b"],
+  ["Violeta", "#7c3aed", "#a78bfa", "#fff", "#0a0a0b"],
+  ["Magenta", "#c026d3", "#e879f9", "#fff", "#0a0a0b"],
+  ["Rosa", "#db2777", "#f472b6", "#fff", "#0a0a0b"],
+];
+const VARS = ["--acc-l", "--acc-d", "--acc-on-l", "--acc-on-d"];
+
+const readLook = (): Look => (typeof document !== "undefined" ? (document.documentElement.dataset.look as Look) ?? "clasica" : "clasica");
+const readAccent = () => (typeof document !== "undefined" ? document.documentElement.style.getPropertyValue("--acc-l").trim() : "");
 const subscribe = (cb: () => void) => { window.addEventListener(EVENT, cb); return () => window.removeEventListener(EVENT, cb); };
 
 export function setLook(v: Look) {
@@ -16,61 +43,61 @@ export function setLook(v: Look) {
   if (v === "clasica") delete document.documentElement.dataset.look; else document.documentElement.dataset.look = v;
   window.dispatchEvent(new Event(EVENT));
 }
-export const useLook = () => useSyncExternalStore(subscribe, read, () => "clasica" as Look);
-export const LOOK_EVENT = EVENT;
-
-/** Miniatura de cada estilo */
-function Preview({ look }: { look: Look }) {
-  const t = look === "taksice";
-  return (
-    <div className={cn("flex h-20 gap-1.5 overflow-hidden p-1.5", t ? "rounded-xl bg-white ring-1 ring-zinc-200" : "rounded-xl bg-zinc-100")}>
-      <div className="flex flex-1 gap-1.5">
-        <div className="flex w-9 shrink-0 flex-col gap-1">
-          {[0, 1, 2, 3].map((i) => <span key={i} className={cn("h-1.5 w-full rounded-full", i === 0 ? (t ? "bg-zinc-400" : "bg-sb-primary") : "bg-zinc-300")} />)}
-        </div>
-        <div className={cn("flex flex-1 flex-col gap-1", t && "rounded-lg bg-zinc-100 p-1")}>
-          <span className={cn("h-5", t ? "rounded-md border border-zinc-200 bg-zinc-50" : "rounded-lg bg-white shadow-sm")} />
-          <div className="flex flex-1 gap-1">
-            <span className={cn("flex-1", t ? "rounded-md bg-zinc-100" : "rounded-lg bg-white shadow-sm")} />
-            <span className={cn("w-1/3", t ? "rounded-md border border-zinc-200 bg-white" : "rounded-lg bg-white shadow-sm")} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+function setAccent(a: (typeof ACCENTS)[number]) {
+  const el = document.documentElement;
+  if (!a[1]) {
+    for (const k of VARS) el.style.removeProperty(k);
+    delete el.dataset.accent;
+    try { localStorage.setItem("accent", "null"); } catch { /* nada */ }
+  } else {
+    const vals = Object.fromEntries(VARS.map((k, i) => [k, a[i + 1]]));
+    for (const [k, v] of Object.entries(vals)) el.style.setProperty(k, v);
+    el.dataset.accent = "1";
+    try { localStorage.setItem("accent", JSON.stringify(vals)); } catch { /* nada */ }
+  }
+  window.dispatchEvent(new Event(EVENT));
 }
+export const useLook = () => useSyncExternalStore(subscribe, readLook, () => "clasica" as Look);
 
 export function LookCard() {
   const look = useLook();
-  const options: [Look, string, string][] = [
-    ["clasica", "Clásica", "El diseño original: tarjetas suaves con sombra y menú con nombres."],
-    ["taksice", "Taksice", "Como Stepbro Tasks: pantalla completa, menú blanco, contenido en un panel gris y tarjetas planas con borde fino."],
-  ];
+  const accent = useSyncExternalStore(subscribe, readAccent, () => "");
   return (
-    <Card className="flex flex-col gap-3 p-5">
+    <Card className="flex flex-col gap-4 p-5">
       <div className="flex items-center gap-3">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sb-primary-soft text-sb-primary"><Palette className="h-[18px] w-[18px]" /></span>
         <div>
           <h3 className="text-sm font-semibold">Apariencia</h3>
-          <p className="text-[11px] text-sb-on-surface-variant">El estilo de todo el sistema en este dispositivo. Tus datos no cambian.</p>
+          <p className="text-[11px] text-sb-on-surface-variant">Color y estilo del menú en este dispositivo. Tus datos no cambian.</p>
         </div>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {options.map(([k, name, desc]) => {
-          const on = look === k;
+
+      {/* Colores */}
+      <div className="flex flex-wrap gap-2">
+        {ACCENTS.map((a) => {
+          const on = a[1] ? accent === a[1] : !accent;
           return (
-            <button key={k} type="button" onClick={() => setLook(k)} aria-pressed={on}
-              className={cn("flex flex-col gap-2 rounded-2xl p-2.5 text-left ring-1 transition-all duration-200", on ? "bg-sb-primary-soft ring-2 ring-sb-primary" : "ring-sb-outline-variant hover:bg-sb-surface-container-low")}>
-              <Preview look={k} />
-              <span className="flex items-center justify-between gap-2 px-0.5">
-                <span><b className="block text-sm">{name}</b><span className="block text-[11px] leading-snug text-sb-on-surface-variant">{desc}</span></span>
-                <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-full border transition-colors", on ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant")}>
-                  {on && <Check className="h-3 w-3" strokeWidth={3} />}
-                </span>
-              </span>
+            <button key={a[0]} type="button" onClick={() => setAccent(a)} title={a[0]} aria-label={`Color ${a[0]}`} aria-pressed={on}
+              className={cn("sb-pill-icon grid h-9 w-9 place-items-center rounded-full ring-offset-2 ring-offset-sb-surface", on ? "ring-2 ring-sb-on-surface" : "ring-1 ring-black/5")}
+              style={{ background: a[1] ? `radial-gradient(circle at 35% 30%, color-mix(in oklab, ${a[1]} 55%, #fff), ${a[1]} 70%)` : "conic-gradient(from 200deg, #078a04, #09ae04, #bedf3c, #078a04)" }}>
+              {on && <Check className="h-3.5 w-3.5 text-white drop-shadow" strokeWidth={3} />}
             </button>
           );
         })}
+      </div>
+
+      {/* Navegación */}
+      <div className="flex flex-col gap-2">
+        <p className="text-[11px] font-medium text-sb-on-surface-variant">Navegación</p>
+        <div className="grid grid-cols-3 gap-1.5">
+          {LOOKS.map(([k, name, desc]) => (
+            <button key={k} type="button" onClick={() => setLook(k)} aria-pressed={look === k} title={desc}
+              className={cn("sb-pill rounded-full px-3 py-2 text-xs font-semibold", look === k ? "bg-sb-on-surface text-sb-surface" : "bg-sb-surface-container text-sb-on-surface-variant hover:text-sb-on-surface")}>
+              {name}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-sb-on-surface-variant">{LOOKS.find(([k]) => k === look)?.[2]}</p>
       </div>
     </Card>
   );

@@ -19,7 +19,7 @@ export const viewport: Viewport = {
 };
 
 // Aplica el tema guardado antes de pintar para evitar parpadeos.
-const themeScript = `try{if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark");var l=localStorage.getItem("look");if(l&&l!=="clasica")document.documentElement.dataset.look=l}catch(e){}`;
+const themeScript = `try{if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark");var l=localStorage.getItem("look");if(l&&l!=="clasica")document.documentElement.dataset.look=l;var a=JSON.parse(localStorage.getItem("accent")||"null");if(a){document.documentElement.dataset.accent="1";for(var k in a)document.documentElement.style.setProperty(k,a[k])}}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
