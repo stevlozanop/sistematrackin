@@ -356,8 +356,16 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
   };
 
   useEffect(() => {
-    setOpen(localStorage.getItem("sb-sidebar-open") !== "0");
+    // Taksice: menú de solo íconos (como el de la referencia); se puede abrir igual con «Colapsar»
+    setOpen(document.documentElement.dataset.look === "taksice" ? localStorage.getItem("sb-sidebar-open") === "1" : localStorage.getItem("sb-sidebar-open") !== "0");
     setDark(document.documentElement.classList.contains("dark"));
+  }, []);
+
+  // Al cambiar de apariencia: Taksice deja el menú en íconos; Clásica lo vuelve a abrir
+  useEffect(() => {
+    const on = () => setOpen(document.documentElement.dataset.look !== "taksice");
+    window.addEventListener("sb-look", on);
+    return () => window.removeEventListener("sb-look", on);
   }, []);
 
   const toggleSidebar = () => setOpen((o) => (localStorage.setItem("sb-sidebar-open", o ? "0" : "1"), !o));
@@ -397,7 +405,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
   const initials = name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-[var(--page-bg)] text-sb-on-background">
+    <div className="sb-shell relative flex h-screen overflow-hidden bg-[var(--page-bg)] text-sb-on-background">
       <LiveSync />
       <PushNudge />
       {/* Sidebar */}

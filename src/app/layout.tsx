@@ -19,7 +19,7 @@ export const viewport: Viewport = {
 };
 
 // Aplica el tema guardado antes de pintar para evitar parpadeos.
-const themeScript = `try{if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark")}catch(e){}`;
+const themeScript = `try{if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark");var l=localStorage.getItem("look");if(l&&l!=="clasica")document.documentElement.dataset.look=l}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

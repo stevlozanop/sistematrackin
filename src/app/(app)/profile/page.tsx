@@ -10,6 +10,7 @@ import { areaOf, companyCode, roleLabel, type Role } from "@/lib/workflow";
 import { LogoBadge, LogoPicker } from "@/components/CompanyLogo";
 import { TwoFactorCard } from "@/components/TwoFactorCard";
 import { PushCard } from "@/components/PushNotifications";
+import { LookCard } from "@/components/LookCard";
 import { PasswordInput } from "@/components/PasswordInput";
 
 type Profile = {
@@ -190,6 +191,7 @@ export default function ProfilePage() {
               </div>
             </form>
           </Card>
+          <LookCard />
           <PushCard />
           <TwoFactorCard />
         </div>
