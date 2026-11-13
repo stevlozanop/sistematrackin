@@ -12,8 +12,8 @@ export const Card = ({ className, ...p }: React.ComponentProps<"div">) => (
 export const PageTitle = ({ title, sub, children }: { title: string; sub?: string; children?: React.ReactNode }) => (
   <div className="flex flex-wrap items-end justify-between gap-3">
     <div>
-      <h2 className="text-[22px] font-semibold leading-tight tracking-[-0.02em]">{title}</h2>
-      {sub && <p className="mt-1 max-w-3xl text-[12.5px] leading-relaxed text-sb-on-surface-variant">{sub}</p>}
+      <h2 className="sb-title text-[22px] font-semibold leading-tight tracking-[-0.02em]">{title}</h2>
+      {sub && <p className="sb-sub mt-1 max-w-3xl text-[12.5px] leading-relaxed text-sb-on-surface-variant">{sub}</p>}
     </div>
     {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
   </div>

@@ -510,7 +510,7 @@ html[data-look="taksice"] main .sb-card .sb-card { background: var(--sb-surface)
 html[data-look="taksice"] .sb-nav-pill { background: var(--sb-surface-container) !important; box-shadow: none !important; border-radius: 10px !important; }
 html[data-look="taksice"] .sb-nav-icon { color: var(--sb-on-surface) !important; }
 html[data-look="taksice"] .sb-shell > aside nav a:not(.h-9) { border-radius: 10px !important; }
-html[data-look="taksice"] h1 { letter-spacing: -0.02em; }
+html[data-look="taksice"] .sb-title { letter-spacing: -0.02em; }
 
 /* ===== Estilos de navegación (Apariencia): Bonita, Guapa, Melon y Tunnel. Cambian solo el menú y la entrada de los modales ===== */
 /* Bonita: píldoras de texto flotando a la izquierda, sin íconos; la activa rellena y las demás tenues.
@@ -560,22 +560,22 @@ html.dark[data-accent] { --sb-primary: var(--acc-d) !important; --sb-on-primary:
 /* Bonita: muy redondeado y esponjoso, sombras amplias y suaves, títulos grandes */
 html[data-look="bonita"] { --sb-radius-card: 28px; --sb-shadow-card: 0 2px 4px rgb(16 16 24 / 0.03), 0 22px 44px -24px rgb(16 16 24 / 0.22); }
 html[data-look="bonita"]:not(.dark) { --page-bg: #f1f1f4; }
-html[data-look="bonita"] main h1 { font-size: 1.65rem; letter-spacing: -0.025em; }
+html[data-look="bonita"] .sb-title { font-size: 1.65rem; letter-spacing: -0.025em; }
 html[data-look="bonita"] main input:not([type=checkbox]):not([type=radio]) { border-radius: 9999px; }
 /* Guapa: tarjetas planas con borde fino y esquinas medianas, encabezados separados por una línea */
 html[data-look="guapa"] { --sb-radius-card: 12px; --sb-shadow-card: none; }
 html[data-look="guapa"]:not(.dark) { --page-bg: #fafafa; }
 html[data-look="guapa"] .sb-card { border: 1px solid var(--sb-outline-variant); }
-html[data-look="guapa"] main h1 { font-size: 1.35rem; }
+html[data-look="guapa"] .sb-title { font-size: 1.35rem; }
 /* Melon: compacto y denso (letra más chica, esquinas cortas, sombra mínima) */
 html[data-look="melon"] { font-size: 14px; --sb-radius-card: 10px; --sb-shadow-card: 0 1px 2px rgb(16 16 24 / 0.06); }
 html[data-look="melon"] .sb-card { border: 1px solid var(--sb-outline-variant); }
-html[data-look="melon"] main h1 { font-size: 1.2rem; text-transform: none; }
+html[data-look="melon"] .sb-title { font-size: 1.2rem; text-transform: none; }
 /* Tunnel: minimalista, sin sombras ni bordes; las tarjetas son bloques grises sobre fondo liso y los títulos grandes */
 html[data-look="tunnel"] { --sb-radius-card: 20px; --sb-shadow-card: none; --page-bg: var(--sb-surface); }
 html[data-look="tunnel"] .sb-card { background: var(--sb-surface-container-low); }
 html[data-look="tunnel"] main .sb-card .sb-card { background: var(--sb-surface); }
-html[data-look="tunnel"] main h1 { font-size: 2rem; font-weight: 600; letter-spacing: -0.035em; }
+html[data-look="tunnel"] .sb-title { font-size: 2rem; font-weight: 600; letter-spacing: -0.035em; }
 
 /* ===== El color elegido tiñe todo: fondo, tarjetas grises, bordes y selecciones (no solo los botones) ===== */
 html[data-accent]:not(.dark) {
@@ -602,3 +602,47 @@ html[data-accent] ::selection { background: color-mix(in oklab, var(--sb-primary
 .m-options[data-open="true"] { width: 272px; margin-left: -224px; }
 @media (max-width: 380px) { .m-options[data-open="true"] { width: 250px; margin-left: -202px; } }
 
+
+/* ===== Minimalice: editorial y silencioso. Papel limpio, títulos gigantes que terminan en un punto de color,
+   líneas finas en lugar de tarjetas, cifras en tipografía mono, menú de solo texto con una rayita de color en la
+   opción activa y todo el contenido centrado con aire. Los botones conservan su brillo y su respiración. ===== */
+html[data-look="minimalice"] {
+  --page-bg: #fbfbf9; --sb-surface: #fbfbf9; --sb-surface-container-low: #f3f3f0; --sb-surface-container: #eeeeea;
+  --sb-surface-container-high: #e6e6e1; --sb-outline-variant: #e3e3de;
+  --sb-radius-card: 0px; --sb-shadow-card: none; --sb-shadow-float: 0 24px 60px -30px rgb(16 16 24 / 0.35);
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+}
+html.dark[data-look="minimalice"] {
+  --page-bg: #0c0c0c; --sb-surface: #0c0c0c; --sb-surface-container-low: #151515; --sb-surface-container: #1a1a1a;
+  --sb-surface-container-high: #222; --sb-outline-variant: #262626;
+}
+/* Contenido centrado, con aire */
+html[data-look="minimalice"] main > .sb-page, html[data-look="minimalice"] main > div > .sb-page { max-width: 1180px; margin-inline: auto; }
+@media (min-width: 768px) { html[data-look="minimalice"] main { padding-top: 12px; } }
+/* Título editorial: grande, apretado y con un punto del color de la empresa */
+html[data-look="minimalice"] .sb-title { font-size: clamp(30px, 4.2vw, 46px); font-weight: 500; letter-spacing: -0.045em; line-height: 1.02; }
+html[data-look="minimalice"] .sb-title::after { content: "."; color: var(--sb-primary); }
+html[data-look="minimalice"] .sb-sub { font-size: 13.5px; max-width: 46rem; margin-top: 10px; }
+html[data-look="minimalice"] .sb-crumb { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 600; }
+/* Tarjetas → líneas finas: sin fondo, sin sombra, sin esquinas; solo una línea arriba */
+html[data-look="minimalice"] .sb-card { background: transparent !important; box-shadow: none !important; border: 0 !important; border-top: 1px solid var(--sb-outline-variant) !important; border-radius: 0 !important; }
+html[data-look="minimalice"] .sb-card .sb-card { background: var(--sb-surface-container-low) !important; border-top: 0 !important; border-radius: 14px !important; }
+html[data-look="minimalice"] .modal__dialog .sb-card, html[data-look="minimalice"] .drawer__content .sb-card { border-top: 0 !important; }
+/* Cifras en mono (los números se leen como en un reporte) */
+html[data-look="minimalice"] main .tabular-nums { font-family: var(--mono); letter-spacing: -0.03em; }
+/* Menú: solo texto, opción activa con una rayita de color; secciones en versalitas */
+html[data-look="minimalice"] .sb-shell > aside { border-right: 1px solid var(--sb-outline-variant); }
+html[data-look="minimalice"] .sb-shell > aside .sb-nav-section { text-transform: uppercase; letter-spacing: 0.16em; font-size: 9.5px; font-weight: 600; opacity: .55; }
+html[data-look="minimalice"] .sb-shell > aside .sb-nav-link:not(.h-9) { height: 30px; border-radius: 0 !important; padding-left: 14px; background: none !important; }
+html[data-look="minimalice"] .sb-shell > aside .sb-nav-link:not(.h-9) .sb-nav-icon { display: none; }
+html[data-look="minimalice"] .sb-shell > aside .sb-nav-label { font-size: 13px; opacity: .5; transition: opacity .2s, transform .3s var(--sb-ease); }
+html[data-look="minimalice"] .sb-shell > aside .sb-nav-link:hover .sb-nav-label { opacity: .85; }
+html[data-look="minimalice"] .sb-shell > aside .sb-nav-link[data-active] .sb-nav-label { opacity: 1; font-weight: 600; }
+html[data-look="minimalice"] .sb-nav-pill { display: none; }
+html[data-look="minimalice"] .sb-shell > aside .sb-nav-link:not(.h-9)::before {
+  content: ""; position: absolute; left: 2px; top: 50%; width: 2px; height: 0; border-radius: 2px; background: var(--sb-primary);
+  transform: translateY(-50%); transition: height .35s var(--sb-ease);
+}
+html[data-look="minimalice"] .sb-shell > aside .sb-nav-link:not(.h-9)[data-active]::before { height: 16px; }
+/* Campos y píldoras más sobrios */
+html[data-look="minimalice"] main input:not([type=checkbox]):not([type=radio]), html[data-look="minimalice"] main select { border-radius: 10px; }

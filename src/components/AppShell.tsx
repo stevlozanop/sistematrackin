@@ -507,7 +507,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
       {/* Main */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-14 shrink-0 items-center justify-between gap-2 px-4 sm:px-6">
-          <h1 className="truncate text-sm font-medium text-sb-on-surface-variant">{pageName}</h1>
+          <h1 className="sb-crumb truncate text-sm font-medium text-sb-on-surface-variant">{pageName}</h1>
           <div className="flex shrink-0 items-center gap-2">
             {hasGuide && (
               <button type="button" onClick={() => setGuide(true)} title="Cómo funciona el sistema"

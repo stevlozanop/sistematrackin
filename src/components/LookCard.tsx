@@ -5,7 +5,7 @@ import { Card } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
 /** Apariencia de todo el sistema en este dispositivo: estilo de navegación y color de acento (como Stepbro). */
-export type Look = "clasica" | "bonita" | "guapa" | "taksice" | "melon" | "tunnel";
+export type Look = "clasica" | "bonita" | "guapa" | "taksice" | "melon" | "tunnel" | "minimalice";
 const EVENT = "sb-look";
 export const LOOK_EVENT = EVENT;
 
@@ -16,6 +16,7 @@ export const LOOKS: [Look, string, string][] = [
   ["taksice", "Tasks", "Riel de íconos redondos y contenido en un panel (Stepbro Tasks)."],
   ["melon", "Melon", "Menú compacto con letra pequeña y la activa marcada."],
   ["tunnel", "Tunnel", "Solo texto: la opción activa grande y las demás tenues."],
+  ["minimalice", "Minimalice", "Editorial: papel limpio, títulos gigantes, líneas finas en vez de tarjetas y cifras en mono."],
 ];
 
 /** Colores de acento: el primero vuelve al color de la empresa. [nombre, claro, oscuro, texto encima claro, texto encima oscuro] */
