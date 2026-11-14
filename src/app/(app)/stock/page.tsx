@@ -11,6 +11,7 @@ import { SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { daysBetween, parseISO, todayLima } from "@/lib/dates";
 import { cn } from "@/lib/cn";
 import { Kind, KindText, W2, W3 } from "@/components/Kinds";
+import { zoneCompare, zoneOf } from "@/lib/zones";
 
 /**
  * Stock en almacén (entre el paso 4 y el 5): todo lo que ingresó al almacén y aún no se despacha, por guía.
@@ -70,7 +71,7 @@ export default function StockPage() {
   // Varias guías separadas por coma o espacio
   const terms = needle.split(/[\s,;]+/).filter(Boolean);
   const late = (r: Row) => r.overdue > 0;
-  const shown = (rows ?? []).filter((r) => (only === "all" || (only === "late") === late(r)) && (!terms.length || terms.some((t) => [r.guia, r.dealer, r.district, r.nave, r.container, r.models].some((x) => (x ?? "").toLowerCase().includes(t)))));
+  const shown = (rows ?? []).filter((r) => (only === "all" || (only === "late") === late(r)) && (!terms.length || terms.some((t) => [r.guia, r.dealer, r.district, zoneOf(r.district), r.nave, r.container, r.models].some((x) => (x ?? "").toLowerCase().includes(t)))));
   const lateCount = (rows ?? []).filter(late).length;
   /** Días entre dos fechas YYYY-MM-DD (b − a) */
   const dd = (a: string, b: Date) => daysBetween(parseISO(String(a).slice(0, 10)), b);
@@ -81,10 +82,15 @@ export default function StockPage() {
   const today = todayLima();
   const flip = (k: string) => setSel((s) => { const y = new Set(s); if (y.has(k)) y.delete(k); else y.add(k); return y; });
   const allShown = shown.length > 0 && shown.every((r) => sel.has(key(r)));
-  // Agrupadas por distrito (alfabético); dentro, primero las vencidas
-  const groups = [...shown.reduce((m, r) => { const d = r.district ?? "Sin distrito"; m.set(d, [...(m.get(d) ?? []), r]); return m; }, new Map<string, Row[]>())]
-    .sort(([a], [b]) => a.localeCompare(b, "es"))
-    .map(([district, list]) => ({ district, list: list.sort((a, b) => b.overdue - a.overdue || String(a.guia).localeCompare(String(b.guia))), ...sum(list) }));
+  // Agrupadas por zona de despacho (distritos que salen juntos, ej. Huánuco + Amarilis + Rupa-Rupa; el resto, solo), en el orden del cuadro de Stock-PCL; dentro, primero las vencidas
+  const groups = [...shown.reduce((m, r) => { const d = zoneOf(r.district); m.set(d, [...(m.get(d) ?? []), r]); return m; }, new Map<string, Row[]>())]
+    .sort(([a], [b]) => zoneCompare(a, b))
+    .map(([district, list]) => {
+      // Cuánto aporta cada distrito de la zona
+      const parts = [...list.reduce((m, r) => { const d = r.district ?? "Sin distrito"; const t = m.get(d) ?? { w2: 0, w3: 0, total: 0 }; m.set(d, { w2: t.w2 + r.w2, w3: t.w3 + r.w3, total: t.total + r.total }); return m; }, new Map<string, { w2: number; w3: number; total: number }>())]
+        .sort((a, b) => b[1].total - a[1].total);
+      return { district, parts, list: list.sort((a, b) => b.overdue - a.overdue || String(a.guia).localeCompare(String(b.guia))), ...sum(list) };
+    });
   const allOpen = groups.length > 0 && groups.every((g) => open.has(g.district));
   const shownSum = sum(shown);
   const flipMany = (list: Row[]) => setSel((s) => { const y = new Set(s); const every = list.every((r) => y.has(key(r))); for (const r of list) { if (every) y.delete(key(r)); else y.add(key(r)); } return y; });
@@ -166,7 +172,7 @@ export default function StockPage() {
                 className={cn("grid h-5 w-5 place-items-center rounded-full border transition-colors", allShown ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant bg-sb-surface")}>
                 <Check className={cn("h-3 w-3", allShown ? "opacity-100" : "opacity-0")} strokeWidth={3} />
               </button>
-              <span>Distrito</span><span className="text-right">Guías</span><span>Lead time</span>
+              <span>Zona · distritos</span><span className="text-right">Guías</span><span>Lead time</span>
               <span className="text-right" style={{ color: W2 }}>Motos</span><span className="text-right" style={{ color: W3 }}>Motokares</span><span className="text-right">Total</span>
               <button type="button" onClick={() => setOpen(allOpen ? new Set() : new Set(groups.map((g) => g.district)))}
                 className="justify-self-end rounded-full p-1 text-sb-on-surface-variant hover:bg-sb-surface-container hover:text-sb-on-surface" aria-label={allOpen ? "Plegar todos" : "Desplegar todos"} title={allOpen ? "Plegar todos" : "Desplegar todos"}>
@@ -196,6 +202,11 @@ export default function StockPage() {
                     {/* Tocar el distrito despliega sus guías */}
                     <button type="button" onClick={toggle} aria-expanded={isOpen} className="min-w-0 text-left">
                       <span className="block truncate text-sm font-semibold uppercase tracking-tight">{g.district}</span>
+                      {(g.parts.length > 1 || g.parts[0]?.[0] !== g.district) && (
+                        <span className="mt-0.5 block truncate text-[11px] text-sb-on-surface-variant" title={g.parts.map(([d, t]) => `${d}: ${t.total}`).join(" · ")}>
+                          {g.parts.map(([d, t], i) => <span key={d}>{i > 0 && " · "}<span className="capitalize">{d.toLowerCase()}</span> <b className="font-semibold text-sb-on-surface tabular-nums">{n(t.total)}</b></span>)}
+                        </span>
+                      )}
                       <span className="mt-1 flex h-1 max-w-[12rem] overflow-hidden rounded-full bg-sb-surface-container">
                         <span style={{ width: `${(g.w2 / (g.total || 1)) * 100}%`, background: W2 }} />
                         <span style={{ width: `${(g.w3 / (g.total || 1)) * 100}%`, background: W3 }} />
@@ -243,7 +254,7 @@ export default function StockPage() {
                           <span className="flex items-center gap-1.5 font-mono text-sm font-semibold tracking-tight">
                             <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", tone === "late" ? "bg-sb-late" : "bg-sb-ontime")} />{r.guia ?? "—"}
                           </span>
-                          <span className="block truncate text-[11px] text-sb-on-surface-variant" title={r.dealer ?? ""}>{r.dealer ?? "—"}</span>
+                          <span className="block truncate text-[11px] text-sb-on-surface-variant" title={r.dealer ?? ""}>{g.parts.length > 1 && <><b className="font-semibold uppercase">{r.district}</b> · </>}{r.dealer ?? "—"}</span>
                         </span>
                         <span className="hidden min-w-0 text-[11px] text-sb-on-surface-variant lg:block">
                           <span className="block truncate text-xs text-sb-on-surface">{r.nave ?? "—"}{r.container ? <span className="ml-1.5 font-mono text-[10px] text-sb-on-surface-variant">{r.container}</span> : null}</span>
@@ -282,7 +293,7 @@ export default function StockPage() {
             {groups.length > 1 && (
               <div className={cn(DCOLS, "grid items-center border-t-2 border-sb-outline-variant/60 px-3 pt-3 text-sm font-semibold tabular-nums")}>
                 <span />
-                <span className="min-w-0">Total <span className="text-[11px] font-normal text-sb-on-surface-variant">· {plural(groups.length, ["distrito", "distritos"])}</span>
+                <span className="min-w-0">Total <span className="text-[11px] font-normal text-sb-on-surface-variant">· {plural(groups.length, ["zona", "zonas"])}</span>
                   <span className="mt-0.5 block text-[11px] font-normal lg:hidden"><KindText w2={shownSum.w2} w3={shownSum.w3} /></span>
                 </span>
                 <span className="hidden text-right lg:block">{n(shown.length)}</span><span className="hidden lg:block" />
