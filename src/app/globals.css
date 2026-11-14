@@ -684,9 +684,9 @@ html[data-look="workice"] .sb-sub { margin-top: 8px; }
 html[data-look="workice"] main .text-3xl, html[data-look="workice"] main .text-2xl { font-weight: 300 !important; letter-spacing: -0.035em; }
 html[data-look="workice"] main .text-3xl { font-size: 2.6rem; }
 /* Filtros: cada opción es una cápsula con borde y la elegida se rellena (blanca en oscuro) */
-html[data-look="workice"] main div:has(> button[aria-pressed]) { background: transparent !important; gap: 6px; padding: 0; }
-html[data-look="workice"] main button[aria-pressed] { border: 1px solid var(--wk-ring); background: transparent !important; box-shadow: none !important; padding-block: 5px; }
-html[data-look="workice"] main button[aria-pressed="true"] { background: var(--wk-on) !important; border-color: var(--wk-on); color: var(--wk-on-text) !important; }
+html[data-look="workice"] main div:has(> button[aria-pressed]:not(.sb-pill-icon)) { background: transparent !important; gap: 6px; padding: 0; }
+html[data-look="workice"] main button[aria-pressed]:not(.sb-pill-icon) { border: 1px solid var(--wk-ring); background: transparent !important; box-shadow: none !important; padding-block: 5px; }
+html[data-look="workice"] main button[aria-pressed="true"]:not(.sb-pill-icon) { background: var(--wk-on) !important; border-color: var(--wk-on); color: var(--wk-on-text) !important; }
 html[data-look="workice"] main input:not([type=checkbox]):not([type=radio]), html[data-look="workice"] main select { border-radius: 999px; border-color: var(--wk-ring); background: transparent; }
 /* Menú: cada ícono en un círculo con borde; el activo, relleno (blanco en oscuro) */
 html[data-look="workice"] .sb-shell > aside .sb-nav-section { text-transform: uppercase; letter-spacing: .14em; font-size: 9.5px; font-weight: 600; opacity: .45; }
