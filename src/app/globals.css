@@ -786,3 +786,50 @@ html[data-look="workice"] main span.bg-sb-primary { background: var(--wk-lime) !
 html[data-look="workice"] main .grid.rounded-xl.bg-sb-primary-soft :is([style*="#e2922a"], [style*="226, 146, 42"]) { color: #7a3f00 !important; }
 html[data-look="workice"] main .grid.rounded-xl.bg-sb-primary-soft .rounded-full:is([style*="#e2922a"], [style*="226, 146, 42"]) { background: rgb(122 63 0 / 0.12) !important; }
 html[data-look="workice"] main .grid.rounded-xl.bg-sb-primary-soft :is([style*="#e2922a"], [style*="226, 146, 42"]) i { background: #7a3f00 !important; }
+
+/* ===== Ventanas (modales y paneles) según el estilo elegido: al cambiar de diseño de navegación, también cambian ===== */
+/* Workice: panel negro (o blanco en claro) muy redondo, título espaciado, fichas sin borde, campos y pestañas en cápsula */
+html[data-look="workice"] { --wk-modal: #ffffff; }
+html.dark[data-look="workice"] { --wk-modal: #0d0d0d; }
+html[data-look="workice"] :is(.modal__dialog, .drawer__content) { background: var(--wk-modal) !important; border-radius: 32px !important; }
+html.dark[data-look="workice"] .modal__dialog { box-shadow: 0 0 0 1px #232323, 0 30px 70px -30px rgb(0 0 0 / 0.9) !important; }
+html[data-look="workice"] :is(.modal__dialog, .drawer__content) .modal__heading { text-transform: uppercase; letter-spacing: .07em; font-weight: 400 !important; font-size: 18px; }
+html[data-look="workice"] :is(.modal__dialog, .drawer__content) .modal__header > span.grid.rounded-xl {
+  border-radius: 999px; background: transparent !important; border: 1px solid var(--wk-ring); color: var(--sb-on-surface) !important;
+}
+html[data-look="workice"] :is(.modal__dialog, .drawer__content) :is(.rounded-xl, .rounded-2xl):is(.bg-sb-surface-container-low, .bg-sb-surface-container, .border) {
+  background: var(--wk-tile) !important; border-color: transparent !important; border-radius: 20px !important;
+}
+html[data-look="workice"] :is(.modal__dialog, .drawer__content) :is(.rounded-xl, .rounded-2xl).border > * { background: transparent; }
+/* Pestañas: riel con borde y la elegida en cápsula del color contrario (como «All») */
+html[data-look="workice"] :is(.modal__dialog, .drawer__content) .rounded-full.bg-sb-surface-container.p-1,
+html[data-look="workice"] main .rounded-full.bg-sb-surface-container:is(.p-1, .p-0\.5) { background: transparent !important; border: 1px solid var(--wk-ring); }
+html[data-look="workice"] :is(.modal__dialog, .drawer__content) button.bg-sb-primary.rounded-full,
+html[data-look="workice"] main .rounded-full.bg-sb-surface-container > button.bg-sb-primary {
+  background: var(--wk-on) !important; color: var(--wk-on-text) !important; box-shadow: none !important;
+}
+html[data-look="workice"] :is(.modal__dialog, .drawer__content) :is(input:not([type=checkbox]):not([type=radio]), select, textarea) { border-color: var(--wk-ring) !important; background: transparent !important; }
+html[data-look="workice"] :is(.modal__dialog, .drawer__content) input:not([type=checkbox]):not([type=radio]), html[data-look="workice"] :is(.modal__dialog, .drawer__content) select { border-radius: 999px !important; }
+html[data-look="workice"] :is(.modal__dialog, .drawer__content) label:has(> input) { border-radius: 999px; }
+html[data-look="workice"] .modal__footer { border-top-color: transparent; }
+html[data-look="workice"] .modal__footer a.rounded-full, html[data-look="workice"] .modal__footer .button--secondary { background: transparent !important; border: 1px solid var(--wk-ring) !important; }
+html[data-look="workice"] .modal__close-trigger { border: 1px solid var(--wk-ring); background: transparent !important; }
+/* Etiquetas suaves del color de la empresa dentro de la ventana: lima */
+html[data-look="workice"] :is(.modal__dialog, .drawer__content) .rounded-full.bg-sb-primary-soft { background: var(--wk-lime) !important; color: var(--wk-lime-on) !important; }
+
+/* Los demás estilos también llevan su forma a las ventanas */
+html[data-look="bonita"] .modal__dialog { border-radius: 30px !important; }
+html[data-look="bonita"] .modal__dialog :is(.rounded-xl, .rounded-2xl).border { border-radius: 22px !important; }
+html[data-look="guapa"] .modal__dialog .modal__header > span.grid.rounded-xl { background: var(--sb-surface-container) !important; color: var(--sb-on-surface) !important; }
+html[data-look="taksice"] .modal__dialog { border-radius: 16px !important; border: 1px solid var(--sb-outline-variant) !important; }
+html[data-look="taksice"] .modal__dialog :is(.rounded-xl, .rounded-2xl) { border-radius: 12px !important; }
+html[data-look="melon"] .modal__dialog { border-radius: 12px !important; }
+html[data-look="melon"] .modal__dialog .modal__heading { font-size: 14px !important; }
+html[data-look="melon"] .modal__dialog :is(.rounded-xl, .rounded-2xl) { border-radius: 8px !important; }
+html[data-look="tunnel"] .modal__dialog .modal__heading { font-size: 20px !important; letter-spacing: -0.03em; }
+html[data-look="minimalice"] .modal__dialog { border-radius: 6px !important; }
+html[data-look="minimalice"] .modal__dialog .modal__heading { font-size: 22px !important; font-weight: 500 !important; letter-spacing: -0.04em; }
+html[data-look="minimalice"] .modal__dialog .modal__heading::after { content: "."; color: var(--sb-primary); }
+html[data-look="minimalice"] .modal__dialog .modal__header > span.grid.rounded-xl { display: none; }
+html[data-look="minimalice"] .modal__dialog :is(.rounded-xl, .rounded-2xl).border { border-width: 0 0 0 0 !important; border-top: 1px solid var(--sb-outline-variant) !important; border-radius: 0 !important; }
+html[data-look="workice"] :is(.modal__dialog, .drawer__content) .tabular-nums.font-bold { font-weight: 400 !important; letter-spacing: -0.02em; }
