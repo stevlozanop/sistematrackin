@@ -9,7 +9,7 @@ import { DATA_EVENT } from "@/components/UploadCenter";
 import { SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { daysBetween, parseISO, todayLima } from "@/lib/dates";
 import { cn } from "@/lib/cn";
-import { KindText } from "@/components/Kinds";
+import { Kind, KindText } from "@/components/Kinds";
 
 /**
  * Stock en almacén (entre el paso 4 y el 5): todo lo que ingresó al almacén y aún no se despacha, por guía.
@@ -18,8 +18,20 @@ import { KindText } from "@/components/Kinds";
 
 type Row = { guia: string | null; district: string | null; dealer: string | null; nave: string | null; container: string | null; w2: number; w3: number; total: number; since: string; need: number; models: string | null; est: string | null; billing: string | null; overdue: number };
 
-/** Columnas de cada guía: marca · guía/dealer · nave/modelos · lead time · en almacén · 2W/3W · total (celular: marca · guía · total) */
-const COLS = "grid-cols-[1.25rem_minmax(0,1fr)_3.5rem] gap-x-3 lg:grid-cols-[1.25rem_minmax(0,1.5fr)_minmax(0,1fr)_10.5rem_6.5rem_7rem_3.5rem]";
+/** Primera columna: el distrito (agrupa sus guías). En celular el distrito va como encabezado del grupo. */
+const GROUP = "grid lg:grid-cols-[12.5rem_minmax(0,1fr)] lg:gap-x-3";
+/** Columnas de cada guía: marca · guía/dealer · nave/modelos · lead time · en almacén · motos y motokares · total (celular: marca · guía · total) */
+const COLS = "grid-cols-[1.25rem_minmax(0,1fr)_3.5rem] gap-x-3 lg:grid-cols-[1.25rem_minmax(0,1.3fr)_minmax(0,1fr)_10rem_5.75rem_8.5rem_3rem]";
+
+/** Motos y motokares juntos: una pastilla por tipo (si hay de los dos, se ven las dos). */
+function Kinds({ w2, w3 }: { w2: number; w3: number }) {
+  return (
+    <span className="flex flex-wrap gap-1">
+      {(w2 > 0 || !w3) && <Kind v={w2} k="w2" />}
+      {w3 > 0 && <Kind v={w3} k="w3" short />}
+    </span>
+  );
+}
 
 export default function StockPage() {
   const router = useRouter();
@@ -67,6 +79,11 @@ export default function StockPage() {
   const today = todayLima();
   const flip = (k: string) => setSel((s) => { const y = new Set(s); if (y.has(k)) y.delete(k); else y.add(k); return y; });
   const allShown = shown.length > 0 && shown.every((r) => sel.has(key(r)));
+  // Agrupadas por distrito (alfabético); dentro, primero las vencidas
+  const groups = [...shown.reduce((m, r) => { const d = r.district ?? "Sin distrito"; m.set(d, [...(m.get(d) ?? []), r]); return m; }, new Map<string, Row[]>())]
+    .sort(([a], [b]) => a.localeCompare(b, "es"))
+    .map(([district, list]) => ({ district, list: list.sort((a, b) => b.overdue - a.overdue || String(a.guia).localeCompare(String(b.guia))), ...sum(list) }));
+  const flipMany = (list: Row[]) => setSel((s) => { const y = new Set(s); const every = list.every((r) => y.has(key(r))); for (const r of list) { if (every) y.delete(key(r)); else y.add(key(r)); } return y; });
 
   if (!me) return <div className="p-6 text-sm text-sb-on-surface-variant">Cargando…</div>;
   if (!sites.length || !current) return <div className="p-6 text-sm text-sb-on-surface-variant">El almacén no es una etapa asignada a ti.</div>;
@@ -139,13 +156,18 @@ export default function StockPage() {
         <div className="p-2 sm:p-3">
           {/* Encabezado de columnas (escritorio) */}
           {!!shown.length && (
-            <div className={cn(COLS, "hidden px-3 pb-2 text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant lg:grid")}>
-              <button type="button" role="checkbox" aria-checked={allShown} aria-label="Marcar todas las que se ven"
-                onClick={() => setSel((s) => { const y = new Set(s); for (const r of shown) { if (allShown) y.delete(key(r)); else y.add(key(r)); } return y; })}
-                className={cn("grid h-5 w-5 place-items-center rounded-full border transition-colors", allShown ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant bg-sb-surface")}>
-                <Check className={cn("h-3 w-3", allShown ? "opacity-100" : "opacity-0")} strokeWidth={3} />
-              </button>
-              <span>Guía · dealer</span><span>Nave · modelos</span><span>Lead time</span><span>En almacén</span><span>2W · 3W</span><span className="text-right">Total</span>
+            <div className={cn(GROUP, "hidden px-3 pb-2 text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant lg:grid")}>
+              <span className="flex items-center gap-3">
+                <button type="button" role="checkbox" aria-checked={allShown} aria-label="Marcar todas las que se ven"
+                  onClick={() => flipMany(shown)}
+                  className={cn("grid h-5 w-5 place-items-center rounded-full border transition-colors", allShown ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant bg-sb-surface")}>
+                  <Check className={cn("h-3 w-3", allShown ? "opacity-100" : "opacity-0")} strokeWidth={3} />
+                </button>
+                Distrito
+              </span>
+              <span className={cn(COLS, "grid")}>
+                <span /><span>Guía · dealer</span><span>Nave · modelos</span><span>Lead time</span><span>En almacén</span><span>Motos y motokares</span><span className="text-right">Total</span>
+              </span>
             </div>
           )}
           <div className="flex flex-col gap-0.5">
@@ -155,46 +177,74 @@ export default function StockPage() {
                 <Inbox className="h-5 w-5 opacity-50" />{rows.length ? "Ninguna guía coincide con la búsqueda." : "No hay unidades en almacén."}
               </div>
             )}
-            {shown.map((r) => {
-              const on = sel.has(key(r)), days = r.since ? daysBetween(parseISO(String(r.since).slice(0, 10)), today) : 0;
-              const left = r.est ? -dd(r.est, today) : null, lead = r.est && r.billing ? dd(r.billing, parseISO(String(r.est).slice(0, 10))) : null;
-              const tone = late(r) ? "late" : "ontime";
+            {groups.map((g) => {
+              const every = g.list.every((r) => sel.has(key(r))), some = g.list.some((r) => sel.has(key(r)));
+              const lateN = g.list.filter(late).length;
               return (
-                <button key={`${key(r)}|${r.dealer}`} type="button" role="checkbox" aria-checked={on} aria-label={`Marcar ${r.guia}`} onClick={() => flip(key(r))}
-                  className={cn(COLS, "grid items-center gap-y-1 rounded-xl px-3 py-3 text-left transition-colors duration-200", on ? "bg-sb-primary-soft" : "hover:bg-sb-surface-container-low")}>
-                  <span className={cn("grid h-5 w-5 place-items-center rounded-full border transition-all duration-200", on ? "scale-105 border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant bg-sb-surface")}>
-                    <Check className={cn("h-3 w-3 transition-opacity", on ? "opacity-100" : "opacity-0")} strokeWidth={3} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-1.5 font-mono text-sm font-semibold tracking-tight">
-                      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", tone === "late" ? "bg-sb-late" : "bg-sb-ontime")} />{r.guia ?? "—"}
+                <div key={g.district} className={cn(GROUP, "border-t border-sb-outline-variant/40 py-1.5 first:border-t-0")}>
+                  {/* Distrito: marca todas sus guías · motos y motokares juntos */}
+                  <button type="button" role="checkbox" aria-checked={every} aria-label={`Marcar las guías de ${g.district}`} onClick={() => flipMany(g.list)}
+                    className={cn("flex items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors duration-200 lg:self-start", every ? "bg-sb-primary-soft" : "hover:bg-sb-surface-container-low")}>
+                    <span className={cn("mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border transition-all duration-200", every ? "border-sb-primary bg-sb-primary text-sb-on-primary" : some ? "border-sb-primary bg-sb-surface" : "border-sb-outline-variant bg-sb-surface")}>
+                      <Check className={cn("h-3 w-3 transition-opacity", every ? "opacity-100" : "opacity-0")} strokeWidth={3} />
                     </span>
-                    <span className="block truncate text-[11px] text-sb-on-surface-variant" title={r.dealer ?? ""}>{r.district ?? "—"} · {r.dealer ?? "—"}</span>
-                  </span>
-                  <span className="hidden min-w-0 text-[11px] text-sb-on-surface-variant lg:block">
-                    <span className="block truncate text-xs text-sb-on-surface">{r.nave ?? "—"}{r.container ? <span className="ml-1.5 font-mono text-[10px] text-sb-on-surface-variant">{r.container}</span> : null}</span>
-                    <span className="block truncate" title={r.models ?? ""}>{r.models ?? "—"}</span>
-                  </span>
-                  <span className="col-start-2 min-w-0 lg:col-start-auto">
-                    {left !== null ? (
-                      <>
-                        <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold", tone === "late" ? "bg-sb-late-soft text-sb-late" : "bg-sb-ontime-soft text-sb-ontime")}>
-                          {late(r) ? `Vencida hace ${-left} día${left === -1 ? "" : "s"}` : left === 0 ? "Vence hoy" : `Quedan ${left} día${left === 1 ? "" : "s"}`}
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline justify-between gap-2">
+                        <span className="truncate text-sm font-semibold uppercase tracking-tight">{g.district}</span>
+                        <span className="shrink-0 text-sm font-semibold tabular-nums lg:hidden">{n(g.total)} <span className="text-[10px] font-normal text-sb-on-surface-variant">unid.</span></span>
+                      </span>
+                      <span className="mt-0.5 block text-[11px] text-sb-on-surface-variant">
+                        {plural(g.list.length, ["guía", "guías"])} · <span className="hidden lg:inline">{n(g.total)} unid. · </span>
+                        {lateN ? <span className="text-sb-late">{lateN} vencida{lateN === 1 ? "" : "s"}</span> : <span className="text-sb-ontime">al día</span>}
+                      </span>
+                      <span className="mt-1.5 block"><Kinds w2={g.w2} w3={g.w3} /></span>
+                    </span>
+                  </button>
+                  <div className="flex flex-col gap-0.5 pl-6 lg:pl-0">
+                  {g.list.map((r) => {
+                    const on = sel.has(key(r)), days = r.since ? daysBetween(parseISO(String(r.since).slice(0, 10)), today) : 0;
+                    const left = r.est ? -dd(r.est, today) : null, lead = r.est && r.billing ? dd(r.billing, parseISO(String(r.est).slice(0, 10))) : null;
+                    const tone = late(r) ? "late" : "ontime";
+                    return (
+                      <button key={`${key(r)}|${r.dealer}`} type="button" role="checkbox" aria-checked={on} aria-label={`Marcar ${r.guia}`} onClick={() => flip(key(r))}
+                        className={cn(COLS, "grid items-center gap-y-1 rounded-xl px-3 py-3 text-left transition-colors duration-200", on ? "bg-sb-primary-soft" : "hover:bg-sb-surface-container-low")}>
+                        <span className={cn("grid h-5 w-5 place-items-center rounded-full border transition-all duration-200", on ? "scale-105 border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant bg-sb-surface")}>
+                          <Check className={cn("h-3 w-3 transition-opacity", on ? "opacity-100" : "opacity-0")} strokeWidth={3} />
                         </span>
-                        <span className="mt-0.5 block truncate text-[10px] text-sb-on-surface-variant">vence {fmtDate(r.est)}{lead !== null ? ` · ${lead} días de plazo` : ""}</span>
-                      </>
-                    ) : <span className="text-[11px] text-sb-on-surface-variant">Sin plazo</span>}
-                  </span>
-                  <span className="hidden text-[11px] lg:block">
-                    <span className="block text-xs">{fmtDate(r.since)}</span>
-                    <span className={cn("text-[10px]", days >= 7 ? "font-semibold text-sb-late" : "text-sb-on-surface-variant")}>{days <= 0 ? "ingresó hoy" : `hace ${days} día${days === 1 ? "" : "s"}`}</span>
-                  </span>
-                  <span className="hidden lg:block"><Mix w2={r.w2} w3={r.w3} /></span>
-                  <span className="col-start-3 row-span-2 row-start-1 text-right lg:col-start-auto lg:row-span-1 lg:row-start-auto">
-                    <span className="block text-sm font-semibold tabular-nums">{n(r.total)}</span>
-                    <span className="block text-[10px] text-sb-on-surface-variant">unid.</span>
-                  </span>
-                </button>
+                        <span className="min-w-0">
+                          <span className="flex items-center gap-1.5 font-mono text-sm font-semibold tracking-tight">
+                            <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", tone === "late" ? "bg-sb-late" : "bg-sb-ontime")} />{r.guia ?? "—"}
+                          </span>
+                          <span className="block truncate text-[11px] text-sb-on-surface-variant" title={r.dealer ?? ""}>{r.dealer ?? "—"}</span>
+                        </span>
+                        <span className="hidden min-w-0 text-[11px] text-sb-on-surface-variant lg:block">
+                          <span className="block truncate text-xs text-sb-on-surface">{r.nave ?? "—"}{r.container ? <span className="ml-1.5 font-mono text-[10px] text-sb-on-surface-variant">{r.container}</span> : null}</span>
+                          <span className="block truncate" title={r.models ?? ""}>{r.models ?? "—"}</span>
+                        </span>
+                        <span className="col-start-2 min-w-0 lg:col-start-auto">
+                          {left !== null ? (
+                            <>
+                              <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold", tone === "late" ? "bg-sb-late-soft text-sb-late" : "bg-sb-ontime-soft text-sb-ontime")}>
+                                {late(r) ? `Vencida hace ${-left} día${left === -1 ? "" : "s"}` : left === 0 ? "Vence hoy" : `Quedan ${left} día${left === 1 ? "" : "s"}`}
+                              </span>
+                              <span className="mt-0.5 block truncate text-[10px] text-sb-on-surface-variant">vence {fmtDate(r.est)}{lead !== null ? ` · ${lead} días de plazo` : ""}</span>
+                            </>
+                          ) : <span className="text-[11px] text-sb-on-surface-variant">Sin plazo</span>}
+                        </span>
+                        <span className="hidden text-[11px] lg:block">
+                          <span className="block text-xs">{fmtDate(r.since)}</span>
+                          <span className={cn("text-[10px]", days >= 7 ? "font-semibold text-sb-late" : "text-sb-on-surface-variant")}>{days <= 0 ? "ingresó hoy" : `hace ${days} día${days === 1 ? "" : "s"}`}</span>
+                        </span>
+                        <span className="hidden lg:block"><Kinds w2={r.w2} w3={r.w3} /></span>
+                        <span className="col-start-3 row-span-2 row-start-1 text-right lg:col-start-auto lg:row-span-1 lg:row-start-auto">
+                          <span className="block text-sm font-semibold tabular-nums">{n(r.total)}</span>
+                          <span className="block text-[10px] text-sb-on-surface-variant">unid.</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                  </div>
+                </div>
               );
             })}
           </div>
