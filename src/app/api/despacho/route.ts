@@ -64,9 +64,15 @@ export async function GET(req: Request) {
          MIN(est_date) est, MIN(billing_date) billing, SUM(est_date < CURDATE()) overdue
        FROM v_units WHERE site = ? AND next_step = 'd_despacho'${scope}
        GROUP BY guia, district, dealer ORDER BY MIN(d_almacen), district, dealer, guia`, [site, ...sargs]);
+    // Antigüedad: lo que espera en almacén por llegada (fecha de arribo + nave) y distrito, para los días de espera
+    const aging = await queryList<{ district: string | null; nave: string | null; arribo: string | null; w2: number; w3: number }>(
+      `SELECT district, nave, d_arribo arribo, SUM(category = '2W') w2, SUM(category <> '2W' OR category IS NULL) w3
+       FROM v_units WHERE site = ? AND next_step = 'd_despacho'${scope}
+       GROUP BY district, nave, d_arribo ORDER BY d_arribo, nave`, [site, ...sargs]);
     return NextResponse.json({
       canDispatch: perm.ok,
       rows: rows.map((r) => ({ ...r, w2: num(r.w2), w3: num(r.w3), total: num(r.total), need: num(r.need), overdue: num(r.overdue) })),
+      aging: aging.map((r) => ({ ...r, arribo: r.arribo ? String(r.arribo).slice(0, 10) : null, w2: num(r.w2), w3: num(r.w3) })),
     });
   }
 

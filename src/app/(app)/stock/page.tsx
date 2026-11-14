@@ -12,6 +12,7 @@ import { daysBetween, parseISO, todayLima } from "@/lib/dates";
 import { cn } from "@/lib/cn";
 import { Kind, KindText, W2, W3 } from "@/components/Kinds";
 import { districtCompare, zoneOf } from "@/lib/zones";
+import { StockAging, type AgingRow } from "@/components/stock/StockAging";
 
 /**
  * Stock en almacén (entre el paso 4 y el 5): todo lo que ingresó al almacén y aún no se despacha, por guía.
@@ -40,6 +41,7 @@ export default function StockPage() {
   const [me, setMe] = useState<{ role: string; stages: { site: Site; field: string }[] } | null>(null);
   const [site, setSite] = useState<Site | null>(null);
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [aging, setAging] = useState<AgingRow[] | null>(null);
   const [canDispatch, setCanDispatch] = useState(false);
   const [q, setQ] = useState("");
   const [only, setOnly] = useState<"all" | "late" | "ok">("all");
@@ -63,7 +65,7 @@ export default function StockPage() {
   useEffect(() => {
     if (!current) return;
     let alive = true;
-    fetch(`/api/despacho?${new URLSearchParams({ site: current, stock: "1" })}`).then((r) => r.json()).then((j) => { if (alive) { setRows(j.rows ?? []); setCanDispatch(!!j.canDispatch); } });
+    fetch(`/api/despacho?${new URLSearchParams({ site: current, stock: "1" })}`).then((r) => r.json()).then((j) => { if (alive) { setRows(j.rows ?? []); setAging(j.aging ?? []); setCanDispatch(!!j.canDispatch); } });
     return () => { alive = false; };
   }, [current, reload]);
 
@@ -99,7 +101,7 @@ export default function StockPage() {
         {sites.length > 1 && (
           <div className="flex rounded-full bg-sb-surface-container p-1">
             {sites.map((s) => (
-              <button key={s} type="button" onClick={() => { setSite(s); setSel(new Set()); setRows(null); }}
+              <button key={s} type="button" onClick={() => { setSite(s); setSel(new Set()); setRows(null); setAging(null); }}
                 className={cn("sb-pill rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200", current === s ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
                 {SITE_INFO[s].title}
               </button>
@@ -302,6 +304,9 @@ export default function StockPage() {
           </div>
         </div>
       </Card>
+
+      {/* El mismo stock por antigüedad: días de espera desde el arribo, por nave y distrito */}
+      <StockAging rows={aging} />
 
       {/* Barra para armar el despacho con lo marcado */}
       {chosen.length > 0 && (
