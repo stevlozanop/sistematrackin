@@ -57,12 +57,12 @@ export function StockAging({ rows }: { rows: AgingRow[] | null }) {
     <Card className="overflow-hidden">
       <div className="flex flex-wrap items-center gap-3 border-b border-sb-outline-variant/40 px-4 py-3.5">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sb-primary-soft text-sb-primary"><Hourglass className="h-[18px] w-[18px]" /></span>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-56">
           <h3 className="text-sm font-semibold">Stock por antigüedad</h3>
           <p className="text-[11px] text-sb-on-surface-variant">Días de espera desde que arribó a Pucallpa hasta hoy, por nave y distrito: lo de la izquierda lleva más tiempo esperando consolidación</p>
         </div>
         {data && (
-          <div className="flex flex-wrap gap-2 text-[11px]">
+          <div className="flex w-full flex-wrap gap-2 text-[11px] lg:w-auto">
             {data.oldest && (
               <span className="rounded-full bg-sb-surface-container px-2.5 py-1">
                 Más antigua: <b className={tone(data.days(data.oldest.arribo))}>{data.days(data.oldest.arribo)} días</b> · {data.oldest.nave ?? "sin nave"}
@@ -158,6 +158,7 @@ export function StockAging({ rows }: { rows: AgingRow[] | null }) {
             <span className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-sb-late-soft" /> 30 días o más</span>
             <span className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-amber-500/25" /> 15 a 29 días</span>
             <span>«espera máxima»: lo más antiguo que tiene cada distrito</span>
+            {data.batches.length > 2 && <span className="font-medium text-sb-on-surface sm:hidden">← Desliza de lado para ver todas las llegadas →</span>}
           </p>
         </div>
       )}
