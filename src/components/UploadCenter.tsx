@@ -157,6 +157,8 @@ function SavedBatches() {
 export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: () => void; mode: UploadMode }) {
   const [tab, setTab] = useState<"upload" | "history">("upload");
   const fileRef = useRef<HTMLInputElement>(null);
+  const addRef = useRef<HTMLInputElement>(null);
+  const picked = useRef<File[]>([]); // Excel de la vista previa actual (para sumarle otro)
   const [drag, setDrag] = useState(false);
   const [reading, setReading] = useState<string | null>(null);
   const [units, setUnits] = useState<Preview | null>(null);
@@ -208,19 +210,28 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
     return stageFile(new File([out], file.name, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
   }
 
-  async function read(list: File[]) {
+  async function read(chosen: File[], add = false) {
+    if (!chosen.length) return;
+    // «Agregar otro Excel»: se suma a los de la vista previa (si ya se guardó, la base ya los tiene y se sigue solo con el nuevo)
+    const key = (f: File) => `${f.name}|${f.size}|${f.lastModified}`;
+    const before = add && units && !units.saved ? picked.current : [];
+    const list = [...before, ...chosen.filter((f) => !before.some((b) => key(b) === key(f)))];
     const file = list[0];
-    if (!file) return;
-    reset();
-    setReading(list.length > 1 ? `${list.length} archivos` : file.name);
+    const prev = units;
+    if (!add) reset();
+    setReading(add ? `${chosen.length > 1 ? `${chosen.length} archivos` : chosen[0].name} (se suma)` : list.length > 1 ? `${list.length} archivos` : file.name);
     try {
       if (mode === "stage") {
         // El encargado solo registra fechas de sus etapas (plantilla o el archivo completo: se toma solo lo suyo)
         await stageFromAnyFile(file);
       } else {
         try {
-          setUnits(await readUnitsExcel(list));
+          const next = await readUnitsExcel(list);
+          picked.current = list;
+          setProgress(0);
+          setUnits(next);
         } catch (e) {
+          if (add) { setUnits(prev); throw e; } // el archivo agregado no sirve: la vista previa anterior se queda
           if (!isUnknownExcel(e)) throw e;
           throw new Error("No se reconoce el Excel. Sube la facturación (FACT HSP-DATA / PCL-FACT, con «Número Chasis» y «Nombre Tienda») o el HSP-OFICIAL (hojas PCL y YUR).");
         }
@@ -230,6 +241,7 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
     }
     setReading(null);
     if (fileRef.current) fileRef.current.value = "";
+    if (addRef.current) addRef.current.value = "";
   }
 
   async function saveUnits() {
@@ -300,7 +312,9 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
               <AnimatePresence mode="wait">
                 {units && (
                   <motion.div key="units" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.3, ease: EASE }}>
-                    <ImportPanel preview={units} saving={saving} progress={progress} onSave={saveUnits} onClose={reset} />
+                    <input ref={addRef} type="file" accept=".xlsx,.xls,.csv" hidden multiple onChange={(e) => read([...(e.target.files ?? [])], true)} />
+                    <ImportPanel preview={units} saving={saving} progress={progress} onSave={saveUnits} onClose={reset}
+                      adding={reading} onAdd={() => addRef.current?.click()} onDropAdd={(f) => read(f, true)} />
                   </motion.div>
                 )}
                 {stage && (

@@ -1,6 +1,7 @@
 "use client";
+import { useState } from "react";
 import { Button, Chip, toast } from "@heroui/react";
-import { Save, X } from "lucide-react";
+import { FilePlus2, Save, X } from "lucide-react";
 import { Card, Table, Td, Th, Thead, Tr } from "@/components/ui";
 import { fmtDate, type Site } from "@/lib/hsp";
 import { applyRoutes, dedupe, type DistrictRoute, type UnitRow } from "@/lib/excel-parse";
@@ -121,11 +122,24 @@ export async function saveExcel(rows: UnitRow[], onProgress: (p: number) => void
 }
 
 export function ImportPanel({
-  preview, saving, progress = 0, onSave, onClose,
-}: { preview: Preview; saving: boolean; progress?: number; onSave: () => void; onClose: () => void }) {
+  preview, saving, progress = 0, onSave, onClose, onAdd, onDropAdd, adding,
+}: {
+  preview: Preview; saving: boolean; progress?: number; onSave: () => void; onClose: () => void;
+  /** Sumar otro Excel a esta vista previa (botón o arrastrándolo encima). */
+  onAdd?: () => void; onDropAdd?: (files: File[]) => void; adding?: string | null;
+}) {
   const total = preview.sites.PCL.total + preview.sites.YUR.total;
+  const [over, setOver] = useState(false);
   return (
-    <Card className="sb-anim-table-in flex flex-col overflow-hidden">
+    <Card className={`sb-anim-table-in relative flex flex-col overflow-hidden transition-shadow duration-200 ${over ? "ring-2 ring-sb-primary" : ""}`}
+      onDragOver={onDropAdd && !saving ? (e) => { e.preventDefault(); setOver(true); } : undefined}
+      onDragLeave={() => setOver(false)}
+      onDrop={onDropAdd && !saving ? (e) => { e.preventDefault(); setOver(false); onDropAdd([...(e.dataTransfer.files ?? [])].slice(0, 20)); } : undefined}>
+      {(over || adding) && (
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-sb-surface/85 text-sm font-semibold text-sb-primary backdrop-blur-[2px]">
+          {adding ? `Leyendo ${adding}…` : "Suelta el Excel para sumarlo"}
+        </div>
+      )}
       <div className="flex items-start justify-between gap-3 border-b border-sb-outline-variant/40 px-4 py-3">
         <div>
           <div className="text-sm font-semibold">
@@ -185,7 +199,12 @@ export function ImportPanel({
           {total > preview.sample.length ? `Mostrando ${preview.sample.length} de ${total.toLocaleString()} filas.` : `${total} filas.`}
           {preview.format === "FACT" && " La facturación no borra las fechas que ya estén registradas."}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {onAdd && (
+            <Button size="sm" variant="secondary" className="rounded-full" isDisabled={saving || !!adding} onPress={onAdd}>
+              <FilePlus2 className="h-3.5 w-3.5" /> {preview.saved ? "Subir otro Excel" : "Agregar otro Excel"}
+            </Button>
+          )}
           {!preview.saved && (
             <Button size="sm" variant="secondary" className="rounded-full" isDisabled={saving} onPress={onClose}>Cancelar</Button>
           )}
