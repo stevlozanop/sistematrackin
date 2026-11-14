@@ -350,9 +350,20 @@ function Transit({ site, rows, onPick }: { site: Site; rows: Data["transit"]; on
 
 /* ---------- Modal: detalle por distrito y dealer (2W motos · 3W motokares) ---------- */
 
-/** Colores de motos (2W) y motokares (3W): el de la empresa y su versión clara */
+/** Colores de motos (2W) y motokares (3W): bien distintos para no confundirlos. Motos = color de la empresa; motokares = ámbar */
 const W2 = "var(--sb-primary)";
-const W3 = "color-mix(in oklab, var(--sb-primary) 38%, var(--sb-surface-container-high))";
+const W3 = "#e2922a";
+/** Pastilla con la cantidad y el tipo, en su color: «28 motos» / «33 motokares» */
+function Kind({ v, k, short }: { v: number; k: "w2" | "w3"; short?: boolean }) {
+  const c = k === "w2" ? W2 : W3;
+  return (
+    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums"
+      style={{ background: `color-mix(in oklab, ${c} 14%, transparent)`, color: c }}>
+      <i className="h-1.5 w-1.5 rounded-full" style={{ background: c }} />
+      {n(v)} {k === "w2" ? (v === 1 ? "moto" : "motos") : short ? "motok." : v === 1 ? "motokar" : "motokares"}
+    </span>
+  );
+}
 /** «NUEVA CAJAMARCA» → «Nueva Cajamarca» */
 const nice = (s: string) => townOf(s)?.name ?? s.toLowerCase().replace(/(^|[\s(.-])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());
 
@@ -421,8 +432,8 @@ function DetailModal({ ask, year, onClose }: { ask: Ask | null; year: number; on
                               </span>
                               <span className="flex items-center gap-3">
                                 <Split w2={d.w2} w3={d.w3} of={max} className="h-1.5 flex-1" />
-                                <span className="w-[8.5rem] shrink-0 text-right text-[11px] tabular-nums text-sb-on-surface-variant">
-                                  {d.w2 ? `${n(d.w2)} motos` : ""}{d.w2 && d.w3 ? " · " : ""}{d.w3 ? `${n(d.w3)} motok.` : ""}
+                                <span className="flex shrink-0 flex-wrap justify-end gap-1">
+                                  {d.w2 > 0 && <Kind v={d.w2} k="w2" />}{d.w3 > 0 && <Kind v={d.w3} k="w3" short />}
                                 </span>
                               </span>
                             </span>
@@ -432,11 +443,10 @@ function DetailModal({ ask, year, onClose }: { ask: Ask | null; year: number; on
                               <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                                 transition={{ duration: 0.28, ease: EASE }} className="overflow-hidden">
                                 {d.dealers.map((x) => (
-                                  <li key={x.dealer} className="ml-[3.25rem] mr-3 flex items-center gap-3 border-t border-sb-outline-variant/50 py-2 text-[12px] first:border-0">
-                                    <span className="min-w-0 flex-1 truncate">{x.dealer}</span>
-                                    <span className="flex shrink-0 items-center gap-2 tabular-nums text-sb-on-surface-variant">
-                                      {x.w2 > 0 && <span className="flex items-center gap-1"><i className="h-1.5 w-1.5 rounded-full" style={{ background: W2 }} />{n(x.w2)}</span>}
-                                      {x.w3 > 0 && <span className="flex items-center gap-1"><i className="h-1.5 w-1.5 rounded-full" style={{ background: W3 }} />{n(x.w3)}</span>}
+                                  <li key={x.dealer} className="ml-[3.25rem] mr-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-sb-outline-variant/50 py-2 text-[12px] first:border-0">
+                                    <span className="min-w-0 basis-full truncate sm:flex-1 sm:basis-auto">{x.dealer}</span>
+                                    <span className="flex flex-1 flex-wrap gap-1 sm:flex-none sm:justify-end">
+                                      {x.w2 > 0 && <Kind v={x.w2} k="w2" />}{x.w3 > 0 && <Kind v={x.w3} k="w3" />}
                                     </span>
                                     <b className="w-10 shrink-0 text-right tabular-nums">{n(x.total)}</b>
                                   </li>
