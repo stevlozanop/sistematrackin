@@ -646,3 +646,50 @@ html[data-look="minimalice"] .sb-shell > aside .sb-nav-link:not(.h-9)::before {
 html[data-look="minimalice"] .sb-shell > aside .sb-nav-link:not(.h-9)[data-active]::before { height: 16px; }
 /* Campos y píldoras más sobrios */
 html[data-look="minimalice"] main input:not([type=checkbox]):not([type=radio]), html[data-look="minimalice"] main select { border-radius: 10px; }
+
+
+/* ===== Workice: panel de trabajo oscuro. Todo el contenido vive en un gran panel redondeado sobre fondo casi negro;
+   título en mayúsculas espaciadas y finas («WORKSPACE»), cifras grandes y livianas, tarjetas gris carbón muy
+   redondas, menú con cada ícono en un círculo y lo activo relleno con el color de la empresa (que hace de «neón»).
+   En claro es el mismo esquema invertido: papel gris, panel claro y tarjetas blancas. ===== */
+html[data-look="workice"] {
+  --page-bg: #e6e6e2; --sb-surface: #ffffff; --sb-surface-container-low: #f3f3f0; --sb-surface-container: #ebebe7;
+  --sb-surface-container-high: #e0e0db; --sb-outline-variant: #e4e4df;
+  --sb-radius-card: 26px; --sb-shadow-card: none; --wk-panel: #f4f4f1; --wk-circle: #e3e3df;
+}
+html.dark[data-look="workice"] {
+  --page-bg: #050505; --sb-surface: #1a1a1a; --sb-surface-container-low: #202020; --sb-surface-container: #262626;
+  --sb-surface-container-high: #303030; --sb-outline-variant: #2a2a2a; --wk-panel: #101010; --wk-circle: #1f1f1f;
+}
+/* El contenido en un gran panel redondeado */
+@media (min-width: 768px) {
+  html[data-look="workice"] .sb-shell > div > main { background: var(--wk-panel); border-radius: 32px; margin: 0 12px 12px 0; padding-top: 24px; }
+}
+html[data-look="workice"] .sb-card { border: 0 !important; }
+html[data-look="workice"] main .sb-card .sb-card { background: var(--sb-surface-container-low); border-radius: 20px !important; }
+/* Título «WORKSPACE»: mayúsculas, finas y muy espaciadas */
+html[data-look="workice"] .sb-title { text-transform: uppercase; font-weight: 300; letter-spacing: .2em; font-size: clamp(22px, 2.6vw, 30px); }
+html[data-look="workice"] .sb-sub { margin-top: 8px; }
+/* Ruta de arriba en una cápsula invertida (como la barra superior de la referencia) */
+@media (min-width: 768px) {
+  html[data-look="workice"] .sb-crumb { background: var(--sb-on-surface); color: var(--sb-surface) !important; border-radius: 999px; padding: 6px 14px; font-size: 12px; font-weight: 600; flex: 0 1 auto; min-width: 0; }
+}
+/* Cifras grandes y livianas */
+html[data-look="workice"] main .text-3xl, html[data-look="workice"] main .text-2xl { font-weight: 300 !important; letter-spacing: -0.03em; }
+html[data-look="workice"] main .text-3xl { font-size: 2.4rem; }
+/* Menú: cada ícono en un círculo; la activa con el círculo relleno del color de la empresa */
+html[data-look="workice"] .sb-shell > aside .sb-nav-section { text-transform: uppercase; letter-spacing: .14em; font-size: 9.5px; font-weight: 600; opacity: .5; }
+html[data-look="workice"] .sb-shell > aside .sb-nav-link:not(.h-9) { height: 38px; padding-left: 4px; border-radius: 999px !important; }
+html[data-look="workice"] .sb-shell > aside .sb-nav-link:not(.h-9) .sb-nav-icon {
+  display: grid; place-items: center; width: 30px; height: 30px; border-radius: 999px; background: var(--wk-circle); flex-shrink: 0;
+  transition: background-color .25s, color .25s;
+}
+html[data-look="workice"] .sb-shell > aside .sb-nav-link.h-9 { width: 40px; height: 40px; border-radius: 999px !important; background: var(--wk-circle); }
+html[data-look="workice"] .sb-shell > aside .sb-nav-link[data-active] .sb-nav-icon,
+html[data-look="workice"] .sb-shell > aside .sb-nav-link.h-9[data-active] { background: var(--sb-primary) !important; color: var(--sb-on-primary) !important; }
+html[data-look="workice"] .sb-shell > aside .sb-nav-link.h-9[data-active] .sb-nav-icon { color: var(--sb-on-primary) !important; }
+html[data-look="workice"] .sb-nav-pill { background: var(--wk-panel) !important; box-shadow: none !important; }
+html[data-look="workice"] .sb-shell > aside .sb-nav-link.h-9 .sb-nav-pill { display: none; }
+/* Lo seleccionado en el contenido (filtros, opciones activas) también «enciende» */
+html[data-look="workice"] main [aria-pressed="true"].bg-sb-surface { background: var(--sb-primary) !important; color: var(--sb-on-primary) !important; }
+html[data-look="workice"] main input:not([type=checkbox]):not([type=radio]), html[data-look="workice"] main select { border-radius: 999px; }
