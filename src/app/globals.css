@@ -710,3 +710,50 @@ html[data-look="workice"] .sb-shell > div > header .sb-glass {
 html[data-look="workice"] .sb-shell > div > header .sb-glass:hover { background: color-mix(in oklab, var(--wk-on) 80%, var(--wk-on-text)) !important; }
 html[data-look="workice"] .sb-shell > div > header .sb-glass * { color: inherit; }
 html[data-look="workice"] .sb-shell > div > header .bg-sb-surface-container-highest { background: color-mix(in oklab, var(--wk-on) 75%, var(--wk-on-text)); }
+
+/* --- Workice · contenido: cada pantalla con el lenguaje del Workspace ---
+   Encabezados de tarjeta sin línea y con título más grande, íconos en círculos con borde, cada fila de una lista
+   como una ficha redondeada (la marcada se enciende con el color de la empresa), tablas con filas en fichas,
+   botón principal en cápsula del color contrario al fondo (como «New Task») y secundarios con borde. */
+html[data-look="workice"] { --wk-tile: #f5f5f2; --wk-tile-hover: #efefeb; --wk-lit: var(--sb-primary); --wk-lit-on: var(--sb-on-primary); }
+html.dark[data-look="workice"] { --wk-tile: #222222; --wk-tile-hover: #2a2a2a; }
+html[data-look="workice"] main .sb-card > div.border-b:first-child { border-bottom-color: transparent !important; padding-top: 18px; }
+html[data-look="workice"] main .sb-card h3 { font-size: 16px; font-weight: 500; letter-spacing: -0.01em; }
+html[data-look="workice"] main span.grid.h-9.w-9.rounded-xl {
+  border-radius: 999px; background: transparent !important; border: 1px solid var(--wk-ring); color: var(--sb-on-surface) !important;
+}
+/* Filas de las listas → fichas */
+html[data-look="workice"] main .sb-card :is(button, div, a).grid.rounded-xl:not(.animate-pulse) {
+  background: var(--wk-tile); border-radius: 18px !important; margin-block: 3px;
+}
+html[data-look="workice"] main .sb-card :is(button, div, a).grid.rounded-xl:not(.animate-pulse):hover { background: var(--wk-tile-hover); }
+/* La ficha marcada se enciende (como la tarjeta resaltada del Workspace) */
+html[data-look="workice"] main .sb-card :is(button, div).grid.rounded-xl.bg-sb-primary-soft {
+  background: var(--wk-lit) !important; color: var(--wk-lit-on);
+  --sb-on-surface: var(--wk-lit-on); --sb-on-surface-variant: color-mix(in oklab, var(--wk-lit-on) 75%, transparent);
+  --sb-primary: var(--wk-lit-on); --sb-on-primary: var(--wk-lit); --sb-surface: color-mix(in oklab, var(--wk-lit-on) 18%, transparent);
+  --sb-late: var(--wk-lit-on); --sb-late-soft: color-mix(in oklab, var(--wk-lit-on) 14%, transparent);
+}
+/* Tarjetas dentro de tarjetas (paradas, grupos por dealer) sin borde, como fichas grandes */
+html[data-look="workice"] main .sb-card .rounded-2xl.border { border-color: transparent !important; background: var(--wk-tile); }
+html[data-look="workice"] main .sb-card .rounded-2xl.border .grid.rounded-xl:not(.bg-sb-primary-soft) { background: transparent; }
+html[data-look="workice"] main .sb-card .rounded-2xl.border .grid.rounded-xl:not(.bg-sb-primary-soft):hover { background: var(--wk-tile-hover); }
+/* Tablas: cada fila es una ficha */
+html[data-look="workice"] main table:has(.sb-row) { border-collapse: separate; border-spacing: 0 5px; }
+html[data-look="workice"] main tr.sb-row { border: 0 !important; }
+html[data-look="workice"] main tr.sb-row > td { background: var(--wk-tile); }
+html[data-look="workice"] main tr.sb-row:hover > td { background: var(--wk-tile-hover); }
+html[data-look="workice"] main tr.sb-row > td:first-child { border-radius: 16px 0 0 16px; }
+html[data-look="workice"] main tr.sb-row > td:last-child { border-radius: 0 16px 16px 0; }
+html[data-look="workice"] main thead tr { border-bottom-color: transparent !important; }
+/* Botones: el principal en cápsula del color contrario al fondo; los secundarios, con borde */
+html[data-look="workice"] main .button--primary, html[data-look="workice"] main button.bg-sb-primary, html[data-look="workice"] main a.bg-sb-primary,
+html[data-look="workice"] .modal__dialog .button--primary, html[data-look="workice"] .drawer__content .button--primary {
+  background: var(--wk-on) !important; color: var(--wk-on-text) !important; box-shadow: none !important; filter: none !important;
+}
+html[data-look="workice"] main .button--secondary, html[data-look="workice"] .modal__dialog .button--secondary, html[data-look="workice"] .drawer__content .button--secondary {
+  background: transparent !important; backdrop-filter: none; border: 1px solid var(--wk-ring) !important; box-shadow: none !important;
+}
+html[data-look="workice"] main .button--secondary:not(:disabled):hover { border-color: var(--wk-on) !important; background: transparent !important; }
+/* Botoncitos redondos (desplegar, limpiar, etc.): círculos con borde */
+html[data-look="workice"] main .sb-card button.rounded-full:is(.p-1, .p-1\.5):not([aria-pressed]) { border: 1px solid var(--wk-ring); }
