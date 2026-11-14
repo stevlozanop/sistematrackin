@@ -757,3 +757,32 @@ html[data-look="workice"] main .button--secondary, html[data-look="workice"] .mo
 html[data-look="workice"] main .button--secondary:not(:disabled):hover { border-color: var(--wk-on) !important; background: transparent !important; }
 /* Botoncitos redondos (desplegar, limpiar, etc.): círculos con borde */
 html[data-look="workice"] main .sb-card button.rounded-full:is(.p-1, .p-1\.5):not([aria-pressed]) { border: 1px solid var(--wk-ring); }
+
+/* --- Workice · verde lima: el color de la empresa en su versión neón (Leyva: verde → lima, como el Workspace),
+   combinado con el negro. Se calcula del color de la empresa (sin color propio queda gris, como The Iceberg Labs).
+   Fichas marcadas, menú activo, «Subir Excel» y lo encendido van en lima con texto negro; en oscuro, todo el color
+   de la empresa pasa a lima. En claro el texto de color sigue en el verde de la empresa para que se lea. --- */
+html[data-look="workice"] { --wk-lime: var(--accent); --wk-lime-on: #0b0b0b; }
+@supports (color: oklch(from red l c h)) {
+  html[data-look="workice"] { --wk-lime: oklch(from var(--accent) 0.89 min(calc(c * 8), 0.22) calc(h - 14)); }
+}
+html[data-look="workice"] { --wk-lit: var(--wk-lime); --wk-lit-on: var(--wk-lime-on); }
+html.dark[data-look="workice"] {
+  --sb-primary: var(--wk-lime); --sb-on-primary: var(--wk-lime-on); --sb-primary-soft: color-mix(in oklab, var(--wk-lime) 14%, transparent);
+}
+/* Menú activo: círculo lima con el ícono negro */
+html[data-look="workice"] .sb-shell > aside .sb-nav-link[data-active]:not(.h-9) .sb-nav-icon,
+html[data-look="workice"] .sb-shell > aside .sb-nav-link.h-9[data-active] { background: var(--wk-lime) !important; border-color: var(--wk-lime); color: var(--wk-lime-on) !important; }
+html[data-look="workice"] .sb-shell > aside .sb-nav-link[data-active] .sb-nav-icon { color: var(--wk-lime-on) !important; }
+/* Acción principal del menú (Subir Excel) y los botones de color: lima con texto negro */
+html[data-look="workice"] .sb-shell > aside button.bg-sb-primary,
+html[data-look="workice"] nav button.bg-sb-primary, html[data-look="workice"] .sb-shell .bg-sb-primary:not(main *) {
+  --gloss: var(--wk-lime); color: var(--wk-lime-on) !important;
+}
+/* Etiquetas de color dentro del contenido (ej. «Ya consolida»): lima con texto negro */
+html[data-look="workice"] main span.bg-sb-primary { background: var(--wk-lime) !important; color: var(--wk-lime-on) !important; }
+/* Barra de progreso de motos y cifras resaltadas siguen el color de la empresa (lima en oscuro) */
+/* Dentro de una ficha lima, los motokares (ámbar) en un tono oscuro para que se lean */
+html[data-look="workice"] main .grid.rounded-xl.bg-sb-primary-soft :is([style*="#e2922a"], [style*="226, 146, 42"]) { color: #7a3f00 !important; }
+html[data-look="workice"] main .grid.rounded-xl.bg-sb-primary-soft .rounded-full:is([style*="#e2922a"], [style*="226, 146, 42"]) { background: rgb(122 63 0 / 0.12) !important; }
+html[data-look="workice"] main .grid.rounded-xl.bg-sb-primary-soft :is([style*="#e2922a"], [style*="226, 146, 42"]) i { background: #7a3f00 !important; }
