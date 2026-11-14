@@ -280,8 +280,7 @@ function NavLink({ item, active, open, badge }: { item: Item; active: boolean; o
       </motion.span>
       {open && (
         <span className={cn("sb-nav-label relative z-10 truncate text-[13px] transition-transform duration-300 ease-out group-hover:translate-x-0.5", active ? "font-semibold" : "font-normal")}>
-          {/* La inicial aparte: el estilo «Burbuja» la pone en un círculo */}
-          <span className="sb-nav-ini">{item.title.slice(0, 1)}</span>{item.title.slice(1)}
+          {item.title}
         </span>
       )}
       {open && badge && (
