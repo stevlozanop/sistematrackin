@@ -18,7 +18,7 @@ type LiveEvent = {
 type Live = { now: string; pending: Record<string, number>; users: LiveUser[]; events: LiveEvent[] };
 
 const time = (d: string | null) => (d ? d.slice(11, 16) : "—");
-const val = (field: string, v: string | null) => (v ? (field.startsWith("d_") ? fmtDate(v) : v) : "vacío");
+const val = (field: string, v: string | null) => (v ? (field.startsWith("d_") || field === "entrega_transportista" ? fmtDate(v) : v) : "vacío");
 
 export default function LivePage() {
   const [data, setData] = useState<Live | null>(null);

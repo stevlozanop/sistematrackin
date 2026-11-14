@@ -1,3 +1,4 @@
+import { missingCarrier } from "@/lib/checks";
 import webpush from "web-push";
 import { after } from "next/server";
 import { query } from "./db";
@@ -155,8 +156,8 @@ const carrierUsers = (site: string, carrier: string | null) => ids(
   `SELECT DISTINCT u.id FROM users u JOIN user_stages st ON st.user_id = u.id
    WHERE u.role = 'operator' AND u.${ACTIVE} AND st.site = ? AND st.field = 'd_entrega' AND (u.carrier IS NULL OR u.carrier = ?)`, [site, carrier ?? ""]);
 
-/** El cliente confirmó lo que recibió: doble check para el transportista que lo entregó */
-export async function notifyReceived(guias: string[], kind: string) {
+/** El cliente confirmó lo que recibió: al transportista (doble check, o que registre su entrega si le falta) */
+export async function notifyReceived(guias: string[], kind: string, missing: string[] = []) {
   if (!guias.length) return;
   const rows = await query<{ site: string; carrier: string | null; guias: string; dealer: string | null; n: number }>(
     `SELECT site, carrier, string_agg(DISTINCT guia::text, ', ') guias, MAX(dealer) dealer, COUNT(DISTINCT guia) n FROM v_units
@@ -164,11 +165,15 @@ export async function notifyReceived(guias: string[], kind: string) {
   for (const r of rows) {
     const to = await carrierUsers(r.site, r.carrier);
     if (!to.length) continue;
-    await pushToUsers(to, {
+    const list = r.guias.split(", "), pend = list.filter((g) => missing.includes(g));
+    await pushToUsers(to, pend.length ? {
+      title: `${r.dealer ?? "El cliente"} recibió · falta tu registro`,
+      body: `${pend.length === 1 ? "La guía" : "Las guías"} ${pend.join(", ")} ya ${pend.length === 1 ? "fue recibida" : "fueron recibidas"} por el cliente, pero no registraste la entrega. Regístrala para el doble check ✓✓.`,
+      url: "/conductor", tag: `falta-${pend.join(",")}`,
+    } : {
       title: `✓✓ ${r.dealer ?? "El cliente"} confirmó la recepción`,
       body: `${Number(r.n) === 1 ? "Guía" : "Guías"} ${r.guias}${kind === "observacion" ? " · con observación" : " · llegó completo"}. Ya tiene doble check.`,
-      url: "/conductor",
-      tag: `recibida-${r.guias}`,
+      url: "/conductor", tag: `recibida-${r.guias}`,
     }, "entrega");
   }
 }
@@ -195,6 +200,20 @@ export async function remindUnconfirmed() {
         title: "Confirma lo que recibiste",
         body: `${Number(r.n) === 1 ? "La guía" : "Las guías"} ${r.guias} ya ${Number(r.n) === 1 ? "fue entregada" : "fueron entregadas"}: confirma si llegó completo.`,
         url: "/recepcion", tag: `confirmar-${r.dealer_id}`,
+      }, "diario");
+    }
+  }
+  // El cliente recibió pero el transportista no registró su entrega: también le falta un check
+  const missing = await missingCarrier("d_entrega < CURRENT_DATE", []);
+  if (missing.length) {
+    const m = await query<{ site: string; carrier: string | null; dealer: string | null; n: number }>(
+      "SELECT site, carrier, MAX(dealer) dealer, COUNT(DISTINCT guia) n FROM v_units WHERE guia IN (?) GROUP BY site, carrier", [missing]);
+    for (const r of m) {
+      const to = await carrierUsers(r.site, r.carrier);
+      if (to.length) sent += await pushToUsers(to, {
+        title: `${plural(Number(r.n), "guía recibida", "guías recibidas")} sin tu registro`,
+        body: `El cliente ya confirmó, pero falta que registres la entrega para el doble check ✓✓.`,
+        url: "/conductor", tag: "falta-registro",
       }, "diario");
     }
   }

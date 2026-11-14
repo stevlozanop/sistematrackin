@@ -19,7 +19,8 @@ import { SoftSelect } from "@/components/SoftSelect";
  * marca las que entregó y registra la entrega → «Entregado».
  */
 
-type Row = { guia: string | null; district: string | null; department: string | null; via_lima: number; dealer: string | null; driver: string; w2: number; w3: number; total: number; dispatched: string; need: number };
+type Row = { guia: string | null; district: string | null; department: string | null; via_lima: number; dealer: string | null; driver: string; w2: number; w3: number; total: number; dispatched: string; need: number;
+  /** El cliente ya confirmó que recibió: solo falta tu registro (1.er check) */ received?: boolean };
 
 const field = "h-10 w-full rounded-xl border border-sb-outline-variant bg-sb-surface px-3 text-sm text-sb-on-surface outline-none focus:border-sb-on-surface";
 const n = (v: number) => Number(v ?? 0).toLocaleString("es-PE");
@@ -104,7 +105,7 @@ export default function ConductorPage() {
     const j = await r.json().catch(() => ({ error: "Error del servidor" }));
     setSaving(false);
     if (!r.ok) return toast.danger(j.error);
-    toast.success(`Entrega registrada: ${chosen.length} guía(s)`, { description: `${n(j.units)} unidades → Entregado`, timeout: 7000 });
+    toast.success(`Entrega registrada: ${chosen.length} guía(s) · ✓`, { description: j.confirmed ? `${n(j.units + j.confirmed)} unidades. Las que el cliente ya confirmó quedan con doble check ✓✓.` : `${n(j.units)} unidades → Entregado. Falta que el cliente confirme (✓✓).`, timeout: 7000 });
     if (need && !reason) toast.warning(`${need} unidades quedaron sin motivo de demora`, { description: "Puedes justificarlas después desde PCL/YUR o Alertas", timeout: 8000 });
     setSel(new Set()); setReason(""); setReload((x) => x + 1);
   }
@@ -213,6 +214,7 @@ export default function ConductorPage() {
                             <span className="min-w-0">
                               <span className="flex items-center gap-1.5 font-mono text-sm font-semibold tracking-tight">
                                 {r.guia ?? "—"}{r.need ? <span className="rounded-full bg-sb-late-soft px-1.5 font-sans text-[10px] font-semibold text-sb-late">{r.need} tarde</span> : null}
+                                {r.received ? <span className="rounded-full bg-amber-500/15 px-1.5 font-sans text-[10px] font-semibold text-amber-700 dark:text-amber-300">el cliente ya recibió · falta tu registro</span> : null}
                               </span>
                               <span className="block truncate text-[11px] text-sb-on-surface-variant" title={r.dealer ?? ""}>{r.dealer ?? "—"}</span>
                               <span className="mt-1 flex flex-wrap items-center gap-1 sm:hidden">

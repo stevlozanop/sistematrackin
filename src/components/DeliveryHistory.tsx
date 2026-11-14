@@ -21,9 +21,15 @@ export function Checks({ first, second, obs }: { first: boolean; second: boolean
   return (
     <span className={cn("inline-flex h-7 w-9 shrink-0 items-center justify-center rounded-full",
       both ? (obs ? "bg-sb-late-soft text-sb-late" : "bg-sb-primary-soft text-sb-primary")
-        : first ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" : "bg-sb-surface-container text-sb-on-surface-variant")}
+        : first || second ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" : "bg-sb-surface-container text-sb-on-surface-variant")}
       title={`${first ? "✓ Entrega registrada por el transportista" : "Sin registro del transportista"} · ${second ? "✓ Recibido por el cliente" : "El cliente aún no confirma"}`}>
-      {both || second ? <CheckCheck className={cn("h-4 w-4", !first && "opacity-70")} strokeWidth={2.6} /> : <Check className={cn("h-4 w-4", !first && "opacity-30")} strokeWidth={2.8} />}
+      {both ? <CheckCheck className="h-4 w-4" strokeWidth={2.6} /> : (
+        // Falta uno: se ven los dos checks, el que falta en gris
+        <span className="relative h-4 w-5">
+          <Check className={cn("absolute left-0 top-0 h-4 w-4", first ? "" : "opacity-25")} strokeWidth={2.8} />
+          <Check className={cn("absolute left-[6px] top-0 h-4 w-4", second ? "" : "opacity-25")} strokeWidth={2.8} />
+        </span>
+      )}
     </span>
   );
 }
@@ -50,8 +56,11 @@ export function DeliveryHistory({ highlight, title = "Historial de entregas" }: 
     return () => { alive = false; clearTimeout(t); };
   }, [q, reload, highlight]);
 
-  const two = (r: Delivery) => !!r.kind;
+  // Doble check solo con los dos registros: el del transportista y el del cliente
+  const received = (r: Delivery) => !!r.kind;
+  const two = (r: Delivery) => r.carrier_check && received(r);
   const oneCount = (rows ?? []).filter((r) => !two(r)).length;
+  const noClient = (rows ?? []).filter((r) => !received(r)).length, noCarrier = (rows ?? []).filter((r) => received(r) && !r.carrier_check).length;
   const shown = (rows ?? []).filter((r) => only === "all" || (only === "two") === two(r));
 
   return (
@@ -74,7 +83,7 @@ export function DeliveryHistory({ highlight, title = "Historial de entregas" }: 
       </div>
       <div className="flex flex-wrap items-center gap-2 px-4 pt-3">
         <div className="flex rounded-full bg-sb-surface-container p-0.5">
-          {([["all", "Todas", rows?.length ?? 0], ["one", "Un check", oneCount], ["two", "Doble check", (rows?.length ?? 0) - oneCount]] as const).map(([k, l, c]) => (
+          {([["all", "Todas", rows?.length ?? 0], ["one", "Falta un check", oneCount], ["two", "Doble check", (rows?.length ?? 0) - oneCount]] as const).map(([k, l, c]) => (
             <button key={k} type="button" onClick={() => setOnly(k)} aria-pressed={only === k}
               className={cn("sb-pill flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold",
                 only === k ? "bg-sb-surface text-sb-on-surface shadow-sm" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
@@ -83,33 +92,37 @@ export function DeliveryHistory({ highlight, title = "Historial de entregas" }: 
             </button>
           ))}
         </div>
-        {oneCount > 0 && <span className="text-[11px] text-amber-600 dark:text-amber-400">{n(oneCount)} {oneCount === 1 ? "guía espera" : "guías esperan"} que el cliente confirme lo recibido</span>}
+        {oneCount > 0 && (
+          <span className="text-[11px] text-amber-600 dark:text-amber-400">
+            {[noClient ? `${n(noClient)} sin confirmar por el cliente` : "", noCarrier ? `${n(noCarrier)} sin el registro del transportista` : ""].filter(Boolean).join(" · ")}: sin doble check la entrega no está asegurada
+          </span>
+        )}
       </div>
       <div className="flex flex-col p-1.5">
         {!rows && <div className="m-2 h-16 animate-pulse rounded-xl bg-sb-surface-container-low" />}
-        {rows && !shown.length && <p className="px-4 py-6 text-center text-xs text-sb-on-surface-variant">{q ? `Nada coincide con «${q}».` : only === "one" ? "Todas las entregas tienen doble check." : "Todavía no hay entregas registradas."}</p>}
+        {rows && !shown.length && <p className="px-4 py-6 text-center text-xs text-sb-on-surface-variant">{q ? `Nada coincide con «${q}».` : only === "one" ? "Todas las entregas tienen doble check." : only === "two" ? "Ninguna entrega tiene los dos registros todavía." : "Todavía no hay entregas registradas."}</p>}
         {shown.map((h) => {
           const obs = h.kind === "observacion";
           return (
             <div key={h.guia} className={cn("flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors duration-700", highlight?.has(h.guia) && "bg-sb-primary-soft")}>
-              <Checks first={h.carrier_check} second={two(h)} obs={obs} />
+              <Checks first={h.carrier_check} second={received(h)} obs={obs} />
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="font-mono text-sm font-semibold">{h.guia}</span>
                   {two(h)
-                    ? <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", obs ? "bg-sb-late-soft text-sb-late" : "bg-sb-primary-soft text-sb-primary")}>{obs ? "Recibido con observación" : "Recibido completo"}</span>
-                    : <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">Falta que el cliente confirme</span>}
+                    ? <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", obs ? "bg-sb-late-soft text-sb-late" : "bg-sb-primary-soft text-sb-primary")}>{obs ? "Doble check · con observación" : "Doble check · entrega completa"}</span>
+                    : <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">{received(h) ? "Falta el registro del transportista" : "Falta que el cliente confirme"}</span>}
                   {(h.w2 > 0 || !h.w3) && <Kind v={h.w2} k="w2" />}{h.w3 > 0 && <Kind v={h.w3} k="w3" short />}
                 </p>
                 <p className="truncate text-[11px] text-sb-on-surface-variant">{h.dealer ?? "—"}{h.district ? ` · ${h.district}` : ""}</p>
                 <div className="mt-1.5 grid gap-1 text-[11px] sm:grid-cols-2">
                   <span className={cn("flex items-start gap-1.5", !h.carrier_check && "text-sb-on-surface-variant")}>
                     <Check className={cn("mt-px h-3.5 w-3.5 shrink-0", h.carrier_check ? "text-sb-primary" : "opacity-30")} strokeWidth={3} />
-                    <span className="min-w-0">{h.carrier_check ? <>Entregó el transportista · <b>{fmtDate(h.delivered_on)}</b>{h.driver ? ` · ${h.driver}` : ""}</> : "El transportista no registró la entrega"}</span>
+                    <span className="min-w-0">{h.carrier_check ? <>Entregó el transportista · <b>{fmtDate(h.delivered_on)}</b>{h.driver ? ` · ${h.driver}` : ""}</> : <>El transportista aún no registra su entrega{h.driver ? ` (${h.driver})` : ""}</>}</span>
                   </span>
-                  <span className={cn("flex items-start gap-1.5", !two(h) && "text-sb-on-surface-variant")}>
-                    <CheckCheck className={cn("mt-px h-3.5 w-3.5 shrink-0", two(h) ? (obs ? "text-sb-late" : "text-sb-primary") : "opacity-30")} strokeWidth={3} />
-                    <span className="min-w-0">{two(h) ? <>Recibió el cliente · <b>{fmtDate(h.received_on)}</b>{h.received_by ? ` · ${h.received_by}` : ""}</> : "El cliente aún no confirma lo recibido"}</span>
+                  <span className={cn("flex items-start gap-1.5", !received(h) && "text-sb-on-surface-variant")}>
+                    <CheckCheck className={cn("mt-px h-3.5 w-3.5 shrink-0", received(h) ? (obs ? "text-sb-late" : "text-sb-primary") : "opacity-30")} strokeWidth={3} />
+                    <span className="min-w-0">{received(h) ? <>Recibió el cliente · <b>{fmtDate(h.received_on)}</b>{h.received_by ? ` · ${h.received_by}` : ""}</> : "El cliente aún no confirma lo recibido"}</span>
                   </span>
                 </div>
                 {h.note && <p className="mt-1.5 flex items-start gap-1.5 rounded-lg bg-sb-surface-container-low px-2 py-1 text-xs"><MessageSquareWarning className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sb-late" />{h.note}</p>}

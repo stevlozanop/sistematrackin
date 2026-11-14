@@ -5,6 +5,7 @@ import { isSite, type Site } from "@/lib/hsp";
 import { dealerScope } from "@/lib/clients";
 import { isSuper, today } from "@/lib/workflow";
 import { notifyDelivered, notifyObservation, notifyReceived, pushLater } from "@/lib/push";
+import { CARRIER_OK, FIRST_DELIVERY, LATEST_RECEPTION, missingCarrier } from "@/lib/checks";
 
 /**
  * 6. Entrega al dealer, desde dos lados:
@@ -32,6 +33,8 @@ async function canDeliver(s: Who, site: Site) {
 }
 const day = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
 const num = (v: unknown) => Number(v ?? 0);
+
+
 
 export async function GET(req: Request) {
   const { s, err } = await guard(["admin", "operator", "dealer", "viewer"]);
@@ -118,11 +121,11 @@ export async function GET(req: Request) {
          GROUP BY v.guia ORDER BY MAX(v.d_entrega) DESC NULLS LAST, v.guia LIMIT 150)
        SELECT g.guia, g.site, g.dealer, g.district, g.driver, g.delivered_on, g.total, g.w2, g.w3,
          r.kind, r.note, r.received_on, ru.name received_by, eu.name delivered_by,
-         (e.at IS NOT NULL AND (r.id IS NULL OR e.user_id IS DISTINCT FROM r.user_id OR e.at < r.created_at - INTERVAL '5 seconds')) carrier_check
+         (${CARRIER_OK}) carrier_check
        FROM g
-       LEFT JOIN LATERAL (SELECT * FROM receptions x WHERE x.guia = g.guia ORDER BY x.created_at DESC LIMIT 1) r ON true
+       ${LATEST_RECEPTION}
        LEFT JOIN users ru ON ru.id = r.user_id
-       LEFT JOIN LATERAL (SELECT user_id, at FROM unit_events x WHERE x.unit_id = ANY(g.ids) AND x.field = 'd_entrega' ORDER BY x.at LIMIT 1) e ON true
+       ${FIRST_DELIVERY}
        LEFT JOIN users eu ON eu.id = e.user_id
        ORDER BY COALESCE(g.delivered_on, r.received_on) DESC, g.guia`, args);
     return NextResponse.json({ rows: rows.map((r) => ({ ...r, total: num(r.total), w2: num(r.w2), w3: num(r.w3), carrier_check: !!r.carrier_check && r.carrier_check !== ("f" as never) })) });
@@ -157,19 +160,25 @@ export async function GET(req: Request) {
   const sargs = perm.carrier ? [perm.carrier] : [];
 
   if (p.get("drivers")) {
+    // Lo que falta entregar, y lo que el cliente ya recibió sin el registro del transportista
+    const missing = await missingCarrier(`site = ? AND driver IS NOT NULL${scope}`, [site, ...sargs]);
     const rows = await queryList<{ v: string; n: number }>(
-      `SELECT driver v, COUNT(*) n FROM v_units WHERE site = ? AND next_step = 'd_entrega' AND d_despacho IS NOT NULL AND driver IS NOT NULL${scope} GROUP BY driver ORDER BY driver`, [site, ...sargs]);
+      `SELECT driver v, COUNT(*) n FROM v_units WHERE site = ? AND d_despacho IS NOT NULL AND driver IS NOT NULL${scope}
+         AND (next_step = 'd_entrega'${missing.length ? " OR guia IN (?)" : ""}) GROUP BY driver ORDER BY driver`, [site, ...sargs, ...(missing.length ? [missing] : [])]);
     return NextResponse.json({ canDeliver: perm.ok, drivers: rows.map((r) => ({ name: r.v, units: num(r.n) })) });
   }
 
   const driver = p.get("driver")?.trim();
   if (!driver) return NextResponse.json({ error: "Escribe el nombre del conductor" }, { status: 400 });
-  const rows = await queryList<{ guia: string | null; district: string | null; department: string | null; via_lima: number; dealer: string | null; driver: string; w2: number; w3: number; total: number; dispatched: string; need: number }>(
+  // También las guías que el cliente ya recibió sin que el transportista registrara su entrega (para completar el doble check)
+  const missing = await missingCarrier(`site = ? AND driver ILIKE ?${scope}`, [site, `%${driver}%`, ...sargs]);
+  const rows = await queryList<{ guia: string | null; district: string | null; department: string | null; via_lima: number; dealer: string | null; driver: string; w2: number; w3: number; total: number; dispatched: string; need: number; received: number }>(
     `SELECT guia, district, department, MAX(via_lima) via_lima, dealer, driver, SUM(category = '2W') w2, SUM(category = '3W') w3, COUNT(*) total, MAX(d_despacho) dispatched,
-       SUM(est_date < CURDATE() AND delay_reason IS NULL) need
-     FROM v_units WHERE site = ? AND next_step = 'd_entrega' AND d_despacho IS NOT NULL AND driver ILIKE ?${scope}
-     GROUP BY guia, district, department, dealer, driver ORDER BY department, district, dealer, guia`, [site, `%${driver}%`, ...sargs]);
-  return NextResponse.json({ canDeliver: perm.ok, rows: rows.map((r) => ({ ...r, via_lima: num(r.via_lima), w2: num(r.w2), w3: num(r.w3), total: num(r.total), need: num(r.need) })) });
+       SUM(next_step = 'd_entrega' AND est_date < CURDATE() AND delay_reason IS NULL) need, SUM(d_entrega IS NOT NULL) received
+     FROM v_units WHERE site = ? AND d_despacho IS NOT NULL AND driver ILIKE ?${scope}
+       AND (next_step = 'd_entrega'${missing.length ? " OR guia IN (?)" : ""})
+     GROUP BY guia, district, department, dealer, driver ORDER BY department, district, dealer, guia`, [site, `%${driver}%`, ...sargs, ...(missing.length ? [missing] : [])]);
+  return NextResponse.json({ canDeliver: perm.ok, rows: rows.map((r) => ({ ...r, via_lima: num(r.via_lima), w2: num(r.w2), w3: num(r.w3), total: num(r.total), need: num(r.need), received: num(r.received) > 0 })) });
 }
 
 export async function POST(req: Request) {
@@ -220,13 +229,24 @@ export async function POST(req: Request) {
     const guias = Array.isArray(b.guias) ? [...new Set(b.guias.map((g: unknown) => String(g).trim()).filter(Boolean))].slice(0, 200) : [];
     if (!guias.length) return NextResponse.json({ error: "Marca al menos una guía entregada" }, { status: 400 });
     const lateReason = typeof b.lateReason === "string" && b.lateReason.trim() ? b.lateReason.trim().toUpperCase().slice(0, 60) : null;
+    const cs = perm.carrier ? " AND carrier = ?" : "";
+    const cargs = perm.carrier ? [perm.carrier] : [];
     const units = await queryList<U>(
-      `SELECT id, d_despacho, est_date, delay_reason FROM v_units WHERE site = ? AND guia IN (?) AND next_step = 'd_entrega' AND d_despacho IS NOT NULL${perm.carrier ? " AND carrier = ?" : ""}`,
-      perm.carrier ? [site, guias, perm.carrier] : [site, guias]);
-    if (!units.length) return NextResponse.json({ error: "Esas guías no tienen unidades por entregar" }, { status: 409 });
-    const r = await deliver(units, lateReason, false);
-    if (typeof r === "string") return NextResponse.json({ error: r }, { status: 400 });
-    return NextResponse.json({ ok: true, units: units.length });
+      `SELECT id, d_despacho, est_date, delay_reason FROM v_units WHERE site = ? AND guia IN (?) AND next_step = 'd_entrega' AND d_despacho IS NOT NULL${cs}`, [site, guias, ...cargs]);
+    // Las que el cliente ya recibió: solo falta el registro del transportista (1.er check)
+    const missing = await missingCarrier(`site = ? AND guia IN (?)${cs}`, [site, guias, ...cargs]);
+    const done = missing.length ? await queryList<{ id: number }>(`SELECT id FROM v_units WHERE site = ? AND guia IN (?)${cs}`, [site, missing, ...cargs]) : [];
+    if (!units.length && !done.length) return NextResponse.json({ error: "Esas guías no tienen unidades por entregar" }, { status: 409 });
+    if (units.length) {
+      const r = await deliver(units, lateReason, false);
+      if (typeof r === "string") return NextResponse.json({ error: r }, { status: 400 });
+    }
+    // Marca del transportista: es el 1.er check del historial (aunque el cliente haya confirmado antes)
+    const mark = [...units.map((u) => u.id), ...done.map((u) => u.id)];
+    for (let i = 0; i < mark.length; i += 1000) {
+      await query("INSERT INTO unit_events(unit_id, user_id, field, old_value, new_value) VALUES ?", [mark.slice(i, i + 1000).map((id) => [id, s.id, "entrega_transportista", null, date])]);
+    }
+    return NextResponse.json({ ok: true, units: units.length, confirmed: done.length });
   }
 
   // Dealer: confirma la recepción de una o varias guías (si llegaron juntas se marcan todas): cada una queda en el historial
@@ -271,7 +291,10 @@ export async function POST(req: Request) {
         });
       }
     }
-    pushLater(() => notifyReceived(list.map((x) => x.guia), kind));
+    pushLater(async () => {
+      const gs = list.map((x) => x.guia);
+      await notifyReceived(gs, kind, await missingCarrier("guia IN (?)", [gs]));
+    });
     return NextResponse.json({ ok: true, guias: list.length, units, delivered, kind });
   }
 
