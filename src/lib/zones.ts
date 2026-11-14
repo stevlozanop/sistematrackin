@@ -28,3 +28,12 @@ export function zoneCompare(a: string, b: string) {
   if (ia !== ib) return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
   return a.localeCompare(b, "es");
 }
+
+/** Para ordenar distritos: los de una misma zona quedan pegados (en el orden de la zona); la zona sigue el orden del cuadro. */
+export function districtCompare(a: string, b: string) {
+  const za = zoneOf(a), zb = zoneOf(b);
+  if (key(za) !== key(zb)) return zoneCompare(za, zb);
+  const list = ZONES.find((z) => z.name === za)?.districts.map(key) ?? [];
+  const ia = list.indexOf(key(a)), ib = list.indexOf(key(b));
+  return ia !== ib ? (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) : a.localeCompare(b, "es");
+}
