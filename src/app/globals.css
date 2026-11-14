@@ -849,3 +849,14 @@ html[data-look="tunnel"] .sb-aging .sb-aging-head .text-xl { font-size: 1.6rem; 
 /* Workice: la tarjeta del cuadro va en color sólido para que las columnas fijas no se noten como bloques */
 html[data-look="workice"] .sb-card:has(> .sb-aging) { background: var(--sb-aging-solid, #fbfbfa) !important; }
 html.dark[data-look="workice"] .sb-card:has(> .sb-aging) { --sb-aging-solid: #1c1c1c; }
+
+/* Workice en celular: la barra superior también es una cápsula flotante con aire, y el título respira debajo */
+@media (max-width: 767px) {
+  html[data-look="workice"] .sb-shell > div > header { margin: 8px 10px 2px; height: 52px; border-radius: 999px; padding: 0 6px 0 18px; }
+  html[data-look="workice"] .sb-shell > div > main { padding-top: 14px; }
+  html[data-look="workice"] .sb-title { font-size: 26px; }
+}
+/* Botones redondos de la barra (avisos): del mismo gris que los demás de la barra */
+html[data-look="workice"] .sb-shell > div > header { --sb-surface-container-high: color-mix(in oklab, var(--wk-on) 86%, var(--wk-on-text)); }
+html[data-look="workice"] .sb-shell > div > header a.rounded-full.bg-sb-surface-container-high,
+html[data-look="workice"] .sb-shell > div > header button.rounded-full.bg-sb-surface-container-high { color: var(--wk-on-text) !important; }
