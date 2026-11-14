@@ -833,3 +833,19 @@ html[data-look="minimalice"] .modal__dialog .modal__heading::after { content: ".
 html[data-look="minimalice"] .modal__dialog .modal__header > span.grid.rounded-xl { display: none; }
 html[data-look="minimalice"] .modal__dialog :is(.rounded-xl, .rounded-2xl).border { border-width: 0 0 0 0 !important; border-top: 1px solid var(--sb-outline-variant) !important; border-radius: 0 !important; }
 html[data-look="workice"] :is(.modal__dialog, .drawer__content) .tabular-nums.font-bold { font-weight: 400 !important; letter-spacing: -0.02em; }
+
+/* ===== Stock por antigüedad según el estilo: fondo de las columnas fijas, esquinas de fichas y cifras ===== */
+.sb-aging { --sb-aging-bg: var(--sb-surface); }
+.sb-aging .sb-aging-sticky { background-color: var(--sb-aging-bg); }
+html[data-look="workice"] .sb-aging { --sb-aging-bg: #fbfbfa; --sb-aging-hr: 22px; }
+html.dark[data-look="workice"] .sb-aging { --sb-aging-bg: #1c1c1c; }
+html[data-look="workice"] .sb-aging .sb-aging-head .text-xl { font-weight: 300; font-size: 1.6rem; }
+html[data-look="minimalice"] .sb-aging { --sb-aging-bg: var(--page-bg); --sb-aging-r: 3px; --sb-aging-hr: 2px; }
+html[data-look="minimalice"] .sb-aging .sb-aging-head { background: transparent !important; border-top: 2px solid currentColor; }
+html[data-look="melon"] .sb-aging { --sb-aging-r: 6px; --sb-aging-hr: 8px; }
+html[data-look="taksice"] .sb-aging { --sb-aging-r: 8px; --sb-aging-hr: 10px; }
+html[data-look="bonita"] .sb-aging { --sb-aging-hr: 22px; }
+html[data-look="tunnel"] .sb-aging .sb-aging-head .text-xl { font-size: 1.6rem; letter-spacing: -0.04em; }
+/* Workice: la tarjeta del cuadro va en color sólido para que las columnas fijas no se noten como bloques */
+html[data-look="workice"] .sb-card:has(> .sb-aging) { background: var(--sb-aging-solid, #fbfbfa) !important; }
+html.dark[data-look="workice"] .sb-card:has(> .sb-aging) { --sb-aging-solid: #1c1c1c; }

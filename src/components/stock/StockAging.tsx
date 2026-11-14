@@ -15,7 +15,11 @@ type Kind = "w2" | "w3";
 const KINDS: { k: Kind; label: string; color: string }[] = [{ k: "w2", label: "2W", color: W2 }, { k: "w3", label: "3W", color: W3 }];
 
 /** Días de espera: rojo desde 30, ámbar desde 15 */
-const tone = (d: number | null) => (d === null ? "text-sb-on-surface-variant" : d >= 30 ? "text-sb-late" : d >= 15 ? "text-amber-500" : "text-sb-on-surface");
+const level = (d: number | null) => (d === null ? "none" : d >= 30 ? "late" : d >= 15 ? "warn" : "ok");
+const tone = (d: number | null) => ({ none: "text-sb-on-surface-variant", late: "text-sb-late", warn: "text-amber-600 dark:text-amber-400", ok: "text-sb-on-surface" })[level(d)];
+/** Ficha de cada llegada y franja de su columna, según cuánto lleva esperando */
+const head = (d: number | null) => ({ none: "bg-sb-surface-container", late: "bg-sb-late-soft", warn: "bg-amber-500/12", ok: "bg-sb-surface-container" })[level(d)];
+const band = (d: number | null) => ({ none: "", late: "bg-sb-late-soft/35", warn: "bg-amber-500/[0.06]", ok: "" })[level(d)];
 const short = (iso: string) => parseISO(iso).toLocaleDateString("es-PE", { day: "numeric", month: "short" }).replace(".", "");
 
 /**
@@ -74,39 +78,32 @@ export function StockAging({ rows }: { rows: AgingRow[] | null }) {
       {!rows && <div className="m-3 h-40 animate-pulse rounded-xl bg-sb-surface-container-low" />}
       {rows && !data && <p className="px-4 py-10 text-center text-xs text-sb-on-surface-variant">No hay unidades en almacén.</p>}
       {data && (
-        <div className="scroll-hidden overflow-x-auto">
-          <table className="w-max min-w-full border-separate border-spacing-0 text-xs tabular-nums">
+        <div className="sb-aging scroll-hidden overflow-x-auto pb-1">
+          <table className="w-max min-w-full border-separate border-spacing-x-0 border-spacing-y-0 text-xs tabular-nums">
             <thead>
-              {/* Días de espera */}
+              {/* Una ficha por llegada: días de espera (en color), fecha de arribo y nave */}
               <tr>
-                <th className="sticky left-0 z-10 bg-sb-surface px-3 pb-1 pt-3 text-left text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Días de espera</th>
+                <th rowSpan={2} className="sb-aging-sticky sticky left-0 z-10 min-w-[8.5rem] sm:min-w-[10.5rem] px-3 pb-2 pt-3 text-left align-bottom text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">
+                  Distrito<span className="block text-[9px] font-normal normal-case tracking-normal opacity-80">espera máxima</span>
+                </th>
                 {data.batches.map((b) => {
                   const span = KINDS.filter(({ k }) => b[k] > 0).length, d = data.days(b.arribo);
                   return (
-                    <th key={b.key} colSpan={span} className="border-l border-sb-outline-variant/30 px-2 pb-1 pt-3 text-center">
-                      <span className={cn("text-lg font-semibold leading-none", tone(d))}>{d ?? "—"}</span>
+                    <th key={b.key} colSpan={span} className="px-1 pt-3 align-bottom">
+                      <div className={cn("sb-aging-head mx-auto flex min-w-[5.5rem] flex-col items-center rounded-[var(--sb-aging-hr,16px)] px-3 py-2 text-center", head(d))}>
+                        <span className={cn("text-xl font-semibold leading-none", tone(d))}>{d ?? "—"}<span className="ml-0.5 text-[10px] font-medium">{d === 1 ? "día" : "días"}</span></span>
+                        <span className="mt-1.5 whitespace-nowrap text-[11px] font-semibold capitalize text-sb-on-surface">{b.arribo ? short(b.arribo) : "Sin arribo"}</span>
+                        <span className="block max-w-[7.5rem] truncate whitespace-nowrap font-mono text-[10px] font-normal text-sb-on-surface-variant" title={b.nave ?? ""}>{b.nave ?? "sin nave"}</span>
+                      </div>
                     </th>
                   );
                 })}
-                <th rowSpan={3} className="sticky right-0 z-10 border-b border-l border-sb-outline-variant/40 bg-sb-surface px-3 pb-2 align-bottom text-right text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Total</th>
+                <th rowSpan={2} aria-hidden className="w-full" />
+                <th rowSpan={2} className="sb-aging-sticky sticky right-0 z-10 px-3 pb-2 text-right align-bottom text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Total</th>
               </tr>
-              {/* Arribo · nave */}
               <tr>
-                <th className="sticky left-0 z-10 bg-sb-surface px-3 py-1 text-left text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Arribo · nave</th>
-                {data.batches.map((b) => (
-                  <th key={b.key} colSpan={KINDS.filter(({ k }) => b[k] > 0).length} className="border-l border-sb-outline-variant/30 px-2 py-1 text-center font-normal">
-                    <span className="block whitespace-nowrap text-[11px] font-semibold capitalize">{b.arribo ? short(b.arribo) : "Sin arribo"}</span>
-                    <span className="block max-w-[7rem] truncate whitespace-nowrap text-[10px] text-sb-on-surface-variant" title={b.nave ?? ""}>{b.nave ?? "—"}</span>
-                  </th>
-                ))}
-              </tr>
-              {/* Tipo */}
-              <tr>
-                <th className="sticky left-0 z-10 border-b border-sb-outline-variant/40 bg-sb-surface px-3 pb-2 pt-1 text-left text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Distrito</th>
-                {data.cols.map((c, i) => (
-                  <th key={`${c.batch.key}|${c.k}`} className={cn("border-b border-sb-outline-variant/40 px-2 pb-2 pt-1 text-center text-[10px] font-semibold", (i === 0 || data.cols[i - 1].batch !== c.batch) && "border-l border-l-sb-outline-variant/30")} style={{ color: c.color }}>
-                    {c.label}
-                  </th>
+                {data.cols.map((c) => (
+                  <th key={`${c.batch.key}|${c.k}`} className="px-1 pb-2 pt-1.5 text-center text-[10px] font-semibold" style={{ color: c.color }}>{c.label}</th>
                 ))}
               </tr>
             </thead>
@@ -115,21 +112,28 @@ export function StockAging({ rows }: { rows: AgingRow[] | null }) {
                 const z = zoneOf(d), prev = data.districts[di - 1], next = data.districts[di + 1];
                 const joinUp = !!prev && z !== d && zoneOf(prev) === z, joinDown = !!next && z !== d && zoneOf(next) === z;
                 const row = data.cols.map((c) => data.get(d, c));
+                // Lo más antiguo que espera este distrito
+                const max = data.cols.reduce<number | null>((m, c, i) => { const x = data.days(c.batch.arribo); return row[i] && x !== null && (m === null || x > m) ? x : m; }, null);
+                const line = !joinUp && di > 0 && "border-t border-sb-outline-variant/30";
                 return (
                   <tr key={d} className="group">
-                    <td className={cn("sticky left-0 z-10 bg-sb-surface px-3 py-2 font-semibold uppercase group-hover:bg-sb-surface-container-low", !joinUp && di > 0 && "border-t border-sb-outline-variant/30")}>
-                      <span className="relative block pl-2">
+                    <td className={cn("sb-aging-sticky sticky left-0 z-10 px-3 py-2 group-hover:bg-sb-surface-container-low", line)}>
+                      <span className="relative flex items-center justify-between gap-2 pl-2.5">
                         {(joinUp || joinDown) && <span aria-hidden className={cn("absolute -bottom-2 -top-2 left-0 w-[3px] bg-sb-primary/60", !joinUp && "top-0 rounded-t-full", !joinDown && "bottom-0 rounded-b-full")} />}
-                        <span className="whitespace-nowrap">{d}</span>
+                        <span className="whitespace-nowrap font-semibold uppercase">{d}</span>
+                        {max !== null && <span className={cn("sb-aging-chip shrink-0 rounded-[var(--sb-aging-r,999px)] px-1.5 py-px text-[10px] font-semibold", head(max), tone(max))}>{max} d</span>}
                       </span>
                     </td>
                     {row.map((v, i) => (
-                      <td key={i} className={cn("px-2 py-2 text-center group-hover:bg-sb-surface-container-low", !joinUp && di > 0 && "border-t border-sb-outline-variant/30",
-                        (i === 0 || data.cols[i - 1].batch !== data.cols[i].batch) && "border-l border-l-sb-outline-variant/30")}>
-                        {v ? <span className="font-semibold" style={{ color: data.cols[i].color }}>{n(v)}</span> : null}
+                      <td key={i} className={cn("px-1 py-1.5 text-center group-hover:bg-sb-surface-container-low", line, band(data.days(data.cols[i].batch.arribo)))}>
+                        {v ? (
+                          <span className="sb-aging-chip inline-flex min-w-[2.25rem] justify-center rounded-[var(--sb-aging-r,999px)] px-2 py-1 font-semibold"
+                            style={{ color: data.cols[i].color, background: `color-mix(in oklab, ${data.cols[i].color} 13%, transparent)` }}>{n(v)}</span>
+                        ) : <span className="text-sb-on-surface-variant/30">·</span>}
                       </td>
                     ))}
-                    <td className={cn("sticky right-0 z-10 border-l border-sb-outline-variant/40 bg-sb-surface px-3 py-2 text-right font-semibold group-hover:bg-sb-surface-container-low", !joinUp && di > 0 && "border-t border-t-sb-outline-variant/30")}>
+                    <td className={cn(line, "group-hover:bg-sb-surface-container-low")} />
+                    <td className={cn("sb-aging-sticky sticky right-0 z-10 px-3 py-2 text-right text-sm font-semibold group-hover:bg-sb-surface-container-low", line)}>
                       {n(row.reduce((t, v) => t + v, 0))}
                     </td>
                   </tr>
@@ -138,19 +142,22 @@ export function StockAging({ rows }: { rows: AgingRow[] | null }) {
             </tbody>
             <tfoot>
               <tr className="font-semibold">
-                <td className="sticky left-0 z-10 border-t-2 border-sb-outline-variant/60 bg-sb-surface px-3 py-2.5">Total</td>
+                <td className="sb-aging-sticky sticky left-0 z-10 border-t-2 border-sb-outline-variant/60 px-3 py-2.5">Total</td>
                 {data.cols.map((c, i) => (
-                  <td key={i} className={cn("border-t-2 border-sb-outline-variant/60 px-2 py-2.5 text-center", (i === 0 || data.cols[i - 1].batch !== c.batch) && "border-l border-l-sb-outline-variant/30")} style={{ color: c.color }}>
+                  <td key={i} className={cn("border-t-2 border-sb-outline-variant/60 px-1 py-2.5 text-center", band(data.days(c.batch.arribo)))} style={{ color: c.color }}>
                     {n(c.batch[c.k])}
                   </td>
                 ))}
-                <td className="sticky right-0 z-10 border-l border-t-2 border-sb-outline-variant/60 bg-sb-surface px-3 py-2.5 text-right text-sm">{n(data.total)}</td>
+                <td className="border-t-2 border-sb-outline-variant/60" />
+                <td className="sb-aging-sticky sticky right-0 z-10 border-t-2 border-sb-outline-variant/60 px-3 py-2.5 text-right text-base">{n(data.total)}</td>
               </tr>
             </tfoot>
           </table>
-          <p className="flex flex-wrap gap-x-4 gap-y-1 px-4 py-2.5 text-[10px] text-sb-on-surface-variant">
+          <p className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2.5 text-[10px] text-sb-on-surface-variant">
             <span><b style={{ color: W2 }}>2W</b> motos · <b style={{ color: W3 }}>3W</b> motokares</span>
-            <span><b className="text-sb-late">rojo</b> 30 días o más · <b className="text-amber-500">ámbar</b> 15 a 29 días</span>
+            <span className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-sb-late-soft" /> 30 días o más</span>
+            <span className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-amber-500/25" /> 15 a 29 días</span>
+            <span>«espera máxima»: lo más antiguo que tiene cada distrito</span>
           </p>
         </div>
       )}
