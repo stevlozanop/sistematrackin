@@ -7,7 +7,7 @@ import { consortiumScope, dealerScope } from "@/lib/clients";
 /**
  * Sugerencias para los buscadores mientras se escribe (desde la primera letra):
  * GET ?kind=guia&site=PCL&step=d_carga&q=157   -> guías con unidades que esperan ese paso
- * GET ?kind=guia&step=dispatched&q=…            -> guías ya despachadas (recepción del dealer)
+ * GET ?kind=guia&step=dispatched&q=…            -> guías despachadas que aún no se confirman (recepción del dealer)
  * GET ?kind=driver&site=PCL&q=vi                -> choferes con entregas pendientes
  * GET ?kind=mine&q=…                            -> guías y chasis del dealer (su portal)
  * Primero las que empiezan con lo escrito, luego las que lo contienen. Máximo 12.
@@ -59,7 +59,8 @@ export async function GET(req: Request) {
 
   if (kind === "guia") {
     const step = p.get("step");
-    if (step === "dispatched") where.push("d_despacho IS NOT NULL");
+    // Recepción del dealer: despachadas y que todavía nadie confirmó (las ya recibidas no vuelven a salir)
+    if (step === "dispatched") where.push("d_despacho IS NOT NULL", "guia NOT IN (SELECT guia FROM receptions WHERE guia IS NOT NULL)");
     else if (step && STEPS.includes(step)) where.push(`next_step = '${step}'`);
     const rows = await queryList<{ v: string; n: number; dealer: string | null; district: string | null }>(
       `SELECT guia v, COUNT(*) n, MAX(dealer) dealer, MAX(district) district FROM v_units

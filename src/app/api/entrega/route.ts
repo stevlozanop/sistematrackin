@@ -17,7 +17,9 @@ import { notifyDelivered, notifyObservation, pushLater } from "@/lib/push";
  * GET  ?observations=1                  -> recepciones con observación (empresa)
  * GET  ?site=PCL&report=1&from&to       -> detalle de entregas: origen, distrito, dealer, guía, chofer, entregado
  * POST { action: "deliver", site, guias: [], date, lateReason? }
- * POST { action: "receive", guia, kind: "completo" | "observacion", note?, date }
+ * GET  ?pending=1                      -> guías despachadas que el dealer aún no confirma
+ * GET  ?received=1                     -> historial de recepciones (lo último primero)
+ * POST { action: "receive", guia | guias: [], kind: "completo" | "observacion", note?, date }
  * POST { action: "review", id }
  */
 
@@ -80,6 +82,26 @@ export async function GET(req: Request) {
        FROM receptions r LEFT JOIN users u ON u.id = r.user_id
        WHERE r.kind = 'observacion' AND r.reviewed_at IS NULL ORDER BY r.created_at DESC LIMIT 100`);
     return NextResponse.json({ rows });
+  }
+
+  // Recepción: guías despachadas que aún no se confirman, y el historial de lo ya recibido
+  if (p.get("pending") || p.get("received")) {
+    const sc = s.role === "dealer" ? await dealerScope(s.id) : null;
+    if (s.role === "dealer" && !sc) return NextResponse.json({ error: "Tu cuenta no tiene tiendas asignadas" }, { status: 403 });
+    if (p.get("pending")) {
+      const rows = await queryList<{ guia: string; site: string; dealer: string | null; district: string | null; driver: string | null; dispatched: string; w2: number; w3: number; total: number }>(
+        `SELECT guia, MAX(site) site, MAX(dealer) dealer, MAX(district) district, MAX(driver) driver, MAX(d_despacho) dispatched,
+           SUM(category = '2W') w2, SUM(category <> '2W' OR category IS NULL) w3, COUNT(*) total
+         FROM v_units WHERE guia IS NOT NULL AND d_despacho IS NOT NULL AND guia NOT IN (SELECT guia FROM receptions WHERE guia IS NOT NULL)${sc ? ` AND ${sc.sql}` : ""}
+         GROUP BY guia ORDER BY MAX(dealer), guia LIMIT 500`, sc?.args ?? []);
+      return NextResponse.json({ rows: rows.map((r) => ({ ...r, w2: num(r.w2), w3: num(r.w3), total: num(r.total) })) });
+    }
+    const rows = await queryList<{ id: number; guia: string; site: string; kind: string; note: string | null; received_on: string; created_at: string; units: number; usuario: string | null; dealer: string | null; district: string | null }>(
+      `SELECT r.id, r.guia, r.site, r.kind, r.note, r.received_on, r.created_at, r.units, u.name usuario, g.dealer, g.district
+       FROM receptions r LEFT JOIN users u ON u.id = r.user_id
+       JOIN LATERAL (SELECT MAX(dealer) dealer, MAX(district) district, COUNT(*) n FROM v_units v WHERE v.guia = r.guia${sc ? ` AND v.${sc.sql}` : ""}) g ON g.n > 0
+       ORDER BY r.created_at DESC LIMIT 60`, sc?.args ?? []);
+    return NextResponse.json({ rows: rows.map((r) => ({ ...r, units: num(r.units) })) });
   }
 
   // Dealer: su guía
@@ -183,12 +205,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, units: units.length });
   }
 
-  // Dealer: confirma la recepción de su guía
+  // Dealer: confirma la recepción de una o varias guías (si llegaron juntas se marcan todas): cada una queda en el historial
   if (b.action === "receive") {
-    const guia = String(b.guia ?? "").trim();
+    const guias = (Array.isArray(b.guias) ? [...new Set(b.guias.map((g: unknown) => String(g).trim()).filter(Boolean))] : [String(b.guia ?? "").trim()].filter(Boolean)).slice(0, 100) as string[];
     const kind = b.kind === "observacion" ? "observacion" : b.kind === "completo" ? "completo" : null;
     const note = String(b.note ?? "").trim().slice(0, 500) || null;
-    if (!guia) return NextResponse.json({ error: "Indica la guía" }, { status: 400 });
+    if (!guias.length) return NextResponse.json({ error: "Indica la guía" }, { status: 400 });
     if (!kind) return NextResponse.json({ error: "Elige si llegó completo o con observación" }, { status: 400 });
     if (kind === "observacion" && !note) return NextResponse.json({ error: "Escribe la observación" }, { status: 400 });
     let sc: { sql: string; args: unknown[] } | null = null;
@@ -196,24 +218,36 @@ export async function POST(req: Request) {
       sc = await dealerScope(s.id);
       if (!sc) return NextResponse.json({ error: "Tu cuenta no tiene tiendas asignadas" }, { status: 403 });
     }
-    const all = await queryList<U & { site: Site; next_step: string | null }>(
-      `SELECT id, site, next_step, d_despacho, est_date, delay_reason FROM v_units WHERE guia = ? AND d_despacho IS NOT NULL${sc ? ` AND ${sc.sql}` : ""}`, [guia, ...(sc?.args ?? [])]);
-    if (!all.length) return NextResponse.json({ error: "Esa guía todavía no fue despachada" }, { status: 409 });
-    const site = all[0].site;
-    if (s.role === "operator" && !(await canDeliver(s, site)).ok) return NextResponse.json({ error: "La entrega no es una etapa asignada a ti" }, { status: 403 });
-    const pending = all.filter((u) => u.next_step === "d_entrega");
-    if (pending.length) {
-      const r = await deliver(pending, null, false, false);
-      if (typeof r === "string") return NextResponse.json({ error: r }, { status: 400 });
+    // Primero se revisan todas (si una no se puede, no se registra ninguna)
+    const list: { guia: string; site: Site; all: (U & { site: Site; next_step: string | null })[] }[] = [];
+    for (const guia of guias) {
+      const all = await queryList<U & { site: Site; next_step: string | null }>(
+        `SELECT id, site, next_step, d_despacho, est_date, delay_reason FROM v_units WHERE guia = ? AND d_despacho IS NOT NULL${sc ? ` AND ${sc.sql}` : ""}`, [guia, ...(sc?.args ?? [])]);
+      if (!all.length) return NextResponse.json({ error: `${guia}: todavía no fue despachada` }, { status: 409 });
+      const [already] = await queryList<{ received_on: string }>("SELECT received_on FROM receptions WHERE guia = ? ORDER BY created_at DESC LIMIT 1", [guia]);
+      if (already) return NextResponse.json({ error: `${guia}: ya se recibió el ${String(already.received_on).slice(0, 10)}` }, { status: 409 });
+      if (s.role === "operator" && !(await canDeliver(s, all[0].site)).ok) return NextResponse.json({ error: "La entrega no es una etapa asignada a ti" }, { status: 403 });
+      const prev = all.reduce((m, u) => (u.d_despacho && u.d_despacho > m ? u.d_despacho : m), "");
+      if (prev && date < prev) return NextResponse.json({ error: `${guia}: la fecha no puede ser anterior al despacho (${prev})` }, { status: 400 });
+      list.push({ guia, site: all[0].site, all });
     }
-    await query("INSERT INTO receptions(site, guia, kind, note, received_on, units, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)", [site, guia, kind, note, date, all.length, s.id]);
-    if (kind === "observacion" && note) {
-      pushLater(async () => {
-        const [d] = await queryList<{ dealer: string | null }>("SELECT MAX(dealer) dealer FROM v_units WHERE id IN (?)", [all.map((u) => u.id)]);
-        await notifyObservation(guia, d?.dealer ?? null, note);
-      });
+    let units = 0, delivered = 0;
+    for (const { guia, site, all } of list) {
+      const pending = all.filter((u) => u.next_step === "d_entrega");
+      if (pending.length) {
+        const r = await deliver(pending, null, false, false);
+        if (typeof r === "string") return NextResponse.json({ error: `${guia}: ${r}` }, { status: 400 });
+      }
+      await query("INSERT INTO receptions(site, guia, kind, note, received_on, units, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)", [site, guia, kind, note, date, all.length, s.id]);
+      units += all.length; delivered += pending.length;
+      if (kind === "observacion" && note) {
+        pushLater(async () => {
+          const [d] = await queryList<{ dealer: string | null }>("SELECT MAX(dealer) dealer FROM v_units WHERE id IN (?)", [all.map((u) => u.id)]);
+          await notifyObservation(guia, d?.dealer ?? null, note);
+        });
+      }
     }
-    return NextResponse.json({ ok: true, units: all.length, delivered: pending.length, kind });
+    return NextResponse.json({ ok: true, guias: list.length, units, delivered, kind });
   }
 
   return NextResponse.json({ error: "Acción inválida" }, { status: 400 });
