@@ -37,3 +37,11 @@ export function districtCompare(a: string, b: string) {
   const ia = list.indexOf(key(a)), ib = list.indexOf(key(b));
   return ia !== ib ? (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) : a.localeCompare(b, "es");
 }
+
+/** Un camión de despacho lleva como máximo 52 motos o 26 motokares (1 motokar ocupa lo de 2 motos). */
+export const TRUCK = { w2: 52, w3: 26 } as const;
+
+/** Cuántos camiones llenos salen con estas unidades (motos y motokares mezclados). */
+export function trucks(w2: number, w3: number) {
+  return Math.floor(w2 / TRUCK.w2 + w3 / TRUCK.w3 + 1e-9);
+}

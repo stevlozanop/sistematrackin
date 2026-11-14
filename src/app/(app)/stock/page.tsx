@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
-import { Check, ChevronDown, ChevronsUpDown, Forklift, Inbox, Search, Warehouse, X } from "lucide-react";
+import { Check, ChevronDown, ChevronsUpDown, Forklift, Inbox, Search, Truck, Warehouse, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Mix, n, plural } from "@/components/stage/StageKit";
 import { Card, PageTitle } from "@/components/ui";
@@ -11,7 +11,7 @@ import { SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { daysBetween, parseISO, todayLima } from "@/lib/dates";
 import { cn } from "@/lib/cn";
 import { Kind, KindText, W2, W3 } from "@/components/Kinds";
-import { districtCompare, zoneOf } from "@/lib/zones";
+import { districtCompare, trucks, zoneOf } from "@/lib/zones";
 import { StockAging, type AgingRow } from "@/components/stock/StockAging";
 
 /**
@@ -88,6 +88,8 @@ export default function StockPage() {
   const groups = [...shown.reduce((m, r) => { const d = r.district ?? "Sin distrito"; m.set(d, [...(m.get(d) ?? []), r]); return m; }, new Map<string, Row[]>())]
     .sort(([a], [b]) => districtCompare(a, b))
     .map(([district, list]) => ({ district, zone: zoneOf(district), list: list.sort((a, b) => b.overdue - a.overdue || String(a.guia).localeCompare(String(b.guia))), ...sum(list) }));
+  // Zonas que ya consolidan: lo que hay en almacén de todos sus distritos (sin filtros) llena al menos un camión (52 motos o 26 motokares)
+  const zoneLoad = (rows ?? []).reduce((m, r) => { const z = zoneOf(r.district); const t = m.get(z) ?? { w2: 0, w3: 0, districts: new Set<string>() }; t.w2 += r.w2; t.w3 += r.w3; t.districts.add(r.district ?? "Sin distrito"); m.set(z, t); return m; }, new Map<string, { w2: number; w3: number; districts: Set<string> }>());
   const allOpen = groups.length > 0 && groups.every((g) => open.has(g.district));
   const shownSum = sum(shown);
   const flipMany = (list: Row[]) => setSel((s) => { const y = new Set(s); const every = list.every((r) => y.has(key(r))); for (const r of list) { if (every) y.delete(key(r)); else y.add(key(r)); } return y; });
@@ -204,7 +206,21 @@ export default function StockPage() {
                     </button>
                     {/* Tocar el distrito despliega sus guías */}
                     <button type="button" onClick={toggle} aria-expanded={isOpen} className="min-w-0 text-left">
-                      <span className="block truncate text-sm font-semibold uppercase tracking-tight">{g.district}</span>
+                      <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="truncate text-sm font-semibold uppercase tracking-tight">{g.district}</span>
+                        {/* Solo en la primera fila de la zona, y solo si ya llena un camión */}
+                        {!joinUp && (() => {
+                          const z = zoneLoad.get(g.zone), t = z ? trucks(z.w2, z.w3) : 0;
+                          if (!z || !t) return null;
+                          const names = [...z.districts];
+                          return (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-sb-primary px-2 py-0.5 text-[10px] font-semibold text-sb-on-primary"
+                              title={`${names.join(" + ")}: ${z.w2} motos y ${z.w3} motokares en almacén. Un camión lleva 52 motos o 26 motokares.`}>
+                              <Truck className="h-3 w-3" />Ya consolida{t > 1 ? ` · ${t} camiones` : ""}{names.length > 1 ? ` · ${names.map((d) => d.toLowerCase().replace(/(^|[\s-])\S/g, (c) => c.toUpperCase())).join(" + ")}` : ""}
+                            </span>
+                          );
+                        })()}
+                      </span>
                       <span className="mt-1 flex h-1 max-w-[12rem] overflow-hidden rounded-full bg-sb-surface-container">
                         <span style={{ width: `${(g.w2 / (g.total || 1)) * 100}%`, background: W2 }} />
                         <span style={{ width: `${(g.w3 / (g.total || 1)) * 100}%`, background: W3 }} />
