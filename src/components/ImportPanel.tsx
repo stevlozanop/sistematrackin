@@ -3,7 +3,7 @@ import { Button, Chip, toast } from "@heroui/react";
 import { Save, X } from "lucide-react";
 import { Card, Table, Td, Th, Thead, Tr } from "@/components/ui";
 import { fmtDate, type Site } from "@/lib/hsp";
-import { applyRoutes, type DistrictRoute, type UnitRow } from "@/lib/excel-parse";
+import { applyRoutes, dedupe, type DistrictRoute, type UnitRow } from "@/lib/excel-parse";
 import { GZIP_JSON, gzipJson } from "@/lib/gzip-json";
 
 export type Preview = {
@@ -11,6 +11,8 @@ export type Preview = {
   rows: UnitRow[]; // filas leídas en el navegador; se envían al guardar
   format: "HSP" | "FACT";
   duplicates: number;
+  /** Varios Excel a la vez: filas de cada uno (la suma, sin repetidos, es rows.length). */
+  files?: { name: string; rows: number }[];
   sites: Record<Site, { total: number; created: number; updated: number }>;
   sample: {
     site: Site; chassis: string; motor: string | null; material: string | null; category: string | null;
@@ -58,12 +60,29 @@ export async function readExcel(file: File): Promise<Preview | null> {
 export const isUnknownExcel = (e: unknown) => /No se reconoce el Excel/.test((e as Error)?.message ?? "");
 
 /** Igual que readExcel, pero lanza el error (el botón único decide qué hacer con un archivo que no es de unidades). */
-export async function readUnitsExcel(file: File): Promise<Preview> {
+export async function readUnitsExcel(input: File | File[]): Promise<Preview> {
   {
-    const parsed = await parseInBrowser(file);
-    const { format, duplicates } = parsed;
-    // Facturación: la ruta sale del distrito (lista de Yurimaguas; el resto, Pucallpa)
-    const rows = format === "FACT" ? applyRoutes(parsed.rows, (await post({ step: "routes" })).routes as DistrictRoute[]) : parsed.rows;
+    // Varios Excel (uno viejo y uno nuevo, o varios días): del más antiguo al más nuevo, así las fechas nuevas ganan
+    const files = (Array.isArray(input) ? [...input] : [input]).sort((a, b) => a.lastModified - b.lastModified);
+    let routes: DistrictRoute[] | null = null;
+    const all: UnitRow[] = [], per: { name: string; rows: number }[] = [];
+    let duplicates = 0, fact = 0;
+    for (const file of files) {
+      const parsed = await parseInBrowser(file);
+      duplicates += parsed.duplicates;
+      // Facturación: la ruta sale del distrito (lista de Yurimaguas; el resto, Pucallpa)
+      if (parsed.format === "FACT") {
+        fact++;
+        routes ??= (await post({ step: "routes" })).routes as DistrictRoute[];
+        applyRoutes(parsed.rows, routes);
+      }
+      per.push({ name: file.name, rows: parsed.rows.length });
+      all.push(...parsed.rows);
+    }
+    const rows = files.length > 1 ? dedupe(all) : all;
+    duplicates += all.length - rows.length;
+    const format: Preview["format"] = fact === files.length ? "FACT" : "HSP";
+    const file = { name: files.length > 1 ? `${files.length} archivos` : files[0].name };
     const exists = new Set<string>();
     for (let i = 0; i < rows.length; i += KEYS_CHUNK) {
       const keys = rows.slice(i, i + KEYS_CHUNK).map((r) => ({ site: r.site, chassis: r.chassis }));
@@ -76,7 +95,7 @@ export async function readUnitsExcel(file: File): Promise<Preview> {
       return { total: list.length, created: list.length - upd, updated: upd };
     };
     return {
-      name: file.name, rows, format, duplicates, saved: false,
+      name: file.name, rows, format, duplicates, saved: false, files: files.length > 1 ? per : undefined,
       sites: { PCL: bySite("PCL"), YUR: bySite("YUR") },
       sample: rows.slice(0, 200).map((r) => ({
         site: r.site, chassis: r.chassis, motor: r.fields.motor, material: r.fields.material, category: r.fields.category,
@@ -119,8 +138,22 @@ export function ImportPanel({
                 <b className="text-sb-on-surface">{s}</b>: {preview.sites[s].total.toLocaleString()} unidades · {preview.sites[s].created.toLocaleString()} nuevas · {preview.sites[s].updated.toLocaleString()} se actualizarán
               </span>
             ))}
-            {preview.duplicates > 0 && <span>{preview.duplicates} chasis repetidos en el archivo (se toma la última fila)</span>}
+            {preview.duplicates > 0 && <span>{preview.duplicates.toLocaleString()} chasis repetidos se juntaron en uno (gana el dato más nuevo; una celda vacía no borra nada)</span>}
           </div>
+          {preview.files && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+              {preview.files.map((f, i) => (
+                <span key={i} className="flex items-center gap-1.5">
+                  {i > 0 && <span className="text-sb-on-surface-variant/60">+</span>}
+                  <span className="max-w-[12rem] truncate rounded-full bg-sb-surface-container px-2 py-0.5" title={f.name}>
+                    {f.name} · <b>{f.rows.toLocaleString()}</b>
+                  </span>
+                </span>
+              ))}
+              <span className="text-sb-on-surface-variant/60">=</span>
+              <span className="rounded-full bg-sb-primary-soft px-2 py-0.5 font-semibold text-sb-primary">{total.toLocaleString()} unidades</span>
+            </div>
+          )}
         </div>
         <button onClick={onClose} disabled={saving} aria-label="Cerrar vista previa" className="rounded-full p-1.5 opacity-50 hover:bg-sb-surface-container hover:opacity-100">
           <X className="h-4 w-4" />

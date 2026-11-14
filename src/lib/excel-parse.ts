@@ -124,10 +124,22 @@ export const text = (v: unknown, max = 160) => {
   return s ? s.slice(0, max) : null;
 };
 
+/** Todos los encabezados conocidos (de los tres formatos), para ubicar la fila de títulos. */
+const KNOWN = new Set(Object.values(MAP).flatMap((m) => Object.values(m as Record<string, readonly string[]>).flat()));
+
+/**
+ * Filas de una hoja. Los títulos no siempre están en la fila 1 (a veces arriba hay un logo, un título o
+ * filas vacías): se toma, entre las primeras 20 filas, la que tenga más encabezados conocidos.
+ */
 export function sheetRows(ws: XLSX.WorkSheet) {
   const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "", raw: true, blankrows: false });
-  const header = (raw[0] ?? []).map((h) => norm(String(h ?? "")));
-  return { header, rows: raw.slice(1) };
+  let at = 0, best = 0;
+  for (let i = 0; i < Math.min(20, raw.length); i++) {
+    const hits = (raw[i] ?? []).filter((h) => KNOWN.has(norm(String(h ?? "")))).length;
+    if (hits > best) { best = hits; at = i; }
+  }
+  const header = (raw[at] ?? []).map((h) => norm(String(h ?? "")));
+  return { header, rows: raw.slice(at + 1) };
 }
 
 function parseSheet(ws: XLSX.WorkSheet, kind: keyof typeof MAP, site: Site): UnitRow[] {
@@ -169,21 +181,38 @@ export function parseWorkbook(buf: ArrayBuffer | Uint8Array): { format: ImportFo
     ];
     if (rows.length) return { format: "HSP", rows };
   }
+  // Facturación: se leen TODAS las hojas (tablas) que tengan «Número Chasis» y «Nombre Tienda», no solo la primera
+  const fact: UnitRow[] = [];
   for (const n of wb.SheetNames) {
     const { header } = sheetRows(wb.Sheets[n]);
-    if (header.includes("numero chasis") && header.includes("nombre tienda")) {
-      return { format: "FACT", rows: parseSheet(wb.Sheets[n], "FACT", "PCL") };
-    }
+    if (header.includes("numero chasis") && header.includes("nombre tienda")) fact.push(...parseSheet(wb.Sheets[n], "FACT", "PCL"));
   }
+  if (fact.length) return { format: "FACT", rows: fact };
   throw new Error(
     'No se reconoce el Excel. Usa el HSP-OFICIAL (hojas "PCL" y "YUR") o el PCL-FACT de facturación (columnas "Número Chasis" y "Nombre Tienda").',
   );
 }
 
-/** Quita chasis repetidos dentro del mismo archivo (gana la última fila, como en el Excel). */
+/**
+ * Junta filas del mismo chasis (repetidas en una hoja, en varias hojas o en varios Excel).
+ * Van en orden (del archivo más antiguo al más nuevo): cada dato que trae una fila posterior reemplaza
+ * al anterior, pero una celda vacía nunca borra lo que ya se tenía. Así un Excel viejo + uno nuevo
+ * se suman y quedan las fechas más recientes.
+ */
 export function dedupe(rows: UnitRow[]) {
   const m = new Map<string, UnitRow>();
-  for (const r of rows) m.set(`${r.site}|${r.chassis}`, r);
+  for (const r of rows) {
+    const k = `${r.site}|${r.chassis.toUpperCase()}`;
+    const p = m.get(k);
+    if (!p) { m.set(k, { ...r, fields: { ...r.fields }, dates: { ...r.dates } }); continue; }
+    if (r.dealer) p.dealer = r.dealer;
+    if (r.billing_date) p.billing_date = r.billing_date;
+    for (const f of TEXT_FIELDS) if (r.fields[f]) p.fields[f] = r.fields[f];
+    for (const [d, v] of Object.entries(r.dates) as [DateField, string | null][]) {
+      if (v) p.dates[d] = v;
+      else if (!(d in p.dates)) p.dates[d] = null;
+    }
+  }
   return [...m.values()];
 }
 

@@ -208,16 +208,18 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
     return stageFile(new File([out], file.name, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
   }
 
-  async function read(file: File) {
+  async function read(list: File[]) {
+    const file = list[0];
+    if (!file) return;
     reset();
-    setReading(file.name);
+    setReading(list.length > 1 ? `${list.length} archivos` : file.name);
     try {
       if (mode === "stage") {
         // El encargado solo registra fechas de sus etapas (plantilla o el archivo completo: se toma solo lo suyo)
         await stageFromAnyFile(file);
       } else {
         try {
-          setUnits(await readUnitsExcel(file));
+          setUnits(await readUnitsExcel(list));
         } catch (e) {
           if (!isUnknownExcel(e)) throw e;
           throw new Error("No se reconoce el Excel. Sube la facturación (FACT HSP-DATA / PCL-FACT, con «Número Chasis» y «Nombre Tienda») o el HSP-OFICIAL (hojas PCL y YUR).");
@@ -274,12 +276,12 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
                 ))}
               </div>
               {tab === "history" ? <SavedBatches /> : (<>
-              <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={(e) => e.target.files?.[0] && read(e.target.files[0])} />
+              <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" hidden multiple={mode !== "stage"} onChange={(e) => read([...(e.target.files ?? [])])} />
               {!hasPreview && (
                 <motion.button type="button" disabled={!!reading}
                   onClick={() => fileRef.current?.click()}
                   onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
-                  onDrop={(e) => { e.preventDefault(); setDrag(false); const f = e.dataTransfer.files?.[0]; if (f) read(f); }}
+                  onDrop={(e) => { e.preventDefault(); setDrag(false); read([...(e.dataTransfer.files ?? [])].slice(0, mode === "stage" ? 1 : 20)); }}
                   animate={{ scale: drag ? 1.02 : 1 }} transition={{ duration: 0.2, ease: EASE }}
                   className={cn("flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors duration-200",
                     drag ? "border-sb-primary bg-sb-primary-soft" : "border-sb-outline-variant hover:border-sb-primary hover:bg-sb-surface-container-low")}>
@@ -287,11 +289,11 @@ export function UploadCenter({ open, onClose, mode }: { open: boolean; onClose: 
                     className="grid h-14 w-14 place-items-center rounded-2xl bg-sb-primary text-sb-on-primary">
                     {reading ? <FileSpreadsheet className="h-7 w-7" /> : <Upload className="h-7 w-7" />}
                   </motion.span>
-                  <span className="text-sm font-semibold">{reading ? `Leyendo ${reading}…` : "Arrastra el Excel aquí o haz clic para elegirlo"}</span>
+                  <span className="text-sm font-semibold">{reading ? `Leyendo ${reading}…` : mode === "stage" ? "Arrastra el Excel aquí o haz clic para elegirlo" : "Arrastra uno o varios Excel aquí, o haz clic para elegirlos"}</span>
                   <span className="max-w-md text-[11px] text-sb-on-surface-variant">
                     {mode === "stage"
                       ? "La plantilla de «Mi trabajo» o el HSP-OFICIAL completo: se toman solo las fechas de tus etapas."
-                      : "Facturación (FACT HSP-DATA / PCL-FACT) → unidades nuevas en IQT-Port, Yurimaguas o Pucallpa según el distrito · HSP-OFICIAL → crea y actualiza con sus fechas."}
+                      : "Facturación (FACT HSP-DATA / PCL-FACT) → unidades nuevas en IQT-Port, Yurimaguas o Pucallpa según el distrito · HSP-OFICIAL → crea y actualiza con sus fechas. Varios Excel a la vez se suman solos."}
                   </span>
                 </motion.button>
               )}
