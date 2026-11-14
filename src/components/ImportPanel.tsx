@@ -13,7 +13,7 @@ export type Preview = {
   format: "HSP" | "FACT";
   duplicates: number;
   /** Varios Excel a la vez: filas de cada uno (la suma, sin repetidos, es rows.length). */
-  files?: { name: string; rows: number }[];
+  files?: { name: string; rows: number; added: number }[];
   sites: Record<Site, { total: number; created: number; updated: number }>;
   sample: {
     site: Site; chassis: string; motor: string | null; material: string | null; category: string | null;
@@ -66,7 +66,8 @@ export async function readUnitsExcel(input: File | File[]): Promise<Preview> {
     // Varios Excel (uno viejo y uno nuevo, o varios días): del más antiguo al más nuevo, así las fechas nuevas ganan
     const files = (Array.isArray(input) ? [...input] : [input]).sort((a, b) => a.lastModified - b.lastModified);
     let routes: DistrictRoute[] | null = null;
-    const all: UnitRow[] = [], per: { name: string; rows: number }[] = [];
+    const all: UnitRow[] = [], per: { name: string; rows: number; added: number }[] = [];
+    const seen = new Set<string>();
     let duplicates = 0, fact = 0;
     for (const file of files) {
       const parsed = await parseInBrowser(file);
@@ -77,7 +78,10 @@ export async function readUnitsExcel(input: File | File[]): Promise<Preview> {
         routes ??= (await post({ step: "routes" })).routes as DistrictRoute[];
         applyRoutes(parsed.rows, routes);
       }
-      per.push({ name: file.name, rows: parsed.rows.length });
+      // Cuántas motos trae este archivo que no estaban en los anteriores
+      let added = 0;
+      for (const r of parsed.rows) { const k = `${r.site}|${r.chassis.toUpperCase()}`; if (!seen.has(k)) { seen.add(k); added++; } }
+      per.push({ name: file.name, rows: parsed.rows.length, added });
       all.push(...parsed.rows);
     }
     const rows = files.length > 1 ? dedupe(all) : all;
@@ -152,22 +156,37 @@ export function ImportPanel({
                 <b className="text-sb-on-surface">{s}</b>: {preview.sites[s].total.toLocaleString()} unidades · {preview.sites[s].created.toLocaleString()} nuevas · {preview.sites[s].updated.toLocaleString()} se actualizarán
               </span>
             ))}
-            {preview.duplicates > 0 && <span>{preview.duplicates.toLocaleString()} chasis repetidos se juntaron en uno (gana el dato más nuevo; una celda vacía no borra nada)</span>}
+            {preview.duplicates > 0 && !preview.files && <span>{preview.duplicates.toLocaleString()} chasis repetidos se juntaron en uno (gana el dato más nuevo; una celda vacía no borra nada)</span>}
           </div>
-          {preview.files && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
-              {preview.files.map((f, i) => (
-                <span key={i} className="flex items-center gap-1.5">
-                  {i > 0 && <span className="text-sb-on-surface-variant/60">+</span>}
-                  <span className="max-w-[12rem] truncate rounded-full bg-sb-surface-container px-2 py-0.5" title={f.name}>
-                    {f.name} · <b>{f.rows.toLocaleString()}</b>
+          {preview.files && (() => {
+            const files = preview.files;
+            const sum = files.reduce((t, f) => t + f.rows, 0), rep = sum - total;
+            return (
+              <div className="mt-2 flex flex-col gap-1.5 text-[11px]">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {files.map((f, i) => (
+                    <span key={i} className="flex items-center gap-1.5">
+                      {i > 0 && <span className="text-sb-on-surface-variant/60">+</span>}
+                      <span className="max-w-[14rem] truncate rounded-full bg-sb-surface-container px-2 py-0.5" title={f.name}>
+                        {f.name} · <b>{f.rows.toLocaleString()}</b>
+                      </span>
+                    </span>
+                  ))}
+                  {rep > 0 && <><span className="text-sb-on-surface-variant/60">−</span>
+                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 font-semibold text-amber-700 dark:text-amber-300">{rep.toLocaleString()} repetidas</span></>}
+                  <span className="text-sb-on-surface-variant/60">=</span>
+                  <span className="rounded-full bg-sb-primary-soft px-2 py-0.5 font-semibold text-sb-primary">{total.toLocaleString()} unidades</span>
+                </div>
+                {files.map((f, i) => i > 0 && f.added < f.rows && (
+                  <span key={i} className="text-sb-on-surface-variant/80">
+                    {f.added === 0
+                      ? <>Las <b>{f.rows.toLocaleString()}</b> de «{f.name}» ya estaban en el otro archivo: no suma motos nuevas, solo actualiza sus datos.</>
+                      : <>«{f.name}» suma <b>{f.added.toLocaleString()}</b> motos nuevas; las otras {(f.rows - f.added).toLocaleString()} ya estaban en el otro archivo.</>}
                   </span>
-                </span>
-              ))}
-              <span className="text-sb-on-surface-variant/60">=</span>
-              <span className="rounded-full bg-sb-primary-soft px-2 py-0.5 font-semibold text-sb-primary">{total.toLocaleString()} unidades</span>
-            </div>
-          )}
+                ))}
+              </div>
+            );
+          })()}
         </div>
         <button onClick={onClose} disabled={saving} aria-label="Cerrar vista previa" className="rounded-full p-1.5 opacity-50 hover:bg-sb-surface-container hover:opacity-100">
           <X className="h-4 w-4" />
