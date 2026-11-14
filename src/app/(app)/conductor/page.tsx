@@ -1,13 +1,13 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { TableLabels } from "@/components/TableLabels";
 import { Button, toast } from "@heroui/react";
-import { Search, Truck } from "lucide-react";
+import { Check, Inbox, Search, Truck } from "lucide-react";
+import { Kind } from "@/components/Kinds";
 import { Card, PageTitle } from "@/components/ui";
 import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
 import { SuggestInput } from "@/components/SuggestInput";
 import { DATA_EVENT } from "@/components/UploadCenter";
-import { DELAY_REASONS, SITE_INFO, fmtDate, unitsText, type Site } from "@/lib/hsp";
+import { DELAY_REASONS, SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
 import { TripCard, type Trip } from "@/components/yur/YurTrips";
@@ -22,6 +22,13 @@ type Row = { guia: string | null; district: string | null; department: string | 
 
 const field = "h-10 w-full rounded-xl border border-sb-outline-variant bg-sb-surface px-3 text-sm text-sb-on-surface outline-none focus:border-sb-on-surface";
 const n = (v: number) => Number(v ?? 0).toLocaleString("es-PE");
+/** Guía: marca · guía/dealer · despachada · motos y motokares · total (celular: marca · guía · total) */
+const GCOLS = "grid-cols-[1.25rem_minmax(0,1fr)_3rem] gap-x-3 sm:grid-cols-[1.25rem_minmax(0,1fr)_6rem_10rem_3rem]";
+const Empty = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-sb-outline-variant/60 px-4 py-10 text-center text-xs text-sb-on-surface-variant">
+    <Inbox className="h-5 w-5 opacity-50" />{children}
+  </div>
+);
 
 export default function ConductorPage() {
   const [me, setMe] = useState<{ role: string; name?: string; stages: { site: Site; field: string }[] } | null>(null);
@@ -156,53 +163,73 @@ export default function ConductorPage() {
                 ))}
               </div>
             )}
-            <TableLabels className="rounded-xl border border-sb-outline-variant/40">
-              <table className="w-full min-w-[520px] text-left text-xs">
-                <thead>
-                  <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant">
-                    <th className="px-3 py-2 font-semibold">Distrito</th><th className="px-2 py-2 font-semibold">Dealer</th><th className="px-2 py-2 font-semibold">Guía</th>
-                    <th className="px-2 py-2 text-right font-semibold">2W</th><th className="px-2 py-2 text-right font-semibold">3W</th><th className="px-3 py-2 text-center font-semibold">Entregado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stops.map(([d, list], si) => {
-                    const t = list.reduce((a, r) => ({ total: a.total + r.total, w2: a.w2 + r.w2, w3: a.w3 + r.w3 }), { total: 0, w2: 0, w3: 0 });
-                    const origin = list.some((r) => r.via_lima) ? "Lima" : city;
-                    return [
-                      <tr key={`stop-${d}`} className="border-b border-sb-outline-variant/30 bg-sb-surface-container-low/70">
-                        <td colSpan={6} className="px-3 py-2">
-                          <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                            <span className="grid h-5 w-5 place-items-center rounded-full bg-sb-primary text-[10px] font-bold text-sb-on-primary">{si + 1}</span>
-                            <span className="text-[11px] text-sb-on-surface-variant">{origin} →</span>
-                            <b className="text-sm">{d}</b>
-                            <span className="text-[11px] text-sb-on-surface-variant">{list[0].department ?? ""} · {list.length} guía(s) · {unitsText(t.w2, t.w3)}</span>
-                          </span>
-                        </td>
-                      </tr>,
-                      ...list.map((r) => {
+            {/* Paradas del camión: una por distrito, con sus guías para marcar como entregadas */}
+            <div className="flex flex-col gap-2.5">
+              {!searched && <Empty>Escribe tu nombre y pulsa «Buscar».</Empty>}
+              {searched && !rows && [0, 1].map((i) => <div key={i} className="h-28 animate-pulse rounded-2xl bg-sb-surface-container-low" />)}
+              {searched && rows && !rows.length && <Empty>No hay entregas pendientes para «{searched}».</Empty>}
+              {stops.map(([d, list], si) => {
+                const t = list.reduce((a, r) => ({ total: a.total + r.total, w2: a.w2 + r.w2, w3: a.w3 + r.w3 }), { total: 0, w2: 0, w3: 0 });
+                const origin = list.some((r) => r.via_lima) ? "Lima" : city;
+                const marked = list.filter((r) => sel.has(k(r))), all = marked.length === list.length;
+                const late = list.reduce((x, r) => x + r.need, 0);
+                const flipStop = () => canDeliver && setSel((s) => { const y = new Set(s); for (const r of list) { if (all) y.delete(k(r)); else y.add(k(r)); } return y; });
+                return (
+                  <div key={d} className="overflow-hidden rounded-2xl border border-sb-outline-variant/50">
+                    {/* Parada */}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 bg-sb-surface-container-low/70 px-3 py-2.5">
+                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-sb-primary text-xs font-bold text-sb-on-primary">{si + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[10px] uppercase tracking-wider text-sb-on-surface-variant">{origin} → parada {si + 1}{list[0].department ? ` · ${list[0].department}` : ""}</p>
+                        <p className="truncate text-base font-semibold uppercase leading-tight tracking-tight">{d}</p>
+                      </div>
+                      <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto">
+                        {(t.w2 > 0 || !t.w3) && <Kind v={t.w2} k="w2" />}
+                        {t.w3 > 0 && <Kind v={t.w3} k="w3" />}
+                        {late > 0 && <span className="rounded-full bg-sb-late-soft px-2 py-0.5 text-[11px] font-semibold text-sb-late">{late} tarde</span>}
+                      <button type="button" onClick={flipStop} disabled={!canDeliver}
+                        className={cn("sb-pill-sm ml-auto flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors disabled:opacity-50",
+                          all ? "border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant bg-sb-surface hover:border-sb-primary")}>
+                        <Check className="h-3 w-3" strokeWidth={3} />{all ? (list.length === 1 ? "Entregada" : "Todas entregadas") : list.length === 1 ? "Marcar entregada" : `Marcar las ${list.length}`}
+                        {list.length > 1 && <span className="tabular-nums opacity-70">{marked.length}/{list.length}</span>}
+                      </button>
+                      </div>
+                    </div>
+                    {/* Encabezado (escritorio) */}
+                    <div className={cn(GCOLS, "hidden border-b border-sb-outline-variant/30 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant sm:grid")}>
+                      <span /><span>Guía · dealer</span><span>Despachada</span><span>Motos y motokares</span><span className="text-right">Total</span>
+                    </div>
+                    <div className="flex flex-col p-1">
+                      {list.map((r) => {
                         const on = sel.has(k(r));
                         const flip = () => canDeliver && setSel((s) => { const y = new Set(s); if (y.has(k(r))) y.delete(k(r)); else y.add(k(r)); return y; });
                         return (
-                          <tr key={`${k(r)}|${r.dealer}`} onClick={flip} className={cn("cursor-pointer border-b border-sb-outline-variant/20 last:border-0", on ? "bg-sb-primary-soft" : "hover:bg-sb-surface-container-low")}>
-                            <td className="px-3 py-2.5 pl-10 font-medium">{r.district ?? "—"}<span className="block text-[10px] font-normal text-sb-on-surface-variant">despacho {fmtDate(r.dispatched)}</span></td>
-                            <td className="max-w-[14rem] truncate px-2 py-2.5" title={r.dealer ?? ""}>{r.dealer ?? "—"}</td>
-                            <td className="px-2 py-2.5 font-mono font-semibold">{r.guia ?? "—"}{r.need ? <span className="ml-1 rounded-full bg-sb-late-soft px-1.5 font-sans text-[10px] text-sb-late">{r.need} tarde</span> : null}</td>
-                            <td className="px-2 py-2.5 text-right tabular-nums">{r.w2 || ""}</td>
-                            <td className="px-2 py-2.5 text-right tabular-nums">{r.w3 || ""}</td>
-                            <td className="px-3 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
-                              <input type="checkbox" className="h-5 w-5 accent-[var(--sb-primary)]" aria-label={`Entregado ${r.guia}`} checked={on} disabled={!canDeliver} onChange={flip} />
-                            </td>
-                          </tr>
+                          <button key={`${k(r)}|${r.dealer}`} type="button" role="checkbox" aria-checked={on} aria-label={`Entregado ${r.guia}`} onClick={flip} disabled={!canDeliver}
+                            className={cn(GCOLS, "grid items-center gap-y-1 rounded-xl px-2 py-2.5 text-left transition-colors duration-200 disabled:cursor-default", on ? "bg-sb-primary-soft" : "hover:bg-sb-surface-container-low")}>
+                            <span className={cn("grid h-5 w-5 place-items-center rounded-full border transition-all duration-200", on ? "scale-105 border-sb-primary bg-sb-primary text-sb-on-primary" : "border-sb-outline-variant bg-sb-surface")}>
+                              <Check className={cn("h-3 w-3 transition-opacity", on ? "opacity-100" : "opacity-0")} strokeWidth={3} />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="flex items-center gap-1.5 font-mono text-sm font-semibold tracking-tight">
+                                {r.guia ?? "—"}{r.need ? <span className="rounded-full bg-sb-late-soft px-1.5 font-sans text-[10px] font-semibold text-sb-late">{r.need} tarde</span> : null}
+                              </span>
+                              <span className="block truncate text-[11px] text-sb-on-surface-variant" title={r.dealer ?? ""}>{r.dealer ?? "—"}</span>
+                              <span className="mt-1 flex flex-wrap items-center gap-1 sm:hidden">
+                                {(r.w2 > 0 || !r.w3) && <Kind v={r.w2} k="w2" />}{r.w3 > 0 && <Kind v={r.w3} k="w3" short />}
+                                <span className="text-[10px] text-sb-on-surface-variant">· despacho {fmtDate(r.dispatched)}</span>
+                              </span>
+                            </span>
+                            <span className="hidden text-xs sm:block">{fmtDate(r.dispatched)}</span>
+                            <span className="hidden flex-wrap gap-1 sm:flex">{(r.w2 > 0 || !r.w3) && <Kind v={r.w2} k="w2" />}{r.w3 > 0 && <Kind v={r.w3} k="w3" short />}</span>
+                            <span className="text-right"><span className="block text-sm font-semibold tabular-nums">{n(r.total)}</span><span className="block text-[10px] text-sb-on-surface-variant">unid.</span></span>
+                          </button>
                         );
-                      }),
-                    ];
-                  })}
-                  {!searched && <tr><td colSpan={6} className="px-3 py-8 text-center text-sb-on-surface-variant">Escribe tu nombre y pulsa «Buscar».</td></tr>}
-                  {searched && rows && !rows.length && <tr><td colSpan={6} className="px-3 py-8 text-center text-sb-on-surface-variant">No hay entregas pendientes para «{searched}».</td></tr>}
-                  {searched && !rows && <tr><td colSpan={6} className="px-3 py-8 text-center text-sb-on-surface-variant">Buscando…</td></tr>}
-                </tbody>
-              </table>
-            </TableLabels>
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
           <div className="flex flex-col gap-3 border-t border-sb-outline-variant/40 pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
             <div className="flex flex-col gap-1 text-[11px] text-sb-on-surface-variant">Fecha de entrega
