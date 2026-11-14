@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { Button, toast } from "@heroui/react";
-import { Check, CheckCircle2, History, Inbox, MessageSquareWarning, PackageCheck, Search, X } from "lucide-react";
+import { Check, CheckCircle2, Inbox, MessageSquareWarning, PackageCheck, Search, X } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { ChoiceCards } from "@/components/modal/ChoiceCards";
 import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
@@ -10,6 +10,7 @@ import { fmtDate } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
 import { Kind } from "@/components/Kinds";
+import { DeliveryHistory } from "@/components/DeliveryHistory";
 
 /**
  * 6. Entrega · Dealer: busca su guía de remisión y confirma que la recibió,
@@ -18,8 +19,6 @@ import { Kind } from "@/components/Kinds";
 
 /** Guía despachada que aún no se confirma */
 type Pend = { guia: string; site: string; dealer: string | null; district: string | null; driver: string | null; dispatched: string; w2: number; w3: number; total: number };
-/** Recepción ya registrada (historial) */
-type Rec = { id: number; guia: string; site: string; kind: string; note: string | null; received_on: string; created_at: string; units: number; usuario: string | null; dealer: string | null; district: string | null };
 /** Fila de guía: marca · guía/distrito · despachada · motos y motokares · total (celular: marca · guía · total) */
 const GCOLS = "grid-cols-[1.25rem_minmax(0,1fr)_3rem] gap-x-3 sm:grid-cols-[1.25rem_minmax(0,1fr)_6rem_10rem_3rem]";
 const Empty = ({ children }: { children: React.ReactNode }) => (
@@ -76,7 +75,6 @@ export default function RecepcionPage() {
   const [me, setMe] = useState<{ role: string } | null>(null);
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<Pend[] | null>(null);
-  const [history, setHistory] = useState<Rec[] | null>(null);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [kind, setKind] = useState<"completo" | "observacion">("completo");
   const [note, setNote] = useState("");
@@ -85,7 +83,6 @@ export default function RecepcionPage() {
   const [justDone, setJustDone] = useState<Set<string>>(new Set()); // recién recibidas: se resaltan en el historial
   const load = useCallback(() => {
     fetch("/api/entrega?pending=1").then((r) => r.json()).then((j) => setRows(j.rows ?? []));
-    fetch("/api/entrega?received=1").then((r) => r.json()).then((j) => setHistory(j.rows ?? []));
   }, []);
   useEffect(() => { fetch("/api/me").then((r) => r.json()).then(setMe); load(); }, [load]);
   useEffect(() => {
@@ -145,7 +142,7 @@ export default function RecepcionPage() {
         <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[1fr_19rem]">
           <div className="flex min-w-0 flex-col gap-2.5">
             {!rows && [0, 1].map((i) => <div key={i} className="h-28 animate-pulse rounded-2xl bg-sb-surface-container-low" />)}
-            {rows && !rows.length && <Empty>No tienes guías por recibir. Las que confirmes quedan en el historial de abajo.</Empty>}
+            {rows && !rows.length && <Empty>No tienes guías por recibir. Las que confirmes quedan en el historial de abajo con doble check.</Empty>}
             {rows && !!rows.length && !shown.length && <Empty>Ninguna guía por recibir coincide con «{q}». Si ya la recibiste, está en el historial.</Empty>}
             {groups.map(([dealer, list]) => {
               const marked = list.filter((r) => sel.has(r.guia)).length, all = marked === list.length;
@@ -231,42 +228,8 @@ export default function RecepcionPage() {
         </div>
       )}
 
-      {/* Historial: lo ya recibido (no vuelve a aparecer en «Guías por recibir») */}
-      <Card className="overflow-hidden">
-        <div className="flex items-center gap-3 border-b border-sb-outline-variant/40 px-4 py-3">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sb-surface-container text-sb-on-surface-variant"><History className="h-[18px] w-[18px]" /></span>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold">Historial de recepciones</h3>
-            <p className="text-[11px] text-sb-on-surface-variant">Lo que ya se recibió: cuándo, cómo llegó y quién lo registró</p>
-          </div>
-        </div>
-        <div className="flex flex-col p-1.5">
-          {!history && <div className="m-2 h-16 animate-pulse rounded-xl bg-sb-surface-container-low" />}
-          {history && !history.length && <p className="px-4 py-6 text-center text-xs text-sb-on-surface-variant">Todavía no hay recepciones registradas.</p>}
-          {history?.map((h) => {
-            const ok = h.kind === "completo";
-            return (
-              <div key={h.id} className={cn("flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors duration-700", justDone.has(h.guia) && "bg-sb-primary-soft")}>
-                <span className={cn("mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full", ok ? "bg-sb-primary text-sb-on-primary" : "bg-sb-late-soft text-sb-late")}>
-                  {ok ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : <MessageSquareWarning className="h-3.5 w-3.5" />}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                    <span className="font-mono text-sm font-semibold">{h.guia}</span>
-                    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", ok ? "bg-sb-primary-soft text-sb-primary" : "bg-sb-late-soft text-sb-late")}>{ok ? "Entregado completo" : "Con observación"}</span>
-                  </p>
-                  <p className="truncate text-[11px] text-sb-on-surface-variant">{h.dealer ?? "—"}{h.district ? ` · ${h.district}` : ""}</p>
-                  {h.note && <p className="mt-1 rounded-lg bg-sb-surface-container-low px-2 py-1 text-xs">{h.note}</p>}
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-xs font-semibold">{fmtDate(h.received_on)}</p>
-                  <p className="text-[10px] text-sb-on-surface-variant">{n(h.units)} unid.{h.usuario ? ` · ${h.usuario}` : ""}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
+      {/* Historial con doble check: ✓ entregó el transportista · ✓✓ el cliente confirmó (lo recibido ya no vuelve a «Guías por recibir») */}
+      <DeliveryHistory highlight={justDone} />
       {me.role === "admin" && <Observations />}
     </div>
   );

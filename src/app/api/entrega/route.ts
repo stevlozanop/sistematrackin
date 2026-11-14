@@ -4,7 +4,7 @@ import { getScope, guard } from "@/lib/guard";
 import { isSite, type Site } from "@/lib/hsp";
 import { dealerScope } from "@/lib/clients";
 import { isSuper, today } from "@/lib/workflow";
-import { notifyDelivered, notifyObservation, pushLater } from "@/lib/push";
+import { notifyDelivered, notifyObservation, notifyReceived, pushLater } from "@/lib/push";
 
 /**
  * 6. Entrega al dealer, desde dos lados:
@@ -18,7 +18,7 @@ import { notifyDelivered, notifyObservation, pushLater } from "@/lib/push";
  * GET  ?site=PCL&report=1&from&to       -> detalle de entregas: origen, distrito, dealer, guía, chofer, entregado
  * POST { action: "deliver", site, guias: [], date, lateReason? }
  * GET  ?pending=1                      -> guías despachadas que el dealer aún no confirma
- * GET  ?received=1                     -> historial de recepciones (lo último primero)
+ * GET  ?received=1&q=&only=one         -> historial de entregas con doble check (✓ transportista · ✓✓ cliente); only=one: solo las de un check
  * POST { action: "receive", guia | guias: [], kind: "completo" | "observacion", note?, date }
  * POST { action: "review", id }
  */
@@ -96,12 +96,36 @@ export async function GET(req: Request) {
          GROUP BY guia ORDER BY MAX(dealer), guia LIMIT 500`, sc?.args ?? []);
       return NextResponse.json({ rows: rows.map((r) => ({ ...r, w2: num(r.w2), w3: num(r.w3), total: num(r.total) })) });
     }
-    const rows = await queryList<{ id: number; guia: string; site: string; kind: string; note: string | null; received_on: string; created_at: string; units: number; usuario: string | null; dealer: string | null; district: string | null }>(
-      `SELECT r.id, r.guia, r.site, r.kind, r.note, r.received_on, r.created_at, r.units, u.name usuario, g.dealer, g.district
-       FROM receptions r LEFT JOIN users u ON u.id = r.user_id
-       JOIN LATERAL (SELECT MAX(dealer) dealer, MAX(district) district, COUNT(*) n FROM v_units v WHERE v.guia = r.guia${sc ? ` AND v.${sc.sql}` : ""}) g ON g.n > 0
-       ORDER BY r.created_at DESC LIMIT 60`, sc?.args ?? []);
-    return NextResponse.json({ rows: rows.map((r) => ({ ...r, units: num(r.units) })) });
+    // Historial de entregas con doble check: ✓ el transportista registró la entrega · ✓✓ el cliente confirmó lo recibido.
+    // El 1.er check vale si la entrega se registró antes que la recepción (o la registró otra persona); si el cliente
+    // confirmó sin que el transportista haya registrado nada, ese check queda vacío.
+    const q = (p.get("q") ?? "").trim().slice(0, 60);
+    const where = ["v.guia IS NOT NULL", "(v.d_entrega IS NOT NULL OR v.guia IN (SELECT guia FROM receptions))"];
+    const args: unknown[] = [];
+    if (sc) { where.push(`v.${sc.sql}`); args.push(...sc.args); }
+    if (s.role === "operator") { const c = (await getScope(s.id)).carrier; if (c) { where.push("v.carrier = ?"); args.push(c); } }
+    if (q) { where.push("(v.guia ILIKE ? OR v.dealer ILIKE ? OR v.district ILIKE ? OR v.driver ILIKE ?)"); args.push(...Array(4).fill(`%${q}%`)); }
+    const only = p.get("only");
+    if (only === "one") where.push("v.guia NOT IN (SELECT guia FROM receptions)");
+    const rows = await queryList<{
+      guia: string; site: string; dealer: string | null; district: string | null; driver: string | null; delivered_on: string | null; total: number; w2: number; w3: number;
+      kind: string | null; note: string | null; received_on: string | null; received_by: string | null; delivered_by: string | null; carrier_check: boolean;
+    }>(
+      `WITH g AS (
+         SELECT v.guia, MAX(v.site) site, MAX(v.dealer) dealer, MAX(v.district) district, MAX(v.driver) driver, MAX(v.d_entrega) delivered_on,
+           COUNT(*) total, SUM(v.category = '2W') w2, SUM(v.category <> '2W' OR v.category IS NULL) w3, array_agg(v.id) ids
+         FROM v_units v WHERE ${where.join(" AND ")}
+         GROUP BY v.guia ORDER BY MAX(v.d_entrega) DESC NULLS LAST, v.guia LIMIT 150)
+       SELECT g.guia, g.site, g.dealer, g.district, g.driver, g.delivered_on, g.total, g.w2, g.w3,
+         r.kind, r.note, r.received_on, ru.name received_by, eu.name delivered_by,
+         (e.at IS NOT NULL AND (r.id IS NULL OR e.user_id IS DISTINCT FROM r.user_id OR e.at < r.created_at - INTERVAL '5 seconds')) carrier_check
+       FROM g
+       LEFT JOIN LATERAL (SELECT * FROM receptions x WHERE x.guia = g.guia ORDER BY x.created_at DESC LIMIT 1) r ON true
+       LEFT JOIN users ru ON ru.id = r.user_id
+       LEFT JOIN LATERAL (SELECT user_id, at FROM unit_events x WHERE x.unit_id = ANY(g.ids) AND x.field = 'd_entrega' ORDER BY x.at LIMIT 1) e ON true
+       LEFT JOIN users eu ON eu.id = e.user_id
+       ORDER BY COALESCE(g.delivered_on, r.received_on) DESC, g.guia`, args);
+    return NextResponse.json({ rows: rows.map((r) => ({ ...r, total: num(r.total), w2: num(r.w2), w3: num(r.w3), carrier_check: !!r.carrier_check && r.carrier_check !== ("f" as never) })) });
   }
 
   // Dealer: su guía
@@ -247,6 +271,7 @@ export async function POST(req: Request) {
         });
       }
     }
+    pushLater(() => notifyReceived(list.map((x) => x.guia), kind));
     return NextResponse.json({ ok: true, guias: list.length, units, delivered, kind });
   }
 

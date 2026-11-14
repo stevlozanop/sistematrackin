@@ -150,6 +150,67 @@ export async function notifyDelivered(unitIds: number[]) {
   }
 }
 
+/** Transportistas que registran la entrega (etapa d_entrega) de ese módulo y transporte */
+const carrierUsers = (site: string, carrier: string | null) => ids(
+  `SELECT DISTINCT u.id FROM users u JOIN user_stages st ON st.user_id = u.id
+   WHERE u.role = 'operator' AND u.${ACTIVE} AND st.site = ? AND st.field = 'd_entrega' AND (u.carrier IS NULL OR u.carrier = ?)`, [site, carrier ?? ""]);
+
+/** El cliente confirmó lo que recibió: doble check para el transportista que lo entregó */
+export async function notifyReceived(guias: string[], kind: string) {
+  if (!guias.length) return;
+  const rows = await query<{ site: string; carrier: string | null; guias: string; dealer: string | null; n: number }>(
+    `SELECT site, carrier, string_agg(DISTINCT guia::text, ', ') guias, MAX(dealer) dealer, COUNT(DISTINCT guia) n FROM v_units
+     WHERE guia IN (?) GROUP BY site, carrier`, [guias]);
+  for (const r of rows) {
+    const to = await carrierUsers(r.site, r.carrier);
+    if (!to.length) continue;
+    await pushToUsers(to, {
+      title: `✓✓ ${r.dealer ?? "El cliente"} confirmó la recepción`,
+      body: `${Number(r.n) === 1 ? "Guía" : "Guías"} ${r.guias}${kind === "observacion" ? " · con observación" : " · llegó completo"}. Ya tiene doble check.`,
+      url: "/conductor",
+      tag: `recibida-${r.guias}`,
+    }, "entrega");
+  }
+}
+
+/**
+ * Entregas con un solo check (el transportista entregó, el cliente no confirmó): aviso diario
+ * al transportista (para que pida la confirmación) y al cliente (para que la registre).
+ */
+export async function remindUnconfirmed() {
+  let sent = 0;
+  const rows = await query<{ site: string; carrier: string | null; dealer_id: number | null; dealer: string | null; guias: string; n: number }>(
+    `SELECT site, carrier, dealer_id, MAX(dealer) dealer, string_agg(DISTINCT guia::text, ', ') guias, COUNT(DISTINCT guia) n FROM v_units
+     WHERE guia IS NOT NULL AND d_entrega IS NOT NULL AND d_entrega < CURRENT_DATE AND d_entrega >= CURRENT_DATE - 60
+       AND guia NOT IN (SELECT guia FROM receptions WHERE guia IS NOT NULL)
+     GROUP BY site, carrier, dealer_id`);
+  const byCarrier = new Map<string, { site: string; carrier: string | null; n: number; dealers: Set<string> }>();
+  for (const r of rows) {
+    const k = `${r.site}|${r.carrier ?? ""}`;
+    const c = byCarrier.get(k) ?? { site: r.site, carrier: r.carrier, n: 0, dealers: new Set<string>() };
+    c.n += Number(r.n); if (r.dealer) c.dealers.add(r.dealer); byCarrier.set(k, c);
+    if (r.dealer_id) {
+      const to = await dealerUsers(r.dealer_id);
+      if (to.length) sent += await pushToUsers(to, {
+        title: "Confirma lo que recibiste",
+        body: `${Number(r.n) === 1 ? "La guía" : "Las guías"} ${r.guias} ya ${Number(r.n) === 1 ? "fue entregada" : "fueron entregadas"}: confirma si llegó completo.`,
+        url: "/recepcion", tag: `confirmar-${r.dealer_id}`,
+      }, "diario");
+    }
+  }
+  for (const c of byCarrier.values()) {
+    const to = await carrierUsers(c.site, c.carrier);
+    if (!to.length) continue;
+    const who = [...c.dealers].slice(0, 3).join(", ") + (c.dealers.size > 3 ? "…" : "");
+    sent += await pushToUsers(to, {
+      title: `${plural(c.n, "guía", "guías")} con un solo check`,
+      body: `Entregaste pero el cliente aún no confirma (${who}). Pídele que registre lo recibido para el doble check.`,
+      url: "/conductor", tag: "un-check",
+    }, "diario");
+  }
+  return sent;
+}
+
 /** Observación de un dealer: a la empresa */
 export async function notifyObservation(guia: string, dealer: string | null, note: string) {
   const to = await adminIds();

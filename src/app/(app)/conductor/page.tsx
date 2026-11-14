@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, toast } from "@heroui/react";
 import { Check, Inbox, Search, Truck } from "lucide-react";
 import { Kind } from "@/components/Kinds";
+import { DeliveryHistory } from "@/components/DeliveryHistory";
 import { Card, PageTitle } from "@/components/ui";
 import { DatePicker, pastQuick } from "@/components/modal/DatePicker";
 import { SuggestInput } from "@/components/SuggestInput";
@@ -248,6 +249,8 @@ export default function ConductorPage() {
           </div>
         </div>
       </Card>
+      {/* Lo ya entregado: ✓ tu entrega · ✓✓ el cliente confirmó. Con un solo check, pide al cliente que registre lo recibido */}
+      <DeliveryHistory title="Tus entregas · doble check" />
     </div>
   );
 }

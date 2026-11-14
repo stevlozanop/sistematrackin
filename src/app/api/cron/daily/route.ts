@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { adminIds, pushReady, pushToUsers } from "@/lib/push";
+import { adminIds, pushReady, pushToUsers, remindUnconfirmed } from "@/lib/push";
 import { stageLabel } from "@/lib/workflow";
 import { remindPayments } from "@/lib/billing";
 import type { Site } from "@/lib/hsp";
@@ -9,6 +9,7 @@ import type { Site } from "@/lib/hsp";
  * Resumen diario por notificación (Vercel lo llama cada mañana, ver vercel.json).
  * - Empresa (Leyva): cuántas vencen hoy, cuántas están por vencer y cuántas vencidas no tienen motivo.
  * - Encargados: las unidades vencidas o por vencer que esperan su etapa.
+ * - Transportista y cliente: guías entregadas que el cliente no confirmó (un solo check).
  * Solo una vez por día. Vercel manda «Authorization: Bearer CRON_SECRET».
  */
 export const dynamic = "force-dynamic";
@@ -24,6 +25,8 @@ export async function GET(req: Request) {
 
   // Pagos de licencia que vencen en 3 días o menos (o vencidos): a los supervisores de la empresa
   let sent = await remindPayments().catch(() => 0);
+  // Entregas con un solo check: el cliente no confirmó lo recibido (aviso al transportista y al cliente)
+  sent += await remindUnconfirmed().catch(() => 0);
   // Empresa
   const [t] = await query<{ hoy: number; pronto: number; sin_motivo: number }>(
     `SELECT SUM(CASE WHEN est_date = CURRENT_DATE THEN 1 ELSE 0 END) hoy,
