@@ -245,7 +245,7 @@ export default function EmbarquePage() {
         <Card className="scroll-mt-4 overflow-hidden">
           <div ref={formRef} id="armar">
             <Head icon={Box} title="1. Embarque · arma el contenedor"
-              sub={guias.length ? `${plural(guias.length, ["guía", "guías"])} · ${n(tot.total)} motos en el contenedor${container.trim() ? ` ${container.trim().toUpperCase()}` : ""}` : "Busca las guías que van en el contenedor y súmalas"} />
+              sub={guias.length ? `${plural(guias.length, ["guía", "guías"])} · ${n(tot.total)} unidades en el contenedor${container.trim() ? ` ${container.trim().toUpperCase()}` : ""}` : "Busca las guías que van en el contenedor y súmalas"} />
           </div>
           <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
             <div className="flex min-w-0 flex-col gap-3">
@@ -290,7 +290,7 @@ export default function EmbarquePage() {
         {/* 2. Zarpe: naves cargando */}
         <Card className="overflow-hidden">
           <Head icon={Ship} title="2. Zarpe · naves cargando"
-            sub={data ? (data.naves.length ? `${plural(data.naves.length, ["nave", "naves"])} en el muelle · ${n(data.naves.reduce((t, x) => t + Number(x.total), 0))} motos a bordo` : "Ninguna nave cargando") : "Cargando…"} />
+            sub={data ? (data.naves.length ? `${plural(data.naves.length, ["nave", "naves"])} en el muelle · ${n(data.naves.reduce((t, x) => t + Number(x.total), 0))} unidades a bordo` : "Ninguna nave cargando") : "Cargando…"} />
           <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
             <PickList title="Marca la nave que completó su carga y zarpa" loading={!data} all={["Marcar todas", "Quitar todas"]}
               canAll={(data?.naves.length ?? 0) > 1 && !!data?.canSail}

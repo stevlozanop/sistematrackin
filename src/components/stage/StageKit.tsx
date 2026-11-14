@@ -6,6 +6,7 @@ import { SoftSelect } from "@/components/SoftSelect";
 import { DELAY_REASONS } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
+import { KindText, W2, W3 } from "@/components/Kinds";
 
 /**
  * Piezas de las pantallas de etapas (Embarque y zarpe, Arribo e ingreso): encabezado con resumen, lista que se marca
@@ -38,10 +39,10 @@ export function Mix({ w2, w3 }: { w2: number; w3: number }) {
   return (
     <span className="hidden w-28 shrink-0 flex-col gap-1 sm:flex">
       <span className="flex h-1.5 overflow-hidden rounded-full bg-sb-surface-container">
-        <span className="bg-sb-primary transition-[width] duration-500" style={{ width: `${(Number(w2) / t) * 100}%` }} />
-        <span className="bg-sb-primary/35 transition-[width] duration-500" style={{ width: `${(Number(w3) / t) * 100}%` }} />
+        <span className="transition-[width] duration-500" style={{ width: `${(Number(w2) / t) * 100}%`, background: W2 }} />
+        <span className="transition-[width] duration-500" style={{ width: `${(Number(w3) / t) * 100}%`, background: W3 }} />
       </span>
-      <span className="flex justify-between text-[10px] tabular-nums text-sb-on-surface-variant"><span>2W {n(w2)}</span><span>3W {n(w3)}</span></span>
+      <span className="flex justify-between gap-1 text-[10px] font-semibold tabular-nums"><span style={{ color: W2 }}>{n(w2)} motos</span><span style={{ color: W3 }}>{n(w3)} motok.</span></span>
     </span>
   );
 }
@@ -62,13 +63,13 @@ export function PickRow({ on, disabled, onToggle, title, mono, meta, late, w2, w
       <span className="min-w-0 flex-1">
         <span className={cn("block truncate text-sm font-semibold", mono && "font-mono tracking-tight")}>{title}</span>
         <span className="block text-[11px] text-sb-on-surface-variant sm:truncate">
-          {meta}<span className="sm:hidden"> · 2W {n(w2)} · 3W {n(w3)}</span>{late ? <b className="font-semibold text-sb-late"> · {n(late)} fuera de tiempo</b> : null}
+          {meta}<span className="sm:hidden"> · <KindText w2={w2} w3={w3} /></span>{late ? <b className="font-semibold text-sb-late"> · {n(late)} fuera de tiempo</b> : null}
         </span>
       </span>
       <Mix w2={w2} w3={w3} />
       <span className="w-14 shrink-0 text-right">
         <span className="block text-sm font-semibold tabular-nums">{n(total)}</span>
-        <span className="block text-[10px] text-sb-on-surface-variant">motos</span>
+        <span className="block text-[10px] text-sb-on-surface-variant">unid.</span>
       </span>
     </button>
     {aside && <span className="shrink-0 pr-2">{aside}</span>}
@@ -111,7 +112,7 @@ export function Register({ from, to, label, noun, date, setDate, min, need, reas
     <div className="flex flex-col gap-4 rounded-2xl bg-sb-surface-container-low p-4 lg:sticky lg:top-4 lg:self-start">
       <div>
         <p className="text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">{title}</p>
-        <p className="mt-1 text-3xl font-semibold leading-none tabular-nums">{n(units)}<span className="ml-1.5 text-sm font-normal text-sb-on-surface-variant">motos</span></p>
+        <p className="mt-1 text-3xl font-semibold leading-none tabular-nums">{n(units)}<span className="ml-1.5 text-sm font-normal text-sb-on-surface-variant">unidades</span></p>
         <p className="mt-1.5 text-xs text-sb-on-surface-variant">{count ? `en ${plural(count, noun)}` : hint ?? `Marca ${noun[1]} en la lista`}</p>
       </div>
       <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold">
@@ -148,14 +149,14 @@ export function GuiaRow({ guia, district, dealer, w2, w3, total, late, onRemove 
       <span className="min-w-0 flex-1">
         <span className="block truncate font-mono text-sm font-semibold tracking-tight">{guia}</span>
         <span className="block text-[11px] text-sb-on-surface-variant sm:truncate" title={dealer ?? ""}>
-          {district || "—"} · {dealer || "—"}<span className="sm:hidden"> · 2W {n(w2)} · 3W {n(w3)}</span>
+          {district || "—"} · {dealer || "—"}<span className="sm:hidden"> · <KindText w2={w2} w3={w3} /></span>
           {late ? <b className="font-semibold text-sb-late"> · {n(late)} fuera de tiempo</b> : null}
         </span>
       </span>
       <Mix w2={w2} w3={w3} />
       <span className="w-12 shrink-0 text-right">
         <span className="block text-sm font-semibold tabular-nums">{n(total)}</span>
-        <span className="block text-[10px] text-sb-on-surface-variant">motos</span>
+        <span className="block text-[10px] text-sb-on-surface-variant">unid.</span>
       </span>
       <button type="button" onClick={onRemove} aria-label={`Quitar ${guia}`}
         className="sb-pill-icon grid h-8 w-8 shrink-0 place-items-center rounded-full text-sb-on-surface-variant hover:bg-sb-late-soft hover:text-sb-late"><X className="h-4 w-4" /></button>

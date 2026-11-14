@@ -107,7 +107,7 @@ export function GuiaGroups({ site, filters, reload, onOpenUnit }: { site: Site; 
       {/* Resumen y leyenda */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-sb-outline-variant/40 px-4 py-3 text-[11px] text-sb-on-surface-variant">
         <span><b className="text-sm text-sb-on-surface tabular-nums">{n(data.total)}</b> guías{pages > 1 ? ` · página ${page} de ${pages}` : ""}</span>
-        <span><b className="text-sb-on-surface tabular-nums">{n(motos)}</b> motos en esta página</span>
+        <span><b className="text-sb-on-surface tabular-nums">{n(motos)}</b> unidades en esta página</span>
         {late > 0 && <span className="font-semibold text-sb-late">{n(late)} fuera de tiempo</span>}
         <span className="ml-auto hidden items-center gap-3 sm:flex">
           <span className="flex items-center gap-1"><i className="h-1.5 w-1.5 rounded-full bg-sb-ontime" />a tiempo</span>
@@ -166,7 +166,7 @@ export function GuiaGroups({ site, filters, reload, onOpenUnit }: { site: Site; 
                   <span className="hidden lg:block"><Mix w2={g.w2} w3={g.w3} /></span>
                   <span className="text-right">
                     <span className="block text-sm font-semibold tabular-nums">{g.n}</span>
-                    <span className="block text-[10px] text-sb-on-surface-variant">{g.delivered && !done ? `${g.delivered} entreg.` : "motos"}</span>
+                    <span className="block text-[10px] text-sb-on-surface-variant">{g.delivered && !done ? `${g.delivered} entreg.` : "unid."}</span>
                   </span>
                   <ChevronDown className={cn("h-4 w-4 text-sb-on-surface-variant transition-transform duration-300", isOpen && "rotate-180")} />
                 </button>

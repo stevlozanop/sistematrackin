@@ -7,6 +7,7 @@ import { STATUS_LABEL, fmtDate, unitsOf, type Site, type Status } from "@/lib/hs
 import { cn } from "@/lib/cn";
 import type { FlowData, Pick } from "@/components/figures/route/RouteFlow";
 import { MiniRoute } from "./MiniRoute";
+import { KindText, W2, W3 } from "@/components/Kinds";
 
 export type PanelUnit = Record<string, unknown> & { id: number; chassis: string; guia?: string | null; dealer?: string | null; material?: string | null; service?: string | null; est_date?: string | null; delay_reason?: string | null; status: string };
 
@@ -84,14 +85,14 @@ export function RoutePanel({ site, pick, flow, filters, onClose, onOpenUnit }: {
                   {units && (
                     <span className="flex gap-3 text-[11.5px] tabular-nums">
                       <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-sb-primary" />{w2} motos</span>
-                      <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-sb-primary/40" />{w3} motokares</span>
+                      <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full" style={{ background: W3 }} />{w3} motokares</span>
                     </span>
                   )}
                 </div>
                 {units && total > 0 && (
                   <span className="mt-2.5 flex h-1.5 overflow-hidden rounded-full bg-sb-surface-container-high">
                     <motion.span className="h-full bg-sb-primary" initial={{ width: 0 }} animate={{ width: `${(w2 / total) * 100}%` }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }} />
-                    <motion.span className="h-full bg-sb-primary/40" initial={{ width: 0 }} animate={{ width: `${(w3 / total) * 100}%` }} transition={{ duration: 0.5, delay: 0.06, ease: [0.22, 1, 0.36, 1] }} />
+                    <motion.span className="h-full" style={{ background: W3 }} initial={{ width: 0 }} animate={{ width: `${(w3 / total) * 100}%` }} transition={{ duration: 0.5, delay: 0.06, ease: [0.22, 1, 0.36, 1] }} />
                   </span>
                 )}
                 {nave && <p className="mt-2 text-[11.5px] text-sb-on-surface-variant">{nave.status === "TRANSITO FLUVIAL" ? `Zarpó el ${fmtDate(nave.since)} · día ${nave.days} de viaje` : `Cargando desde el ${fmtDate(nave.since)}`}</p>}
@@ -137,12 +138,12 @@ export function RoutePanel({ site, pick, flow, filters, onClose, onOpenUnit }: {
                         <span className="block truncate text-[11.5px] text-sb-on-surface-variant">{dealers.map(nice).join(" · ") || "Sin dealer"}</span>
                         <span className="mt-1.5 flex h-1 w-full max-w-[9rem] overflow-hidden rounded-full bg-sb-surface-container-high">
                           <span className="h-full bg-sb-primary" style={{ width: `${(g2 / maxGroup) * 100}%` }} />
-                          <span className="h-full bg-sb-primary/40" style={{ width: `${((list.length - g2) / maxGroup) * 100}%` }} />
+                          <span className="h-full" style={{ width: `${((list.length - g2) / maxGroup) * 100}%`, background: W3 }} />
                         </span>
                       </span>
                       <span className="flex shrink-0 flex-col items-end gap-0.5">
                         <b className="text-[15px] leading-none tabular-nums" title={unitsOf(list as { category?: string | null }[])}>{list.length}</b>
-                        <span className="text-[10px] tabular-nums text-sb-on-surface-variant">2W {g2} · 3W {list.length - g2}</span>
+                        <KindText w2={g2} w3={list.length - g2} className="text-[10px]" />
                         {lateN > 0 && <span className="rounded-full bg-sb-late-soft px-2 py-px text-[10px] font-semibold text-sb-late">{lateN} tarde</span>}
                       </span>
                       <ChevronDown className={cn("h-4 w-4 shrink-0 text-sb-on-surface-variant transition-transform duration-300", isOpen && "rotate-180")} />

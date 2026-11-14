@@ -144,7 +144,7 @@ export function ArriboScreen({ only }: { only: Site }) {
       {active === "arribo" ? (
         <Card className="overflow-hidden">
           <Head icon={Ship} title={`3. Arribo · naves en camino a ${dest}`}
-            sub={data ? (naves.length ? `${plural(naves.length, ["nave", "naves"])} · ${n(naves.reduce((t, x) => t + Number(x.total), 0))} motos en el río` : "Nada en el río ahora") : "Cargando…"} />
+            sub={data ? (naves.length ? `${plural(naves.length, ["nave", "naves"])} · ${n(naves.reduce((t, x) => t + Number(x.total), 0))} unidades en el río` : "Nada en el río ahora") : "Cargando…"} />
           <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
             <PickList title="Marca las naves que llegaron" loading={!data} canAll={naves.length > 1 && !!data?.canArrive}
               allOn={naves.length > 0 && naves.every((x) => naveSel.has(x.nave))}
@@ -164,7 +164,7 @@ export function ArriboScreen({ only }: { only: Site }) {
       ) : (
         <Card className="overflow-hidden">
           <Head icon={Warehouse} title={only === "YUR" ? "4. Ingreso a ENAPU · carga en el puerto de Yurimaguas" : `4. Ingreso a almacén · contenedores en el puerto de ${dest}`}
-            sub={data ? (port.length ? `${plural(portNaves.length, yur ? ["chata", "chatas"] : ["nave", "naves"])} en el puerto · ${yur ? "" : `${plural(port.length, ["contenedor", "contenedores"])} · `}${n(port.reduce((t, c) => t + Number(c.total), 0))} motos esperando` : "Nada esperando en el puerto") : "Cargando…"} />
+            sub={data ? (port.length ? `${plural(portNaves.length, yur ? ["chata", "chatas"] : ["nave", "naves"])} en el puerto · ${yur ? "" : `${plural(port.length, ["contenedor", "contenedores"])} · `}${n(port.reduce((t, c) => t + Number(c.total), 0))} unidades esperando` : "Nada esperando en el puerto") : "Cargando…"} />
           <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[12.5rem_minmax(0,1fr)_18rem]">
             {/* Naves en el puerto */}
             <div className="flex min-w-0 flex-col">
@@ -185,7 +185,7 @@ export function ArriboScreen({ only }: { only: Site }) {
                       <span className="min-w-0 flex-1">
                         <span className={cn("block truncate text-xs font-semibold", sel && "text-sb-primary")}>{v}</span>
                         <span className="block truncate text-[10px] text-sb-on-surface-variant">
-                          {marked ? `${marked} de ${cs.length} marcado${cs.length > 1 ? "s" : ""}` : `${yur ? "" : `${plural(cs.length, ["cont.", "cont."])} · `}${n(cs.reduce((t, c) => t + Number(c.total), 0))} motos`}
+                          {marked ? `${marked} de ${cs.length} marcado${cs.length > 1 ? "s" : ""}` : `${yur ? "" : `${plural(cs.length, ["cont.", "cont."])} · `}${n(cs.reduce((t, c) => t + Number(c.total), 0))} unidades`}
                         </span>
                       </span>
                       {marked > 0 && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-sb-primary" />}

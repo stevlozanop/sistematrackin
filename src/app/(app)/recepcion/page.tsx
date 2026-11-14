@@ -11,6 +11,7 @@ import { DATA_EVENT } from "@/components/UploadCenter";
 import { fmtDate } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
+import { KindText } from "@/components/Kinds";
 
 /**
  * 6. Entrega · Dealer: busca su guía de remisión y confirma que la recibió,
@@ -131,7 +132,7 @@ export default function RecepcionPage() {
                   {found ? (
                     <tr>
                       <td className="px-3 py-2.5 font-mono font-semibold">{found.guia}<span className="block font-sans text-[10px] font-normal text-sb-on-surface-variant">{found.district}{found.driver ? ` · chofer ${found.driver}` : ""}</span></td>
-                      <td className="px-2 py-2.5">{found.tipo}<span className="block text-[10px] text-sb-on-surface-variant">2W {found.w2} · 3W {found.w3}</span></td>
+                      <td className="px-2 py-2.5">{found.tipo}<KindText w2={found.w2} w3={found.w3} className="block text-[10px]" /></td>
                       <td className="max-w-[16rem] truncate px-2 py-2.5" title={found.dealer}>{found.dealer}</td>
                       <td className="px-3 py-2.5 text-right text-base font-bold tabular-nums">{n(found.total)}</td>
                     </tr>

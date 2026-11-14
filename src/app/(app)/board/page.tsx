@@ -11,6 +11,7 @@ import { townOf } from "@/lib/yur-road";
 import { MONTHS, SITE_INFO, STATUS_LABEL, STATUS_SHORT, type Site, type Status } from "@/lib/hsp";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { AnimatedNumber, SERVICE_STYLE, ServiceBadge, ServiceSplitBar } from "@/components/Service";
+import { Kind, W2, W3 } from "@/components/Kinds";
 
 /**
  * Tablero de Honda: lo que pidió ver de cada ruta (Pucallpa y Yurimaguas) por mes de facturación.
@@ -350,20 +351,6 @@ function Transit({ site, rows, onPick }: { site: Site; rows: Data["transit"]; on
 
 /* ---------- Modal: detalle por distrito y dealer (2W motos · 3W motokares) ---------- */
 
-/** Colores de motos (2W) y motokares (3W): bien distintos para no confundirlos. Motos = color de la empresa; motokares = ámbar */
-const W2 = "var(--sb-primary)";
-const W3 = "#e2922a";
-/** Pastilla con la cantidad y el tipo, en su color: «28 motos» / «33 motokares» */
-function Kind({ v, k, short }: { v: number; k: "w2" | "w3"; short?: boolean }) {
-  const c = k === "w2" ? W2 : W3;
-  return (
-    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums"
-      style={{ background: `color-mix(in oklab, ${c} 14%, transparent)`, color: c }}>
-      <i className="h-1.5 w-1.5 rounded-full" style={{ background: c }} />
-      {n(v)} {k === "w2" ? (v === 1 ? "moto" : "motos") : short ? "motok." : v === 1 ? "motokar" : "motokares"}
-    </span>
-  );
-}
 /** «NUEVA CAJAMARCA» → «Nueva Cajamarca» */
 const nice = (s: string) => townOf(s)?.name ?? s.toLowerCase().replace(/(^|[\s(.-])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());
 

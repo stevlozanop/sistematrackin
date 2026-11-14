@@ -69,7 +69,7 @@ export function PendingGuias({ site, inBox, canEmbark, onAdd, onChanged }: {
             {dups.length > 0 && <span className="flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400"><AlertTriangle className="h-3 w-3" />{plural(dups.length, ["posible duplicada", "posibles duplicadas"])}</span>}
           </span>
           <span className="block text-[11px] text-sb-on-surface-variant sm:truncate">
-            {rows ? `${plural(rows.length, ["guía", "guías"])} · ${n(totals.total)} motos en IQT-Port${lateCount ? ` · ${n(lateCount)} vencidas` : ""}` : "Cargando…"}
+            {rows ? `${plural(rows.length, ["guía", "guías"])} · ${n(totals.total)} unidades en IQT-Port${lateCount ? ` · ${n(lateCount)} vencidas` : ""}` : "Cargando…"}
           </span>
         </span>
         <ChevronDown className={cn("h-4 w-4 shrink-0 text-sb-on-surface-variant transition-transform duration-300", open && "rotate-180")} />
@@ -127,7 +127,7 @@ export function PendingGuias({ site, inBox, canEmbark, onAdd, onChanged }: {
                       <span className="hidden lg:block"><Mix w2={r.w2} w3={r.w3} /></span>
                       <span className="text-right">
                         <span className="block text-sm font-semibold tabular-nums">{n(r.total)}</span>
-                        <span className="block text-[10px] text-sb-on-surface-variant">motos</span>
+                        <span className="block text-[10px] text-sb-on-surface-variant">unid.</span>
                       </span>
                       <span className="order-4 flex items-center justify-end gap-1 lg:order-none">
                         {added ? <span className="flex items-center gap-1 rounded-full bg-sb-primary px-2.5 py-1 text-[11px] font-semibold text-sb-on-primary"><Check className="h-3 w-3" strokeWidth={3} />{where}</span>

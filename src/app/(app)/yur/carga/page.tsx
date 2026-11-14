@@ -12,6 +12,7 @@ import { fmtDate, unitsText } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
 import { CargoFigure } from "@/components/figures/cargo/CargoFigure";
+import { KindText } from "@/components/Kinds";
 
 /**
  * YUR · Carga a chata (Iquitos). En Yurimaguas no hay contenedores: las motos van sueltas en la chata.
@@ -130,7 +131,7 @@ export default function YurCargaPage() {
       <Card className="scroll-mt-4 overflow-hidden">
         <div ref={formRef} id="cargar">
           <Head icon={Package} title="1. Carga a la chata"
-            sub={guias.length ? `${plural(guias.length, ["guía", "guías"])} · ${n(tot.total)} motos${nave.trim() ? ` para ${nave.trim().toUpperCase()}` : ""}` : "Elige la chata y súmale las guías que suben"} />
+            sub={guias.length ? `${plural(guias.length, ["guía", "guías"])} · ${n(tot.total)} unidades${nave.trim() ? ` para ${nave.trim().toUpperCase()}` : ""}` : "Elige la chata y súmale las guías que suben"} />
         </div>
         <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="flex min-w-0 flex-col gap-3">
@@ -178,14 +179,14 @@ export default function YurCargaPage() {
             {nave.trim() && (
               <div className="rounded-xl bg-sb-surface px-3 py-2.5 text-xs">
                 <p className="font-semibold">{nave.toUpperCase()}</p>
-                <p className="text-[11px] text-sb-on-surface-variant">{onBoard ? `Ya lleva ${n(onBoard.total)} motos` : "Vacía"}{tot.total ? ` · con esta carga ${n((onBoard?.total ?? 0) + tot.total)}` : ""}</p>
+                <p className="text-[11px] text-sb-on-surface-variant">{onBoard ? `Ya lleva ${n(onBoard.total)} unidades` : "Vacía"}{tot.total ? ` · con esta carga ${n((onBoard?.total ?? 0) + tot.total)}` : ""}</p>
                 {/* La chata en 3D: se llena con lo que ya lleva más esta carga */}
-                <CargoFigure kind="barge" units={(onBoard?.total ?? 0) + tot.total} className="-mx-1 mt-1" title={`${nave} con ${(onBoard?.total ?? 0) + tot.total} motos`} />
+                <CargoFigure kind="barge" units={(onBoard?.total ?? 0) + tot.total} className="-mx-1 mt-1" title={`${nave} con ${(onBoard?.total ?? 0) + tot.total} unidades`} />
                 <span className="mt-1 flex h-1.5 overflow-hidden rounded-full bg-sb-surface-container">
                   <span className="bg-sb-primary/40 transition-[width] duration-500" style={{ width: `${Math.min(100, ((onBoard?.total ?? 0) / TYPICAL) * 100)}%` }} />
                   <span className="bg-sb-primary transition-[width] duration-500" style={{ width: `${Math.min(100, (tot.total / TYPICAL) * 100)}%` }} />
                 </span>
-                <p className="mt-1 text-[10px] text-sb-on-surface-variant">Una chata lleva normalmente unas {TYPICAL} motos.</p>
+                <p className="mt-1 text-[10px] text-sb-on-surface-variant">Una chata lleva normalmente unas {TYPICAL} unidades.</p>
               </div>
             )}
           </Register>
@@ -195,7 +196,7 @@ export default function YurCargaPage() {
       {/* 2. Zarpe */}
       <Card className="overflow-hidden">
         <Head icon={Ship} title="2. Zarpe · chatas cargando"
-          sub={data.loading.length ? `${plural(data.loading.length, ["chata", "chatas"])} en el puerto · ${n(data.loading.reduce((t, c) => t + Number(c.total), 0))} motos a bordo` : "Ninguna chata cargando"} />
+          sub={data.loading.length ? `${plural(data.loading.length, ["chata", "chatas"])} en el puerto · ${n(data.loading.reduce((t, c) => t + Number(c.total), 0))} unidades a bordo` : "Ninguna chata cargando"} />
         <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <PickList title="Marca la chata que completó su carga y zarpa" loading={false} all={["Marcar todas", "Quitar todas"]}
             canAll={data.loading.length > 1 && data.canSail} allOn={data.loading.length > 0 && data.loading.every((c) => checked.has(c.nave))}
@@ -227,7 +228,7 @@ export default function YurCargaPage() {
                             </span>
                             <span className="shrink-0 text-right">
                               <b className="block tabular-nums">{n(g.total)}</b>
-                              <span className="block text-[10px] text-sb-on-surface-variant tabular-nums">2W {n(g.w2)} · 3W {n(g.w3)}</span>
+                              <KindText w2={g.w2} w3={g.w3} className="block text-[10px]" />
                             </span>
                             {data.canLoad && <button type="button" onClick={() => unload(c, g)} className="sb-pill-sm shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium text-sb-late hover:bg-sb-late-soft">Sacar</button>}
                           </li>

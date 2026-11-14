@@ -12,6 +12,7 @@ import { DATA_EVENT } from "@/components/UploadCenter";
 import { SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { cn } from "@/lib/cn";
+import { KindText } from "@/components/Kinds";
 
 /**
  * 5. Despacho de almacén: se arma el viaje del camión agregando guías, con chofer, placa y fecha
@@ -50,7 +51,7 @@ function TripDetail({ site, trip, onClose }: { site: Site; trip: Trip | null; on
           <div className="px-4">
             <p className="text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Motos</p>
             <p className="mt-0.5 text-2xl font-semibold leading-none tabular-nums">{n(total)}</p>
-            <p className="mt-1 text-[10px] text-sb-on-surface-variant tabular-nums">2W {n(trip.w2)} · 3W {n(trip.w3)}</p>
+            <KindText w2={trip.w2} w3={trip.w3} className="mt-1 block text-[10px]" />
           </div>
           <div className="px-4">
             <p className="text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Entregadas</p>
@@ -105,7 +106,7 @@ function TripDetail({ site, trip, onClose }: { site: Site; trip: Trip | null; on
                             </div>
                             <div className="shrink-0 text-right">
                               <p className="text-sm font-semibold leading-none tabular-nums">{n(r.total)}</p>
-                              <p className="mt-0.5 text-[10px] text-sb-on-surface-variant tabular-nums">2W {n(r.w2)} · 3W {n(r.w3)}</p>
+                              <KindText w2={r.w2} w3={r.w3} className="mt-0.5 block text-[10px]" />
                             </div>
                           </div>
                           <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold">
@@ -256,7 +257,7 @@ export default function DespachoPage() {
       {/* 5. Armar el viaje */}
       <Card className="overflow-hidden">
         <Head icon={Truck} title="5. Despacho · arma el viaje del camión"
-          sub={guias.length ? `${plural(guias.length, ["guía", "guías"])} · ${n(tot.total)} motos en el camión${driver.trim() ? ` de ${driver.trim().toUpperCase()}` : ""}` : "Busca las guías que lleva el camión o márcalas en «Stock en almacén»"} />
+          sub={guias.length ? `${plural(guias.length, ["guía", "guías"])} · ${n(tot.total)} unidades en el camión${driver.trim() ? ` de ${driver.trim().toUpperCase()}` : ""}` : "Busca las guías que lleva el camión o márcalas en «Stock en almacén»"} />
         <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="flex min-w-0 flex-col gap-3">
             <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); add(); }}>
@@ -299,7 +300,7 @@ export default function DespachoPage() {
       {/* Viajes despachados */}
       <Card className="overflow-hidden">
         <Head icon={Route} title="Viajes despachados"
-          sub={data ? (data.trips.length ? `${plural(data.trips.length, ["viaje", "viajes"])} · ${n(data.trips.reduce((t, x) => t + Number(x.total), 0))} motos · ${n(data.trips.reduce((t, x) => t + Number(x.delivered), 0))} entregadas` : "Aún no hay viajes") : "Cargando…"} />
+          sub={data ? (data.trips.length ? `${plural(data.trips.length, ["viaje", "viajes"])} · ${n(data.trips.reduce((t, x) => t + Number(x.total), 0))} unidades · ${n(data.trips.reduce((t, x) => t + Number(x.delivered), 0))} entregadas` : "Aún no hay viajes") : "Cargando…"} />
         <div className="flex flex-col gap-0.5 p-2 sm:p-3">
           {!data && [0, 1].map((i) => <div key={i} className="h-[64px] animate-pulse rounded-xl bg-sb-surface-container-low" />)}
           {data && !data.trips.length && (
@@ -332,7 +333,7 @@ export default function DespachoPage() {
                 </span>
                 <span className="col-start-3 row-span-2 row-start-1 text-right lg:col-start-auto lg:row-span-1 lg:row-start-auto">
                   <span className="block text-sm font-semibold tabular-nums">{n(t.total)}</span>
-                  <span className="block text-[10px] text-sb-on-surface-variant">motos</span>
+                  <span className="block text-[10px] text-sb-on-surface-variant">unid.</span>
                 </span>
                 <ChevronRight className="hidden h-4 w-4 text-sb-on-surface-variant lg:block" />
               </button>

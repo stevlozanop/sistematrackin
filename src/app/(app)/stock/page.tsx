@@ -9,6 +9,7 @@ import { DATA_EVENT } from "@/components/UploadCenter";
 import { SITE_INFO, fmtDate, type Site } from "@/lib/hsp";
 import { daysBetween, parseISO, todayLima } from "@/lib/dates";
 import { cn } from "@/lib/cn";
+import { KindText } from "@/components/Kinds";
 
 /**
  * Stock en almacén (entre el paso 4 y el 5): todo lo que ingresó al almacén y aún no se despacha, por guía.
@@ -89,7 +90,7 @@ export default function StockPage() {
       <Card className="grid grid-cols-2 divide-sb-outline-variant/40 sm:grid-cols-4 sm:divide-x">
         <div className="p-4">
           <p className="text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">En almacén</p>
-          <p className="mt-1 text-3xl font-semibold leading-none tabular-nums">{rows ? n(all.total) : "…"}<span className="ml-1.5 text-sm font-normal text-sb-on-surface-variant">motos</span></p>
+          <p className="mt-1 text-3xl font-semibold leading-none tabular-nums">{rows ? n(all.total) : "…"}<span className="ml-1.5 text-sm font-normal text-sb-on-surface-variant">unidades</span></p>
           <div className="mt-3 max-w-[11rem] [&>span]:flex"><Mix w2={all.w2} w3={all.w3} /></div>
         </div>
         <div className="p-4">
@@ -191,7 +192,7 @@ export default function StockPage() {
                   <span className="hidden lg:block"><Mix w2={r.w2} w3={r.w3} /></span>
                   <span className="col-start-3 row-span-2 row-start-1 text-right lg:col-start-auto lg:row-span-1 lg:row-start-auto">
                     <span className="block text-sm font-semibold tabular-nums">{n(r.total)}</span>
-                    <span className="block text-[10px] text-sb-on-surface-variant">motos</span>
+                    <span className="block text-[10px] text-sb-on-surface-variant">unid.</span>
                   </span>
                 </button>
               );
@@ -204,8 +205,8 @@ export default function StockPage() {
       {chosen.length > 0 && (
         <div className="sticky bottom-24 z-40 flex items-center gap-2 sm:gap-3 rounded-2xl border border-sb-outline-variant/60 bg-sb-surface/90 p-3 pl-4 shadow-2xl backdrop-blur-xl md:bottom-3">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold"><span className="text-lg tabular-nums">{n(pick.total)}</span> motos <span className="font-normal text-sb-on-surface-variant">en {chosen.length === 1 ? "1 guía" : `${chosen.length} guías`}</span></p>
-            <p className="truncate text-[11px] text-sb-on-surface-variant">{canDispatch ? <>2W {n(pick.w2)} · 3W {n(pick.w3)} · {[...new Set(chosen.map((r) => r.district).filter(Boolean))].join(", ")}</> : "El despacho no es tu etapa: pásale estas guías a quien despacha."}</p>
+            <p className="truncate text-sm font-semibold"><span className="text-lg tabular-nums">{n(pick.total)}</span> unidades <span className="font-normal text-sb-on-surface-variant">en {chosen.length === 1 ? "1 guía" : `${chosen.length} guías`}</span></p>
+            <p className="truncate text-[11px] text-sb-on-surface-variant">{canDispatch ? <><KindText w2={pick.w2} w3={pick.w3} /> · {[...new Set(chosen.map((r) => r.district).filter(Boolean))].join(", ")}</> : "El despacho no es tu etapa: pásale estas guías a quien despacha."}</p>
           </div>
           <Button variant="secondary" className="shrink-0 rounded-full" aria-label="Quitar lo marcado" onPress={() => setSel(new Set())}><X className="h-4 w-4" /><span className="hidden sm:inline">Quitar</span></Button>
           <Button variant="primary" className="shrink-0 rounded-full" isDisabled={!canDispatch}
