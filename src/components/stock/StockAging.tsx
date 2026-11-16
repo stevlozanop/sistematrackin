@@ -54,7 +54,7 @@ export function StockAging({ rows }: { rows: AgingRow[] | null }) {
   }, [rows, today]);
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="sb-aging-card overflow-hidden">
       <div className="flex flex-wrap items-center gap-3 border-b border-sb-outline-variant/40 px-4 py-3.5">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sb-primary-soft text-sb-primary"><Hourglass className="h-[18px] w-[18px]" /></span>
         <div className="min-w-0 flex-1 basis-56">

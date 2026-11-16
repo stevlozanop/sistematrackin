@@ -3,9 +3,10 @@ import { useEffect } from "react";
 import { DATA_EVENT } from "@/components/UploadCenter";
 
 /**
- * Tiempo real para todos: cada 3 s pregunta si cambió algo en los datos (otra persona guardó, cargó o eliminó).
+ * Tiempo real para todos: pregunta si cambió algo en los datos (otra persona guardó, cargó o eliminó).
  * Si cambió, avisa a la pantalla abierta (evento «trackin:data») y esta se recarga sola.
- * Solo mientras la pestaña está a la vista; al volver a ella revisa al instante.
+ * Ritmo según el uso, para no cargar el servidor ni el equipo: cada 5 s mientras se usa la pantalla y cada 30 s si
+ * nadie la toca hace más de 1 min; al volver a moverse o a la pestaña revisa al instante. Con la pestaña oculta, nada.
  */
 export function LiveSync() {
   useEffect(() => {
@@ -37,13 +38,29 @@ export function LiveSync() {
       busy = false;
     };
     check(true);
-    const t = setInterval(() => check(), 3000);
-    const onVis = () => { if (!document.hidden) check(); };
+    let lastUse = Date.now(), lastCheck = Date.now();
+    const tick = () => {
+      const idle = Date.now() - lastUse > 60_000;
+      if (Date.now() - lastCheck >= (idle ? 30_000 : 5000)) { lastCheck = Date.now(); check(); }
+    };
+    const t = setInterval(tick, 1000);
+    // Volver a usar la pantalla tras estar quieta: revisar ya (como mucho una vez por segundo)
+    const onUse = () => {
+      const wasIdle = Date.now() - lastUse > 60_000;
+      lastUse = Date.now();
+      if (wasIdle) { lastCheck = Date.now(); check(); }
+    };
+    const uses = ["pointermove", "keydown", "scroll", "touchstart"] as const;
+    for (const ev of uses) window.addEventListener(ev, onUse, { passive: true, capture: true });
+    const onVis = () => { if (!document.hidden) { lastUse = Date.now(); lastCheck = Date.now(); check(); } };
     document.addEventListener("visibilitychange", onVis);
     // Un cambio hecho aquí mismo: la pantalla ya se recargó; solo actualizar el número para no recargar dos veces
     const onLocal = (e: Event) => { if ((e as CustomEvent).detail !== "remote") setTimeout(() => check(true), 800); };
     window.addEventListener(DATA_EVENT, onLocal);
-    return () => { alive = false; clearInterval(t); document.removeEventListener("visibilitychange", onVis); window.removeEventListener(DATA_EVENT, onLocal); };
+    return () => {
+      alive = false; clearInterval(t); document.removeEventListener("visibilitychange", onVis); window.removeEventListener(DATA_EVENT, onLocal);
+      for (const ev of uses) window.removeEventListener(ev, onUse, { capture: true });
+    };
   }, []);
   return null;
 }

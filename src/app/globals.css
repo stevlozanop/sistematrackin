@@ -684,7 +684,6 @@ html[data-look="workice"] .sb-sub { margin-top: 8px; }
 html[data-look="workice"] main .text-3xl, html[data-look="workice"] main .text-2xl { font-weight: 300 !important; letter-spacing: -0.035em; }
 html[data-look="workice"] main .text-3xl { font-size: 2.6rem; }
 /* Filtros: cada opción es una cápsula con borde y la elegida se rellena (blanca en oscuro) */
-html[data-look="workice"] main div:has(> button[aria-pressed]:not(.sb-pill-icon)) { background: transparent !important; gap: 6px; padding: 0; }
 html[data-look="workice"] main button[aria-pressed]:not(.sb-pill-icon) { border: 1px solid var(--wk-ring); background: transparent !important; box-shadow: none !important; padding-block: 5px; }
 html[data-look="workice"] main button[aria-pressed="true"]:not(.sb-pill-icon) { background: var(--wk-on) !important; border-color: var(--wk-on); color: var(--wk-on-text) !important; }
 html[data-look="workice"] main input:not([type=checkbox]):not([type=radio]), html[data-look="workice"] main select { border-radius: 999px; border-color: var(--wk-ring); background: transparent; }
@@ -739,7 +738,7 @@ html[data-look="workice"] main .sb-card .rounded-2xl.border { border-color: tran
 html[data-look="workice"] main .sb-card .rounded-2xl.border .grid.rounded-xl:not(.bg-sb-primary-soft) { background: transparent; }
 html[data-look="workice"] main .sb-card .rounded-2xl.border .grid.rounded-xl:not(.bg-sb-primary-soft):hover { background: var(--wk-tile-hover); }
 /* Tablas: cada fila es una ficha */
-html[data-look="workice"] main table:has(.sb-row) { border-collapse: separate; border-spacing: 0 5px; }
+html[data-look="workice"] main table { border-collapse: separate; border-spacing: 0 5px; }
 html[data-look="workice"] main tr.sb-row { border: 0 !important; }
 html[data-look="workice"] main tr.sb-row > td { background: var(--wk-tile); }
 html[data-look="workice"] main tr.sb-row:hover > td { background: var(--wk-tile-hover); }
@@ -810,7 +809,6 @@ html[data-look="workice"] main .rounded-full.bg-sb-surface-container > button.bg
 }
 html[data-look="workice"] :is(.modal__dialog, .drawer__content) :is(input:not([type=checkbox]):not([type=radio]), select, textarea) { border-color: var(--wk-ring) !important; background: transparent !important; }
 html[data-look="workice"] :is(.modal__dialog, .drawer__content) input:not([type=checkbox]):not([type=radio]), html[data-look="workice"] :is(.modal__dialog, .drawer__content) select { border-radius: 999px !important; }
-html[data-look="workice"] :is(.modal__dialog, .drawer__content) label:has(> input) { border-radius: 999px; }
 html[data-look="workice"] .modal__footer { border-top-color: transparent; }
 html[data-look="workice"] .modal__footer a.rounded-full, html[data-look="workice"] .modal__footer .button--secondary { background: transparent !important; border: 1px solid var(--wk-ring) !important; }
 html[data-look="workice"] .modal__close-trigger { border: 1px solid var(--wk-ring); background: transparent !important; }
@@ -847,8 +845,8 @@ html[data-look="taksice"] .sb-aging { --sb-aging-r: 8px; --sb-aging-hr: 10px; }
 html[data-look="bonita"] .sb-aging { --sb-aging-hr: 22px; }
 html[data-look="tunnel"] .sb-aging .sb-aging-head .text-xl { font-size: 1.6rem; letter-spacing: -0.04em; }
 /* Workice: la tarjeta del cuadro va en color sólido para que las columnas fijas no se noten como bloques */
-html[data-look="workice"] .sb-card:has(> .sb-aging) { background: var(--sb-aging-solid, #fbfbfa) !important; }
-html.dark[data-look="workice"] .sb-card:has(> .sb-aging) { --sb-aging-solid: #1c1c1c; }
+html[data-look="workice"] .sb-aging-card { background: var(--sb-aging-solid, #fbfbfa) !important; }
+html.dark[data-look="workice"] .sb-aging-card { --sb-aging-solid: #1c1c1c; }
 
 /* Workice en celular: la barra superior también es una cápsula flotante con aire, y el título respira debajo */
 @media (max-width: 767px) {
@@ -894,7 +892,7 @@ html.dark[data-look="cristal"] {
   --sb-shadow-card: 0 1px 0 rgb(255 255 255 / .06) inset, 0 10px 30px -18px rgb(0 0 0 / .6);
 }
 /* Fondo de paisaje y la ventana de vidrio */
-html[data-look="cristal"] .sb-shell { background: var(--cr-wall) !important; background-attachment: fixed; }
+html[data-look="cristal"] .sb-shell { background: var(--cr-wall) !important; }
 html[data-look="cristal"] .sb-shell > div.flex-1 { background: var(--cr-glass); backdrop-filter: blur(40px) saturate(1.5); }
 @media (min-width: 768px) {
   html[data-look="cristal"] .sb-shell { padding: 16px; }
@@ -923,7 +921,7 @@ html[data-look="cristal"] .sb-shell > div.flex-1 > header { border-bottom: 1px s
 html[data-look="cristal"] .sb-crumb { font-size: 17px !important; font-weight: 700 !important; color: var(--sb-on-surface) !important; letter-spacing: -0.01em; }
 /* Contenido: tarjetas de vidrio, filas translúcidas y la marcada como en una selección de vidrio */
 html[data-look="cristal"] .sb-card {
-  background: var(--cr-card) !important; backdrop-filter: blur(20px) saturate(1.4);
+  background: var(--cr-card) !important;
   border: 1px solid var(--cr-line) !important;
 }
 html[data-look="cristal"] .sb-card .sb-card { background: var(--cr-tile) !important; }
@@ -1042,9 +1040,9 @@ html[data-look="lumina"] .sb-shell > div.flex-1 > header .sb-glass { box-shadow:
 html[data-look="lumina"] .sb-card { border: 1px solid var(--lu-pill-line) !important; }
 html[data-look="lumina"] .sb-card .sb-card { background: var(--sb-surface-container-low) !important; border-radius: 18px !important; }
 /* Pestañas y filtros: franja blanca y la elegida como texto subrayado */
-html[data-look="lumina"] main div:has(> button[aria-pressed]:not(.sb-pill-icon)) { background: var(--lu-pill) !important; border: 1px solid var(--lu-pill-line); padding: 3px 6px !important; }
-html[data-look="lumina"] main button[aria-pressed]:not(.sb-pill-icon) { background: transparent !important; box-shadow: none !important; }
-html[data-look="lumina"] main button[aria-pressed="true"]:not(.sb-pill-icon) { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; color: var(--sb-on-surface) !important; }
+html[data-look="lumina"] main .rounded-full.bg-sb-surface-container:is(.p-0\.5, .p-1) { background: var(--lu-pill) !important; border: 1px solid var(--lu-pill-line); padding: 3px 6px !important; }
+html[data-look="lumina"] main .rounded-full.bg-sb-surface-container > button[aria-pressed] { background: transparent !important; box-shadow: none !important; }
+html[data-look="lumina"] main .rounded-full.bg-sb-surface-container > button[aria-pressed="true"] { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; color: var(--sb-on-surface) !important; }
 /* Tablas: encabezado en una cápsula gris */
 html[data-look="lumina"] main thead tr { border-bottom-color: transparent !important; }
 html[data-look="lumina"] main thead th { background: var(--sb-surface-container); }
@@ -1072,3 +1070,11 @@ html.dark[data-look="lumina"] main .sb-card .grid.rounded-xl.bg-sb-primary-soft 
 }
 html[data-look="lumina"]:not(.dark) main .grid.rounded-xl.bg-sb-primary-soft :is([style*="#e2922a"], [style*="226, 146, 42"]) { color: #8a4600 !important; }
 html[data-look="lumina"]:not(.dark) main .grid.rounded-xl.bg-sb-primary-soft .rounded-full:is([style*="#e2922a"], [style*="226, 146, 42"]) { background: rgb(138 70 0 / .12) !important; }
+
+/* Workice · lo marcado (botón blanco o negro según el tema): su texto, íconos y etiquetas toman el color contrario
+   para leerse bien (antes una chata marcada quedaba blanca con letras lima en oscuro) */
+html[data-look="workice"] main button[aria-pressed="true"]:not(.sb-pill-icon),
+html[data-look="workice"] :is(.modal__dialog, .drawer__dialog) button[aria-pressed="true"]:not(.sb-pill-icon) {
+  --sb-on-surface: var(--wk-on-text); --sb-on-surface-variant: color-mix(in oklab, var(--wk-on-text) 62%, transparent);
+  --sb-primary: var(--wk-on-text); --sb-on-primary: var(--wk-on); --sb-primary-soft: color-mix(in oklab, var(--wk-on-text) 10%, transparent);
+}
