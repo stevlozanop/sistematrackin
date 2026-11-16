@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, toast } from "@heroui/react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCheck, ChevronRight, Inbox, Plus, Route, Truck, UserRound } from "lucide-react";
+import { CheckCheck, ChevronRight, Inbox, ListOrdered, Plus, Route, Truck, UserRound } from "lucide-react";
+import { TruckView } from "@/components/despacho/TruckView";
 import { GuiaRow, Head, Mix, PickList, QuickChips, Register, TotalRow, field, n, plural } from "@/components/stage/StageKit";
 import { Card, PageTitle } from "@/components/ui";
 import { Sheet } from "@/components/modal/Sheet";
@@ -28,6 +29,7 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 
 function TripDetail({ site, trip, onClose }: { site: Site; trip: Trip | null; onClose: () => void }) {
   const [rows, setRows] = useState<TripRow[] | null>(null);
+  const [mode, setMode] = useState<"lista" | "detallado">("lista");
   useEffect(() => {
     if (!trip) return;
     fetch(`/api/despacho?${new URLSearchParams({ site, trip: String(trip.id) })}`).then((r) => r.json()).then((j) => setRows(j.rows ?? []));
@@ -46,7 +48,7 @@ function TripDetail({ site, trip, onClose }: { site: Site; trip: Trip | null; on
   return (
     <Sheet open={!!trip} onClose={onClose} size="lg" icon={Truck} title={trip ? `Viaje de ${trip.driver}` : ""}
       sub={trip ? `${fmtDate(trip.dispatched_on)}${trip.plate ? ` · placa ${trip.plate}` : ""}` : ""}>
-      {trip && (
+      {trip && mode === "lista" && (
         <div className="mb-4 grid grid-cols-3 divide-x divide-sb-outline-variant/40 rounded-2xl bg-sb-surface-container-low py-3">
           <div className="px-4">
             <p className="text-[10px] font-medium uppercase tracking-wider text-sb-on-surface-variant">Motos</p>
@@ -65,7 +67,18 @@ function TripDetail({ site, trip, onClose }: { site: Site; trip: Trip | null; on
           </div>
         </div>
       )}
-      {!rows ? (
+      {/* Lista de paradas o vista detallada del camión con su carga */}
+      {trip && (
+        <div className="mb-3 flex w-max gap-1 rounded-full bg-sb-surface-container p-1">
+          {([["lista", "Paradas", ListOrdered], ["detallado", "Detallado", Truck]] as const).map(([k, l, Icon]) => (
+            <button key={k} type="button" onClick={() => setMode(k)} aria-pressed={mode === k}
+              className={cn("sb-pill flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors", mode === k ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>
+              <Icon className="h-3.5 w-3.5" />{l}
+            </button>
+          ))}
+        </div>
+      )}
+      {rows && trip && mode === "detallado" ? <TruckView driver={trip.driver} plate={trip.plate} rows={rows} /> : !rows ? (
         <div className="flex flex-col gap-2">{[0, 1].map((i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-sb-surface-container-low" />)}</div>
       ) : !stops.length ? (
         <p className="py-8 text-center text-sm text-sb-on-surface-variant">Este viaje no tiene guías.</p>
