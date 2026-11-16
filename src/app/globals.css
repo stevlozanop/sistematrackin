@@ -895,11 +895,11 @@ html.dark[data-look="cristal"] {
 }
 /* Fondo de paisaje y la ventana de vidrio */
 html[data-look="cristal"] .sb-shell { background: var(--cr-wall) !important; background-attachment: fixed; }
-html[data-look="cristal"] .sb-shell > div.flex-1 { background: var(--cr-glass); backdrop-filter: blur(40px) saturate(1.5); -webkit-backdrop-filter: blur(40px) saturate(1.5); }
+html[data-look="cristal"] .sb-shell > div.flex-1 { background: var(--cr-glass); backdrop-filter: blur(40px) saturate(1.5); }
 @media (min-width: 768px) {
   html[data-look="cristal"] .sb-shell { padding: 16px; }
   html[data-look="cristal"] .sb-shell > aside {
-    height: auto; background: var(--cr-side); backdrop-filter: blur(30px) saturate(1.6); -webkit-backdrop-filter: blur(30px) saturate(1.6);
+    height: auto; background: var(--cr-side); backdrop-filter: blur(30px) saturate(1.6);
     border: 1px solid var(--cr-line); border-right-color: rgb(30 45 70 / .1); border-radius: 26px 0 0 26px;
     box-shadow: 0 30px 80px -30px rgb(10 30 60 / .45);
   }
@@ -932,7 +932,7 @@ html[data-look="cristal"] .sb-shell > div.flex-1 > header { border-bottom: 1px s
 html[data-look="cristal"] .sb-crumb { font-size: 17px !important; font-weight: 700 !important; color: var(--sb-on-surface) !important; letter-spacing: -0.01em; }
 /* Contenido: tarjetas de vidrio, filas translúcidas y la marcada como en una selección de vidrio */
 html[data-look="cristal"] .sb-card {
-  background: var(--cr-card) !important; backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  background: var(--cr-card) !important; backdrop-filter: blur(20px) saturate(1.4);
   border: 1px solid var(--cr-line) !important;
 }
 html[data-look="cristal"] .sb-card .sb-card { background: var(--cr-tile) !important; }
@@ -950,8 +950,35 @@ html[data-look="cristal"] .sb-aging { --sb-aging-bg: rgb(250 251 253 / .94); }
 html.dark[data-look="cristal"] .sb-aging { --sb-aging-bg: rgb(30 34 42 / .95); }
 /* Ventanas (modales) de vidrio */
 html[data-look="cristal"] :is(.modal__dialog, .drawer__content) {
-  background: rgb(246 248 251 / .74) !important; backdrop-filter: blur(40px) saturate(1.6); -webkit-backdrop-filter: blur(40px) saturate(1.6);
+  background: rgb(246 248 251 / .74) !important; backdrop-filter: blur(40px) saturate(1.6);
   border: 1px solid var(--cr-line) !important; border-radius: 22px !important;
 }
 html.dark[data-look="cristal"] :is(.modal__dialog, .drawer__content) { background: rgb(26 30 38 / .78) !important; }
 html[data-look="cristal"] :is(.modal__dialog, .drawer__content) :is(.rounded-xl, .rounded-2xl):is(.border, .bg-sb-surface-container-low) { background: var(--cr-tile) !important; border-color: var(--cr-line) !important; }
+
+/* ===== Velo y ventanas de vidrio (todos los estilos): el velo ya no es un blanco lechoso; deja ver la página detrás,
+   esmerilada, y los paneles y ventanas son semiopacos con desenfoque y un borde de luz ===== */
+.modal__backdrop--opaque, .modal__backdrop--blur, .drawer__backdrop--opaque, .drawer__backdrop--blur {
+  background: rgb(236 239 244 / .3) !important; backdrop-filter: blur(10px) saturate(1.35) !important;
+}
+html.dark .modal__backdrop--opaque, html.dark .modal__backdrop--blur, html.dark .drawer__backdrop--opaque, html.dark .drawer__backdrop--blur {
+  background: rgb(0 0 0 / .4) !important;
+}
+.drawer__dialog, .modal__dialog {
+  background: color-mix(in oklab, var(--sb-surface) 76%, transparent) !important;
+  backdrop-filter: blur(28px) saturate(1.7);
+}
+.drawer__dialog { border-left: 1px solid rgb(255 255 255 / .65); box-shadow: -24px 0 60px -30px rgb(16 24 40 / .35) !important; }
+.modal__dialog { outline: 1px solid rgb(255 255 255 / .6); }
+html.dark .drawer__dialog { border-left-color: rgb(255 255 255 / .08); }
+html.dark .modal__dialog { outline-color: rgb(255 255 255 / .07); }
+@media (max-width: 767px) { .drawer__dialog { border-left: 0; border-top: 1px solid rgb(255 255 255 / .65); } }
+/* Workice y Cristal mantienen su vidrio propio, también semiopaco */
+html[data-look="workice"] { --wk-modal: rgb(255 255 255 / .8); }
+html.dark[data-look="workice"] { --wk-modal: rgb(13 13 13 / .82); }
+html[data-look="workice"] :is(.modal__dialog, .drawer__dialog) { backdrop-filter: blur(28px) saturate(1.5); }
+html[data-look="workice"] .drawer__dialog { background: var(--wk-modal) !important; }
+html[data-look="cristal"] .drawer__dialog { background: rgb(246 248 251 / .66) !important; backdrop-filter: blur(40px) saturate(1.6); }
+html.dark[data-look="cristal"] .drawer__dialog { background: rgb(26 30 38 / .7) !important; }
+/* El fondo de vidrio va solo en la ventana del panel (no dos capas encimadas) */
+html[data-look="workice"] .drawer__content, html[data-look="cristal"] .drawer__content { background: transparent !important; backdrop-filter: none !important; border: 0 !important; }
