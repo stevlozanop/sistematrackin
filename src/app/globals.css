@@ -1055,3 +1055,20 @@ html[data-look="lumina"] main .sb-card .grid.rounded-xl.bg-sb-primary-soft { bac
 html[data-look="lumina"] .sb-aging { --sb-aging-hr: 20px; }
 html[data-look="lumina"] :is(.modal__dialog, .drawer__dialog) { border-radius: 26px !important; }
 @media (max-width: 767px) { html[data-look="lumina"] .sb-shell > div.flex-1 > header > div:last-child { padding: 2px; } }
+
+/* Lumina · lo marcado se lee bien: en claro, relleno lima con texto oscuro (y las cifras de color en tono oscuro);
+   en oscuro, un tinte lima suave con borde lima y el texto claro de siempre */
+html[data-look="lumina"] main .sb-card .grid.rounded-xl.bg-sb-primary-soft {
+  --sb-on-surface: var(--lu-lime-on); --sb-on-surface-variant: color-mix(in oklab, var(--lu-lime-on) 70%, transparent);
+  --sb-primary: color-mix(in oklab, var(--accent) 60%, #1d2410); --sb-on-primary: #f4ffd0;
+  color: var(--lu-lime-on);
+}
+html.dark[data-look="lumina"] main .sb-card .grid.rounded-xl.bg-sb-primary-soft {
+  background: color-mix(in oklab, var(--lu-lime) 13%, transparent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--lu-lime) 45%, transparent);
+  --sb-on-surface: #f3f3f1; --sb-on-surface-variant: rgb(243 243 241 / .62);
+  --sb-primary: var(--lu-lime); --sb-on-primary: var(--lu-lime-on);
+  color: #f3f3f1;
+}
+html[data-look="lumina"]:not(.dark) main .grid.rounded-xl.bg-sb-primary-soft :is([style*="#e2922a"], [style*="226, 146, 42"]) { color: #8a4600 !important; }
+html[data-look="lumina"]:not(.dark) main .grid.rounded-xl.bg-sb-primary-soft .rounded-full:is([style*="#e2922a"], [style*="226, 146, 42"]) { background: rgb(138 70 0 / .12) !important; }
