@@ -13,7 +13,7 @@ import { Card, CodeTag, PageTitle } from "@/components/ui";
 import { Check } from "@/components/Check";
 import { AreaPicker, type Assignment } from "@/components/AreaPicker";
 import { DealerAccounts } from "@/components/DealerAccounts";
-import { ROLE_LABEL, USER_DOMAIN, companyCode, roleLabel, areaOf, stageLabel, suggestEmail, type Role, type Stage } from "@/lib/workflow";
+import { AREAS, ROLE_LABEL, USER_DOMAIN, areaStages, companyCode, roleLabel, areaOf, stageLabel, suggestEmail, type Role, type Stage } from "@/lib/workflow";
 import { SoftSelect } from "@/components/SoftSelect";
 import { generatePassword } from "@/lib/password";
 import { PasswordMeter } from "@/components/PasswordMeter";
@@ -181,18 +181,23 @@ export default function AdminsPage() {
     { label: "Personal en línea", value: staffRows.filter((a) => Number(a.online)).length, icon: Radio },
   ] : [
     { label: "Consorcios clientes", value: consortia.length, icon: Building2 },
-    { label: "Personal del consorcio", value: clientRows.filter((a) => a.role === "viewer").length, icon: Eye },
+    { label: "Cuentas principales", value: clientRows.filter((a) => a.role === "viewer").length, icon: Eye },
     { label: "Clientes de motos", value: clientRows.filter((a) => a.role === "dealer").length, icon: Store },
     { label: "Clientes en línea", value: clientRows.filter((a) => Number(a.online)).length, icon: Radio },
   ];
   void online;
-  const openCreate = (r: NewRole) => { setRole(r); setAsg(emptyAsg); setDealerId(""); create.open(); };
+  const openCreate = (r: NewRole, areaId?: string) => {
+    setRole(r);
+    const area = areaId ? areaOf(areaId) : null;
+    setAsg(area ? { area: area.id, stages: areaStages(area), carrier: "", canImport: true } : emptyAsg);
+    setDealerId(""); create.open();
+  };
 
   return (
     <div className="flex flex-col gap-4">
       <PageTitle title="Usuarios" sub={tab === "staff"
         ? `Personal de ${myCompany}: supervisores que ven y corrigen todo, y encargados que registran las fechas de su área.`
-        : `Clientes de ${myCompany}: cada consorcio con su propio personal (solo lectura) y las cuentas de sus clientes. Cada cliente pertenece a un solo consorcio.`}>
+        : `Clientes de ${myCompany}: cada consorcio con su cuenta principal (solo lectura) y las cuentas de sus clientes. Cada cliente pertenece a un solo consorcio.`}>
         {tab === "clients" ? (
           <>
             <Button size="sm" variant="secondary" className="rounded-full" onPress={() => router.push("/companies")}><Building2 className="h-3.5 w-3.5" /> Nuevo consorcio</Button>
@@ -252,25 +257,28 @@ export default function AdminsPage() {
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap items-center gap-2 text-[16px] font-semibold tracking-tight">{g.name}{g.code && <CodeTag code={g.code} size="xs" />}</p>
                   <p className="flex flex-wrap items-center gap-1 text-[12px] text-sb-on-surface-variant">
-                    {g.id ? <>Consorcio cliente de <b className="font-medium text-sb-on-surface">{myCompany}</b> <ChevronRight className="h-3 w-3" /> {g.staff.length} de su personal · {g.clients.length} {g.clients.length === 1 ? "cliente suyo" : "clientes suyos"}</> : "Cuentas sin consorcio asignado"}
+                    {g.id ? <>Consorcio cliente de <b className="font-medium text-sb-on-surface">{myCompany}</b> <ChevronRight className="h-3 w-3" /> {g.staff.length ? "con cuenta principal" : "sin cuenta principal"} · {g.clients.length} {g.clients.length === 1 ? "cliente suyo" : "clientes suyos"}</> : "Cuentas sin consorcio asignado"}
                   </p>
                 </div>
                 {g.id > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="tertiary" className="rounded-full" onPress={() => { setConsortiumId(g.id); openCreate("viewer"); }}><Eye className="h-3.5 w-3.5" /> Su personal</Button>
+                    {!g.staff.length && <Button size="sm" variant="tertiary" className="rounded-full" onPress={() => { setConsortiumId(g.id); openCreate("viewer"); }}><Eye className="h-3.5 w-3.5" /> Cuenta principal</Button>}
                     <Button size="sm" variant="tertiary" className="rounded-full" onPress={() => { setConsortiumId(g.id); setBulkDealers(true); }}><Store className="h-3.5 w-3.5" /> Varios clientes</Button>
                     <Button size="sm" variant="secondary" className="rounded-full" onPress={() => { setConsortiumId(g.id); openCreate("dealer"); }}><Plus className="h-3.5 w-3.5" /> Cliente de {short(g.name)}</Button>
                   </div>
                 )}
               </div>
-              <ClientBlock title={`Personal de ${g.name}`} hint={`El equipo de ${short(g.name)} mismo: ve en solo lectura (dashboard, alertas, unidades). No son sus clientes.`} rows={g.staff}
-                empty="Sin cuentas de su personal." render={(a) => <ClientRow key={a.id} a={a} kind="staff" consortium={g.name} onCopy={() => copy(a.email, "Correo copiado")} onReset={() => reset(a)} onDelete={() => setToDelete(a)} />} />
+              <ClientBlock title={`Cuenta principal de ${g.name}`} hint={`Una sola cuenta de ${short(g.name)} (solo lectura: dashboard, alertas, unidades). No se crean cuentas para su personal.`} rows={g.staff}
+                empty="Sin cuenta principal." render={(a) => <ClientRow key={a.id} a={a} kind="staff" consortium={g.name} onCopy={() => copy(a.email, "Correo copiado")} onReset={() => reset(a)} onDelete={() => setToDelete(a)} />} />
               <ClientBlock title={`Clientes de ${g.name}`} hint={`Los clientes de ${short(g.name)} (sus distribuidores o tiendas): cada cuenta ve solo las unidades de sus tiendas, nada de otros clientes ni de otros consorcios.`} rows={g.clients}
                 empty="Todavía no hay cuentas de sus clientes." render={(a) => <ClientRow key={a.id} a={a} kind="client" consortium={g.name} onCopy={() => copy(a.email, "Correo copiado")} onReset={() => reset(a)} onDelete={() => setToDelete(a)} />} />
             </Card>
           ))}
         </div>
       )}
+
+      {/* Encargados por etapa: quién tiene a cargo cada puesto de cada ruta (y qué puesto falta cubrir) */}
+      {tab === "staff" && !q && <StageBoard operators={staffRows.filter((a) => a.role === "operator")} onAdd={(id) => openCreate("operator", id)} />}
 
       {tab === "staff" && <>
       {/* Celular: tarjetas */}
@@ -528,6 +536,67 @@ function ClientRow({ a, kind, consortium, onCopy, onReset, onDelete }: { a: Admi
         <Button isIconOnly size="sm" variant="tertiary" aria-label={`Restablecer contraseña de ${a.name}`} onPress={onReset}><KeyRound className="h-4 w-4" /></Button>
         <Button isIconOnly size="sm" variant="danger-soft" aria-label={`Eliminar ${a.name}`} onPress={onDelete}><Trash2 className="h-4 w-4" /></Button>
       </span>
+    </div>
+  );
+}
+
+/**
+ * Tablero de encargados por etapa: cada ruta con sus puestos en orden (PCL 1 a 4, YUR 1 a 3); en cada puesto, quién lo
+ * tiene a cargo (con su punto de en línea) o el aviso de que falta, con un botón para crear al encargado de ese puesto.
+ */
+function StageBoard({ operators, onAdd }: { operators: Admin[]; onAdd: (areaId: string) => void }) {
+  const routes = [
+    { site: "PCL" as const, title: "Ruta Pucallpa · río", sub: "4 encargados: uno por puesto" },
+    { site: "YUR" as const, title: "Ruta Yurimaguas · río y carretera", sub: "3 encargados: uno por puesto" },
+  ];
+  // Un encargado cubre el puesto si tiene todas sus etapas
+  const covers = (a: Admin, area: (typeof AREAS)[number]) => area.fields.every((f) => a.stages.some((st) => st.site === area.site && st.field === f));
+  return (
+    <div className="grid gap-3 lg:grid-cols-2">
+      {routes.map((r) => {
+        const areas = AREAS.filter((x) => x.site === r.site && x.id !== "TRANSPORTE_LIMA");
+        const missing = areas.filter((x) => !operators.some((a) => covers(a, x))).length;
+        return (
+          <Card key={r.site} className="overflow-hidden">
+            <div className="flex items-center gap-3 border-b border-sb-outline-variant/40 px-4 py-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sb-primary-soft text-sb-primary"><ListChecks className="h-[18px] w-[18px]" /></span>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm font-semibold">{r.title}</h3>
+                <p className="text-[11px] text-sb-on-surface-variant">{r.sub}</p>
+              </div>
+              <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-semibold", missing ? "bg-amber-500/15 text-amber-700 dark:text-amber-300" : "bg-sb-primary-soft text-sb-primary")}>
+                {missing ? `${missing} ${missing === 1 ? "puesto sin encargado" : "puestos sin encargado"}` : "Todos los puestos cubiertos"}
+              </span>
+            </div>
+            <ol className="flex flex-col p-2">
+              {areas.map((area, i) => {
+                const who = operators.filter((a) => covers(a, area));
+                return (
+                  <li key={area.id} className="flex items-start gap-3 rounded-xl px-2 py-2.5 hover:bg-sb-surface-container-low">
+                    <span className={cn("mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full text-[12px] font-bold", who.length ? "bg-sb-primary text-sb-on-primary" : "bg-sb-surface-container text-sb-on-surface-variant")}>{i + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold">{area.label.replace(/^(PCL|YUR) \d · /, "")}</p>
+                      <p className="text-[11px] leading-snug text-sb-on-surface-variant">{area.desc}</p>
+                      {who.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {who.map((a) => (
+                            <span key={a.id} className="inline-flex items-center gap-1.5 rounded-full bg-sb-surface-container px-2 py-0.5 text-[11px] font-medium" title={a.email}>
+                              <span className={cn("h-1.5 w-1.5 rounded-full", Number(a.online) ? "bg-sb-primary" : "bg-sb-on-surface-variant/40")} />{a.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {!who.length && (
+                      <Button size="sm" variant="secondary" className="shrink-0 rounded-full" onPress={() => onAdd(area.id)}><Plus className="h-3.5 w-3.5" /> Asignar</Button>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </Card>
+        );
+      })}
     </div>
   );
 }

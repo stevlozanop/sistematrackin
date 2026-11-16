@@ -6,7 +6,6 @@ import { Copy, KeyRound, Search, Store, Trash2, UserPlus, Users, X } from "lucid
 import { Card, PageTitle, Pill } from "@/components/ui";
 import { StatGrid } from "@/components/StatCard";
 import { DealerAccounts } from "@/components/DealerAccounts";
-import { ConsortiumStaff } from "@/components/ConsortiumStaff";
 import { generatePassword } from "@/lib/password";
 
 type Account = {
@@ -27,9 +26,7 @@ export default function ClientsPage() {
   const [bulk, setBulk] = useState(false);
   const [toDelete, setToDelete] = useState<Account | null>(null);
   // Clientes (SORSA, SERVIHONDA…) y empleados de Honda van separados
-  const [tab, setTab] = useState<"clients" | "staff">("clients");
-  const [isHonda, setIsHonda] = useState(false);
-  useEffect(() => { fetch("/api/consortium-staff").then((r) => setIsHonda(r.ok)).catch(() => {}); }, []);
+  const tab = "clients" as const;
 
   const load = useCallback(() => fetch("/api/client-accounts").then(async (r) => {
     const j = await r.json().catch(() => ({ error: "Error del servidor" }));
@@ -65,7 +62,7 @@ export default function ClientsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageTitle title={isHonda ? "Tu equipo y tus clientes" : "Tus clientes"} sub="Tus clientes (SORSA, SERVIHONDA…) ven solo el estado de sus pedidos. Tus empleados ven todo lo tuyo en solo lectura. Nadie puede cambiar fechas.">
+      <PageTitle title="Tus clientes" sub="Tus clientes (SORSA, SERVIHONDA…) ven solo el estado de sus pedidos. Nadie puede cambiar fechas.">
         {tab === "clients" && (
           <Button size="sm" variant="primary" className="rounded-full" onPress={() => setBulk(true)}>
             <UserPlus className="h-3.5 w-3.5" /> Crear clientes
@@ -73,14 +70,7 @@ export default function ClientsPage() {
         )}
       </PageTitle>
 
-      {isHonda && (
-        <div className="flex gap-1.5" role="tablist">
-          <button role="tab" aria-selected={tab === "clients"} className={`sbf-chip ${tab === "clients" ? "active" : ""}`} onClick={() => setTab("clients")}>Clientes ({rows.length})</button>
-          <button role="tab" aria-selected={tab === "staff"} className={`sbf-chip ${tab === "staff" ? "active" : ""}`} onClick={() => setTab("staff")}>Empleados</button>
-        </div>
-      )}
-
-      {tab === "staff" ? <ConsortiumStaff /> : (<>
+      {(<>
 
       <StatGrid
         className="grid-cols-3"

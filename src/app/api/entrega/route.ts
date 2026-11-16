@@ -16,7 +16,7 @@ import { CARRIER_OK, FIRST_DELIVERY, LATEST_RECEPTION, missingCarrier } from "@/
  * GET  ?site=PCL&drivers=1              -> choferes con entregas pendientes
  * GET  ?guia=…                          -> la guía para el dealer: tipo, dealer, total, estado y recepciones
  * GET  ?observations=1                  -> recepciones con observación (empresa)
- * GET  ?site=PCL&report=1&from&to       -> detalle de entregas: origen, distrito, dealer, guía, chofer, entregado
+ * GET  ?site=PCL&report=1&from&to       -> detalle de entregas: origen, distrito, dealer, guía, chofer, entregado (Leyva, conductor y dealer: el dealer solo lo suyo)
  * POST { action: "deliver", site, guias: [], date, lateReason? }
  * GET  ?pending=1                      -> guías despachadas que el dealer aún no confirma
  * GET  ?received=1&q=&only=one         -> historial de entregas con doble check (✓ transportista · ✓✓ cliente); only=one: solo las de un check
@@ -43,12 +43,17 @@ export async function GET(req: Request) {
 
   // Detalle de entregas: cada guía despachada con su origen, distrito de destino, dealer, chofer y si ya se entregó
   if (p.get("report")) {
-    if (s.role === "dealer") return NextResponse.json({ error: "Sin permiso" }, { status: 403 });
     const site = p.get("site");
     if (!isSite(site)) return NextResponse.json({ error: "Módulo inválido" }, { status: 400 });
     const scope = s.role === "operator" ? (await getScope(s.id)).carrier : null;
     const where = ["v.site = ?", "v.d_despacho IS NOT NULL"];
     const args: unknown[] = [site];
+    // El dealer ve solo las entregas de sus tiendas
+    if (s.role === "dealer") {
+      const sc = await dealerScope(s.id);
+      if (!sc) return NextResponse.json({ error: "Tu cuenta no tiene tiendas asignadas" }, { status: 403 });
+      where.push(`v.${sc.sql}`); args.push(...sc.args);
+    }
     const from = day(p.get("from")), to = day(p.get("to"));
     if (from) { where.push("v.d_despacho >= ?"); args.push(from); }
     if (to) { where.push("v.d_despacho <= ?"); args.push(to); }

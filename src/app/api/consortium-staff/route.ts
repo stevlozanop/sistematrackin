@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { passwordProblem } from "@/lib/password";
-import { seatsError } from "@/lib/license";
 import bcrypt from "bcryptjs";
 import { query, run } from "@/lib/db";
 import { guard } from "@/lib/guard";
@@ -8,9 +7,8 @@ import { clientConsortiumOf } from "@/lib/companies";
 import type { Session } from "@/lib/auth";
 
 /**
- * Empleados de un consorcio cliente (Honda): cuentas de solo lectura de Honda, aparte de sus clientes.
- * - Cualquier cuenta de Honda ve la lista.
- * - Solo la cuenta principal de Honda crea empleados, les pone contraseña nueva o los elimina.
+ * Empleados de un consorcio cliente (Honda): ya no se usan. Honda pidió no tener cuentas para su personal:
+ * el consorcio entra solo con su cuenta principal. Se deja la lectura (para cuentas antiguas) y se bloquea crear.
  */
 async function ctx(s: Session) {
   const company = await clientConsortiumOf(s);
@@ -35,29 +33,8 @@ export async function GET() {
   return NextResponse.json({ isOwner: c.isOwner, staff: rows });
 }
 
-export async function POST(req: Request) {
-  const { s, err } = await guard(["viewer"]);
-  if (err) return err;
-  const c = await ctx(s);
-  if (!c?.isOwner) return NextResponse.json({ error: "Solo la cuenta principal puede crear empleados" }, { status: 403 });
-  const b = await req.json().catch(() => ({}));
-  const name = String(b.name ?? "").trim().slice(0, 120);
-  const email = String(b.email ?? "").trim().toLowerCase();
-  const password = String(b.password ?? "");
-  if (!name || !/^\S+@\S+\.\S+$/.test(email)) {
-    return NextResponse.json({ error: "Nombre y usuario válido son obligatorios" }, { status: 400 });
-  }
-  const weak = passwordProblem(password, { email, name });
-  if (weak) return NextResponse.json({ error: weak }, { status: 400 });
-  const full = await seatsError(c.company);
-  if (full) return NextResponse.json({ error: full }, { status: 409 });
-  try {
-    await run("INSERT INTO users(name,email,password_hash,role,company_id,created_by) VALUES (?,?,?,?,?,?)",
-      [name, email, bcrypt.hashSync(password, 10), "viewer", c.company, s.id]);
-  } catch {
-    return NextResponse.json({ error: "Ese usuario ya existe" }, { status: 409 });
-  }
-  return NextResponse.json({ ok: true }, { status: 201 });
+export async function POST() {
+  return NextResponse.json({ error: "El consorcio entra solo con su cuenta principal: ya no se crean cuentas para su personal." }, { status: 410 });
 }
 
 /** ¿El empleado id es de este consorcio y no es la cuenta principal? */

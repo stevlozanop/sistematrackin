@@ -31,14 +31,16 @@ export type Area = {
   id: string; label: string; tag: string; site: Site | null; fields: DateField[]; carrier?: boolean; desc: string;
 };
 export const AREAS: Area[] = [
-  { id: "PUERTO_IQT_PCL", label: "Puerto Iquitos · PCL", tag: "iquitospcl", site: "PCL", fields: ["d_carga", "d_zarpe"], desc: "Registra el embarque por contenedor y el zarpe de la nave hacia Pucallpa." },
-  { id: "RECEPCION_PCL", label: "Recepción Pucallpa", tag: "recepcionpcl", site: "PCL", fields: ["d_arribo"], desc: "Registra la llegada de la nave a Pucallpa." },
-  { id: "ALMACEN_PCL", label: "Almacén / Stock PCL", tag: "almacenpcl", site: "PCL", fields: ["d_almacen", "d_despacho"], desc: "Registra el ingreso al almacén y el despacho, indicando qué transporte lleva la unidad." },
-  { id: "TRANSPORTE_LIMA", label: "Transporte Lima", tag: "transportelima", site: "PCL", fields: ["d_alm_lima", "d_sal_lima"], carrier: true, desc: "Registra la entrega y la salida del almacén de Lima." },
-  { id: "TRANSPORTE_PCL", label: "Transporte tramo final · PCL", tag: "transportepcl", site: "PCL", fields: ["d_entrega"], carrier: true, desc: "Registra la entrega de la unidad al dealer." },
-  { id: "PUERTO_IQT_YUR", label: "Puerto Iquitos · YUR", tag: "iquitosyur", site: "YUR", fields: ["d_carga", "d_zarpe"], desc: "Registra el embarque por contenedor y el zarpe de la nave hacia Yurimaguas." },
-  { id: "ALMACEN_YUR", label: "Almacén Yurimaguas", tag: "almacenyur", site: "YUR", fields: ["d_arribo", "d_almacen", "d_despacho"], desc: "Registra el arribo, el ingreso a ENAPU y el despacho." },
-  { id: "TRANSPORTE_YUR", label: "Transporte · YUR", tag: "transporteyur", site: "YUR", fields: ["d_entrega"], desc: "Registra la entrega de la unidad al dealer." },
+  // Ruta Pucallpa · río: 4 encargados, uno por puesto
+  { id: "PUERTO_IQT_PCL", label: "PCL 1 · Embarque y zarpe", tag: "iquitospcl", site: "PCL", fields: ["d_carga", "d_zarpe"], desc: "Puerto de Iquitos: arma los contenedores (embarque) y registra el zarpe de la nave hacia Pucallpa." },
+  { id: "RECEPCION_PCL", label: "PCL 2 · Arribo e ingreso", tag: "recepcionpcl", site: "PCL", fields: ["d_arribo", "d_almacen"], desc: "Pucallpa: registra la llegada de la nave al puerto y el ingreso de las unidades al almacén." },
+  { id: "ALMACEN_PCL", label: "PCL 3 · Stock y despacho", tag: "almacenpcl", site: "PCL", fields: ["d_despacho"], desc: "Almacén de Pucallpa: ve el stock por distrito y antigüedad, consolida y despacha cada camión con su chofer y placa." },
+  { id: "TRANSPORTE_PCL", label: "PCL 4 · Entrega (conductor)", tag: "transportepcl", site: "PCL", fields: ["d_entrega"], carrier: true, desc: "Conductor: en su página ve lo que lleva y registra la entrega a cada dealer (primer check)." },
+  { id: "TRANSPORTE_LIMA", label: "PCL · Ruta Lima (transporte)", tag: "transportelima", site: "PCL", fields: ["d_alm_lima", "d_sal_lima"], carrier: true, desc: "Solo para dealers de la Ruta Lima: registra la entrega y la salida del almacén de Lima." },
+  // Ruta Yurimaguas · río y carretera
+  { id: "PUERTO_IQT_YUR", label: "YUR 1 · Carga y zarpe de la chata", tag: "iquitosyur", site: "YUR", fields: ["d_carga", "d_zarpe"], desc: "Puerto de Iquitos: sube las guías a la chata y registra su zarpe hacia Yurimaguas." },
+  { id: "ALMACEN_YUR", label: "YUR 2 · Llegada, ENAPU y despacho", tag: "almacenyur", site: "YUR", fields: ["d_arribo", "d_almacen", "d_despacho"], desc: "Yurimaguas: registra el arribo de la chata, el ingreso a ENAPU y el despacho por ruta de carretera." },
+  { id: "TRANSPORTE_YUR", label: "YUR 3 · Entrega (conductor)", tag: "transporteyur", site: "YUR", fields: ["d_entrega"], desc: "Conductor: marca su llegada a cada pueblo y registra la entrega a cada dealer (primer check)." },
   { id: "CUSTOM", label: "Personalizado", tag: "encargado", site: null, fields: [], desc: "Eliges a mano las etapas." },
 ];
 export const areaOf = (id?: string | null) => AREAS.find((a) => a.id === id) ?? null;

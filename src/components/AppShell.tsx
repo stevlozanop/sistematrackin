@@ -42,16 +42,17 @@ const SECTIONS: Section[] = [
     items: [
       { title: "Mi trabajo", href: "/my", icon: ClipboardCheck },
       // Ruta Pucallpa (río con contenedores): solo quien tiene esas etapas en PCL
-      { title: "PCL · Embarque y zarpe", href: "/embarque", icon: Container, fields: ["PCL:d_carga", "PCL:d_zarpe"] },
-      { title: "PCL · Arribo e ingreso", href: "/arribo", icon: Warehouse, fields: ["PCL:d_arribo", "PCL:d_almacen"] },
-      { title: "PCL · Stock en almacén", href: "/stock", icon: Boxes, fields: ["PCL:d_almacen", "PCL:d_despacho"] },
-      { title: "PCL · Despacho", href: "/despacho", icon: Forklift, fields: ["PCL:d_despacho"] },
+      { title: "PCL 1 · Embarque y zarpe", href: "/embarque", icon: Container, fields: ["PCL:d_carga", "PCL:d_zarpe"] },
+      { title: "PCL 2 · Arribo e ingreso", href: "/arribo", icon: Warehouse, fields: ["PCL:d_arribo", "PCL:d_almacen"] },
+      { title: "PCL 3 · Stock en almacén", href: "/stock", icon: Boxes, fields: ["PCL:d_almacen", "PCL:d_despacho"] },
+      { title: "PCL 3 · Despacho", href: "/despacho", icon: Forklift, fields: ["PCL:d_despacho"] },
       // Ruta Yurimaguas (chata sin contenedores y luego carretera)
-      { title: "YUR · Carga a chata", href: "/yur/carga", icon: Ship, fields: ["YUR:d_carga", "YUR:d_zarpe"] },
-      { title: "YUR · Llegada a Yurimaguas", href: "/yur/llegada", icon: Warehouse, fields: ["YUR:d_arribo", "YUR:d_almacen"] },
-      { title: "YUR · Despacho por ruta", href: "/yur/despacho", icon: Route, fields: ["YUR:d_despacho"] },
-      { title: "YUR · Camiones en ruta", href: "/yur/viajes", icon: MapPinned, fields: ["YUR:d_despacho", "YUR:d_entrega"] },
+      { title: "YUR 1 · Carga a chata", href: "/yur/carga", icon: Ship, fields: ["YUR:d_carga", "YUR:d_zarpe"] },
+      { title: "YUR 2 · Llegada a Yurimaguas", href: "/yur/llegada", icon: Warehouse, fields: ["YUR:d_arribo", "YUR:d_almacen"] },
+      { title: "YUR 2 · Despacho por ruta", href: "/yur/despacho", icon: Route, fields: ["YUR:d_despacho"] },
+      { title: "YUR 3 · Camiones en ruta", href: "/yur/viajes", icon: MapPinned, fields: ["YUR:d_despacho", "YUR:d_entrega"] },
       { title: "Entrega · Conductor", href: "/conductor", icon: Truck, fields: ["d_entrega"] },
+      { title: "Detalle de entregas", href: "/entregas", icon: MapPinned, fields: ["d_entrega"] },
       { title: "Carga por guía", href: "/guias", icon: FileStack },
       { title: "PCL · Pucallpa", href: "/units/pcl", icon: Ship },
       { title: "YUR · Yurimaguas", href: "/units/yur", icon: Truck },
@@ -64,6 +65,7 @@ const SECTIONS: Section[] = [
       { title: "Mi resumen", href: "/portal/resumen", icon: LayoutDashboard },
       { title: "Mis unidades", href: "/portal", icon: PackageSearch },
       { title: "Confirmar recepción", href: "/recepcion", icon: PackageCheck },
+      { title: "Detalle de entregas", href: "/entregas", icon: MapPinned },
     ],
   },
   // Leyva y Honda: cada sección responde una pregunta; los contadores dicen dónde mirar
@@ -97,10 +99,10 @@ const SECTIONS: Section[] = [
     title: "Ruta Pucallpa · río",
     roles: SUPER,
     items: [
-      { title: "PCL · Embarque y zarpe", href: "/embarque", icon: Container },
-      { title: "PCL · Arribo e ingreso", href: "/arribo", icon: Warehouse },
-      { title: "PCL · Stock en almacén", href: "/stock", icon: Boxes },
-      { title: "PCL · Despacho", href: "/despacho", icon: Forklift },
+      { title: "1 · Embarque y zarpe", href: "/embarque", icon: Container },
+      { title: "2 · Arribo e ingreso", href: "/arribo", icon: Warehouse },
+      { title: "3 · Stock en almacén", href: "/stock", icon: Boxes },
+      { title: "3 · Despacho", href: "/despacho", icon: Forklift },
     ],
   },
   {
@@ -108,15 +110,15 @@ const SECTIONS: Section[] = [
     title: "Ruta Yurimaguas · río y carretera",
     roles: SUPER,
     items: [
-      { title: "YUR · Carga a chata", href: "/yur/carga", icon: Ship },
-      { title: "YUR · Llegada a Yurimaguas", href: "/yur/llegada", icon: Warehouse },
-      { title: "YUR · Despacho por ruta", href: "/yur/despacho", icon: Route },
-      { title: "YUR · Camiones en ruta", href: "/yur/viajes", icon: MapPinned },
+      { title: "1 · Carga a chata", href: "/yur/carga", icon: Ship },
+      { title: "2 · Llegada a Yurimaguas", href: "/yur/llegada", icon: Warehouse },
+      { title: "2 · Despacho por ruta", href: "/yur/despacho", icon: Route },
+      { title: "3 · Camiones en ruta", href: "/yur/viajes", icon: MapPinned },
     ],
   },
   {
     // 6. Entrega: por ahora la empresa prueba aquí el flujo del conductor y del dealer
-    title: "Entrega",
+    title: "Entrega · las dos rutas",
     roles: SUPER,
     items: [
       { title: "Detalle de entregas", href: "/entregas", icon: MapPinned },

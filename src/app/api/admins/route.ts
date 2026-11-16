@@ -106,6 +106,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Las cuentas de un consorcio cliente son de solo lectura" }, { status: 400 });
   }
   if (!manageable(s.role).includes(role)) return NextResponse.json({ error: "No puedes crear ese tipo de usuario" }, { status: 403 });
+  // Un consorcio cliente (Honda…) tiene una sola cuenta: la principal. No se crean cuentas para su personal.
+  if (role === "viewer" && companyId && target?.kind === "client") {
+    const [has] = await query<{ n: number }>("SELECT COUNT(*) n FROM users WHERE company_id=? AND role='viewer'", [companyId]);
+    if (Number(has?.n) > 0) return NextResponse.json({ error: "El consorcio ya tiene su cuenta principal. No se crean cuentas para su personal." }, { status: 400 });
+  }
   if (role === "admin" && s.role !== "dev" && !creator?.company_id) {
     return NextResponse.json({ error: "Solo un supervisor de una empresa puede crear otros supervisores" }, { status: 403 });
   }
