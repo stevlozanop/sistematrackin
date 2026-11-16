@@ -14,6 +14,7 @@ import { SITE_INFO, fmtDate, unitsText, type Site } from "@/lib/hsp";
 import { today } from "@/lib/workflow";
 import { DockScene } from "@/components/figures/dock/DockScene";
 import { SuggestInput } from "@/components/SuggestInput";
+import { ShipView } from "@/components/embarque/ShipView";
 import { NaveContents } from "@/components/embarque/NaveContents";
 import { StowagePlan } from "@/components/embarque/StowagePlan";
 import { PendingGuias } from "@/components/embarque/PendingGuias";
@@ -38,7 +39,7 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 function NaveDetail({ site, nave, naves, canUndo, onClose, onChanged }: { site: Site; nave: string | null; naves: string[]; canUndo: boolean; onClose: () => void; onChanged: () => void }) {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [again, setAgain] = useState(0);
-  const [tab, setTab] = useState<"plano" | "contenido">("plano");
+  const [tab, setTab] = useState<"plano" | "contenido" | "detallado">("plano");
   useEffect(() => {
     if (!nave) return;
     fetch(`/api/embarque?${new URLSearchParams({ site, nave })}`).then((r) => r.json()).then((j) => setRows(j.rows ?? []));
@@ -78,12 +79,13 @@ function NaveDetail({ site, nave, naves, canUndo, onClose, onChanged }: { site: 
         </Link>
       ) : null}>
               <div className="mb-3 flex w-max gap-1 rounded-full bg-sb-surface-container p-1">
-                {([["plano", "Plano de estiba"], ["contenido", "Contenido"]] as const).map(([k, l]) => (
+                {([["plano", "Plano de estiba"], ["contenido", "Contenido"], ["detallado", "Detallado"]] as const).map(([k, l]) => (
                   <button key={k} type="button" onClick={() => setTab(k)}
                     className={cn("sb-pill [--px:1rem] rounded-full px-4 py-1.5 text-xs font-semibold transition-colors", tab === k ? "bg-sb-primary text-sb-on-primary" : "text-sb-on-surface-variant hover:text-sb-on-surface")}>{l}</button>
                 ))}
               </div>
               {tab === "plano" && nave ? <StowagePlan site={site} nave={nave} onChanged={onChanged} />
+              : tab === "detallado" && nave && rows ? <ShipView nave={nave} rows={rows} />
               : !rows ? <p className="py-8 text-center text-sm text-sb-on-surface-variant">Cargando…</p>
                 : <NaveContents site={site} nave={nave ?? ""} naves={naves} rows={rows} canUndo={canUndo} onUndo={(id, code) => setAsk({ id, code })} onEdited={() => { setAgain((x) => x + 1); onChanged(); }} />}
     </Sheet>
