@@ -863,7 +863,7 @@ html[data-look="workice"] .sb-shell > div > header button.rounded-full.bg-sb-sur
 
 
 /* ===== Cristal: vidrio esmerilado sobre un paisaje desenfocado (cielo, montaña y lago). Todo el sistema vive en una
-   ventana translúcida con los tres puntos de color arriba del menú; menú de vidrio con la opción activa en una cápsula
+   ventana translúcida; menú de vidrio con la opción activa en una cápsula
    blanca, tarjetas, filas y ventanas de vidrio con líneas finas, letra del sistema. En oscuro, el mismo paisaje de noche. ===== */
 html[data-look="cristal"] {
   --page-bg: #b9cad9;
@@ -905,15 +905,6 @@ html[data-look="cristal"] .sb-shell > div.flex-1 { background: var(--cr-glass); 
   }
   html[data-look="cristal"] .sb-shell > div.flex-1 { border: 1px solid var(--cr-line); border-left: 0; border-radius: 0 26px 26px 0; box-shadow: 0 30px 80px -30px rgb(10 30 60 / .45); }
   html.dark[data-look="cristal"] .sb-shell > aside { border-right-color: rgb(255 255 255 / .08); }
-  /* Los tres puntos de la ventana, arriba del menú */
-  html[data-look="cristal"] .sb-shell > aside::before {
-    content: ""; display: block; flex: none; width: 56px; height: 13px; margin: 16px 0 2px 18px;
-    background:
-      radial-gradient(circle at 6.5px 6.5px, #ff5f57 5.6px, transparent 6.2px),
-      radial-gradient(circle at 26.5px 6.5px, #febc2e 5.6px, transparent 6.2px),
-      radial-gradient(circle at 46.5px 6.5px, #28c840 5.6px, transparent 6.2px);
-  }
-  html[data-look="cristal"] .sb-shell > aside.w-\[68px\]::before { margin-left: 6px; transform: scale(.85); }
 }
 /* Menú de vidrio: títulos de sección grises, íconos grises y la activa en cápsula blanca */
 html[data-look="cristal"] .sb-shell > aside .sb-nav-section { font-size: 11px; font-weight: 600; opacity: .55; letter-spacing: 0; }
@@ -982,3 +973,27 @@ html[data-look="cristal"] .drawer__dialog { background: rgb(246 248 251 / .66) !
 html.dark[data-look="cristal"] .drawer__dialog { background: rgb(26 30 38 / .7) !important; }
 /* El fondo de vidrio va solo en la ventana del panel (no dos capas encimadas) */
 html[data-look="workice"] .drawer__content, html[data-look="cristal"] .drawer__content { background: transparent !important; backdrop-filter: none !important; border: 0 !important; }
+
+/* --- Cristal se adapta a los colores: el fondo y los reflejos salen del color de la empresa (o del color elegido en
+   Apariencia); en oscuro el fondo es negro puro y el vidrio, negro translúcido --- */
+html[data-look="cristal"] {
+  --page-bg: color-mix(in oklab, var(--accent) 10%, #eef1f4);
+  --cr-wall:
+    radial-gradient(55% 45% at 12% 8%, color-mix(in oklab, var(--accent) 38%, transparent), transparent 70%),
+    radial-gradient(45% 40% at 92% 18%, color-mix(in oklab, var(--accent) 22%, #9ec5ff 30%), transparent 70%),
+    radial-gradient(60% 50% at 80% 95%, color-mix(in oklab, var(--accent) 30%, transparent), transparent 70%),
+    radial-gradient(50% 40% at 10% 90%, color-mix(in oklab, var(--accent) 16%, #ffffff), transparent 70%),
+    linear-gradient(160deg, color-mix(in oklab, var(--accent) 12%, #f4f6f8), color-mix(in oklab, var(--accent) 22%, #e4e9ee));
+}
+html[data-look="cristal"] .sb-shell > aside .sb-nav-link[data-active] .sb-nav-icon { color: var(--sb-primary) !important; opacity: 1; }
+html.dark[data-look="cristal"] {
+  --page-bg: #000000;
+  --cr-wall: #000000;
+  --cr-side: rgb(255 255 255 / .03); --cr-glass: rgb(255 255 255 / .02); --cr-line: rgb(255 255 255 / .09);
+  --cr-card: rgb(255 255 255 / .045); --cr-tile: rgb(255 255 255 / .04); --cr-pick: rgb(255 255 255 / .1);
+  --sb-surface: rgb(16 16 16 / .9); --sb-surface-container-low: rgb(255 255 255 / .04); --sb-surface-container: rgb(255 255 255 / .07);
+  --sb-surface-container-high: rgb(255 255 255 / .11); --sb-outline-variant: rgb(255 255 255 / .09);
+}
+html.dark[data-look="cristal"] .sb-shell > aside, html.dark[data-look="cristal"] .sb-shell > div.flex-1 { box-shadow: none; }
+html.dark[data-look="cristal"] .sb-aging { --sb-aging-bg: rgb(10 10 10 / .96); }
+html.dark[data-look="cristal"] :is(.modal__dialog, .drawer__dialog) { background: rgb(12 12 12 / .78) !important; }
