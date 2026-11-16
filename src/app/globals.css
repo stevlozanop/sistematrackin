@@ -997,3 +997,61 @@ html.dark[data-look="cristal"] {
 html.dark[data-look="cristal"] .sb-shell > aside, html.dark[data-look="cristal"] .sb-shell > div.flex-1 { box-shadow: none; }
 html.dark[data-look="cristal"] .sb-aging { --sb-aging-bg: rgb(10 10 10 / .96); }
 html.dark[data-look="cristal"] :is(.modal__dialog, .drawer__dialog) { background: rgb(12 12 12 / .78) !important; }
+
+
+/* ===== Lumina: suave y luminoso. Fondo gris perla con un halo de color abajo; cada opción del menú es su propia
+   cápsula blanca translúcida y la activa se enciende en lima (sacado del color de la empresa); pestañas como texto
+   con subrayado dentro de una franja blanca; tarjetas blancas muy redondas; encabezado de tablas en una cápsula gris.
+   En oscuro: carbón suave con las mismas cápsulas. ===== */
+html[data-look="lumina"] {
+  --lu-lime: color-mix(in oklab, var(--accent) 22%, #eaf98a); --lu-lime-on: #1d2410;
+  --page-bg: #e9e9e6;
+  --lu-wall: radial-gradient(60% 50% at 78% 100%, color-mix(in oklab, var(--accent) 14%, #a9bfd8 60%), transparent 70%),
+             radial-gradient(40% 40% at 10% 100%, rgb(255 255 255 / .6), transparent 70%), linear-gradient(180deg, #ededeb, #e3e4e2);
+  --lu-pill: rgb(255 255 255 / .62); --lu-pill-line: rgb(255 255 255 / .9);
+  --sb-surface: rgb(255 255 255 / .82); --sb-surface-container-low: #f4f4f2; --sb-surface-container: #ededea; --sb-surface-container-high: #e4e4e0;
+  --sb-outline-variant: #e2e2de; --sb-radius-card: 24px; --sb-shadow-card: 0 1px 0 rgb(255 255 255 / .9) inset, 0 12px 30px -22px rgb(30 30 40 / .35);
+}
+html.dark[data-look="lumina"] {
+  --lu-lime-on: #171d08; --page-bg: #151516;
+  --lu-wall: radial-gradient(60% 50% at 78% 100%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 70%), linear-gradient(180deg, #19191a, #121213);
+  --lu-pill: rgb(255 255 255 / .05); --lu-pill-line: rgb(255 255 255 / .07);
+  --sb-surface: #1f1f21; --sb-surface-container-low: #252527; --sb-surface-container: #2a2a2d; --sb-surface-container-high: #333336; --sb-outline-variant: #2e2e31;
+  --sb-shadow-card: 0 12px 30px -22px rgb(0 0 0 / .8);
+}
+html[data-look="lumina"] .sb-shell { background: var(--lu-wall) !important; }
+/* Menú: cada opción en su cápsula; la activa en lima */
+html[data-look="lumina"] .sb-shell > aside nav > div { gap: 6px; }
+html[data-look="lumina"] .sb-shell > aside .sb-nav-section { font-size: 10.5px; opacity: .5; margin-top: 4px; }
+html[data-look="lumina"] .sb-shell > aside .sb-nav-link:not(.h-9) {
+  height: 38px; border-radius: 999px !important; background: var(--lu-pill); border: 1px solid var(--lu-pill-line);
+  box-shadow: 0 4px 12px -10px rgb(30 30 40 / .4); transition: transform .3s var(--sb-ease), background-color .2s;
+}
+html[data-look="lumina"] .sb-shell > aside .sb-nav-link:not(.h-9):hover { transform: translateX(2px); background: rgb(255 255 255 / .85); }
+html.dark[data-look="lumina"] .sb-shell > aside .sb-nav-link:not(.h-9):hover { background: rgb(255 255 255 / .09); }
+html[data-look="lumina"] .sb-shell > aside .sb-nav-link.h-9 { border-radius: 999px !important; background: var(--lu-pill); border: 1px solid var(--lu-pill-line); }
+html[data-look="lumina"] .sb-nav-pill { background: var(--lu-lime) !important; border-radius: 999px !important; box-shadow: 0 6px 16px -10px color-mix(in oklab, var(--lu-lime) 90%, #000) !important; }
+html[data-look="lumina"] .sb-shell > aside .sb-nav-link[data-active] { color: var(--lu-lime-on) !important; border-color: transparent; }
+html[data-look="lumina"] .sb-shell > aside .sb-nav-link[data-active] .sb-nav-icon { color: var(--lu-lime-on) !important; }
+html[data-look="lumina"] .sb-shell > aside .sb-nav-icon { color: var(--sb-on-surface) !important; }
+/* Encabezado: título grande y los botones de la derecha juntos en una cápsula */
+html[data-look="lumina"] .sb-title { font-size: clamp(22px, 2.4vw, 28px); font-weight: 600; letter-spacing: -0.03em; }
+html[data-look="lumina"] .sb-shell > div.flex-1 > header > div:last-child { background: var(--lu-pill); border: 1px solid var(--lu-pill-line); border-radius: 999px; padding: 4px; }
+html[data-look="lumina"] .sb-shell > div.flex-1 > header .sb-glass { box-shadow: none !important; }
+/* Tarjetas blancas muy redondas */
+html[data-look="lumina"] .sb-card { border: 1px solid var(--lu-pill-line) !important; }
+html[data-look="lumina"] .sb-card .sb-card { background: var(--sb-surface-container-low) !important; border-radius: 18px !important; }
+/* Pestañas y filtros: franja blanca y la elegida como texto subrayado */
+html[data-look="lumina"] main div:has(> button[aria-pressed]:not(.sb-pill-icon)) { background: var(--lu-pill) !important; border: 1px solid var(--lu-pill-line); padding: 3px 6px !important; }
+html[data-look="lumina"] main button[aria-pressed]:not(.sb-pill-icon) { background: transparent !important; box-shadow: none !important; }
+html[data-look="lumina"] main button[aria-pressed="true"]:not(.sb-pill-icon) { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; color: var(--sb-on-surface) !important; }
+/* Tablas: encabezado en una cápsula gris */
+html[data-look="lumina"] main thead tr { border-bottom-color: transparent !important; }
+html[data-look="lumina"] main thead th { background: var(--sb-surface-container); }
+html[data-look="lumina"] main thead th:first-child { border-radius: 999px 0 0 999px; }
+html[data-look="lumina"] main thead th:last-child { border-radius: 0 999px 999px 0; }
+/* Lo marcado en las listas se enciende en lima */
+html[data-look="lumina"] main .sb-card .grid.rounded-xl.bg-sb-primary-soft { background: color-mix(in oklab, var(--lu-lime) 70%, transparent) !important; }
+html[data-look="lumina"] .sb-aging { --sb-aging-hr: 20px; }
+html[data-look="lumina"] :is(.modal__dialog, .drawer__dialog) { border-radius: 26px !important; }
+@media (max-width: 767px) { html[data-look="lumina"] .sb-shell > div.flex-1 > header > div:last-child { padding: 2px; } }
