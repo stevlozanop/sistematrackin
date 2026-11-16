@@ -860,3 +860,98 @@ html.dark[data-look="workice"] .sb-card:has(> .sb-aging) { --sb-aging-solid: #1c
 html[data-look="workice"] .sb-shell > div > header { --sb-surface-container-high: color-mix(in oklab, var(--wk-on) 86%, var(--wk-on-text)); }
 html[data-look="workice"] .sb-shell > div > header a.rounded-full.bg-sb-surface-container-high,
 html[data-look="workice"] .sb-shell > div > header button.rounded-full.bg-sb-surface-container-high { color: var(--wk-on-text) !important; }
+
+
+/* ===== Cristal: vidrio esmerilado sobre un paisaje desenfocado (cielo, montaña y lago). Todo el sistema vive en una
+   ventana translúcida con los tres puntos de color arriba del menú; menú de vidrio con la opción activa en una cápsula
+   blanca, tarjetas, filas y ventanas de vidrio con líneas finas, letra del sistema. En oscuro, el mismo paisaje de noche. ===== */
+html[data-look="cristal"] {
+  --page-bg: #b9cad9;
+  --cr-wall:
+    radial-gradient(38% 16% at 22% 9%, rgb(255 255 255 / .85), transparent 70%),
+    radial-gradient(30% 10% at 72% 6%, rgb(255 255 255 / .6), transparent 70%),
+    radial-gradient(70% 40% at 8% 58%, #3d5a33, transparent 70%),
+    radial-gradient(60% 35% at 85% 55%, #5d7a4c, transparent 70%),
+    linear-gradient(180deg, #7fa7cf 0%, #a9c6e2 24%, #c9d8e4 38%, #6f8d5c 50%, #45603b 60%, #7d98ab 70%, #a8bccb 84%, #c3d1db 100%);
+  --cr-side: rgb(238 242 246 / .46); --cr-glass: rgb(247 249 251 / .62); --cr-line: rgb(255 255 255 / .7);
+  --cr-card: rgb(255 255 255 / .5); --cr-tile: rgb(255 255 255 / .42); --cr-pick: rgb(255 255 255 / .78);
+  --sb-surface: rgb(252 253 254 / .82); --sb-surface-container-low: rgb(255 255 255 / .4); --sb-surface-container: rgb(255 255 255 / .55);
+  --sb-surface-container-high: rgb(255 255 255 / .72); --sb-outline-variant: rgb(30 45 70 / .12);
+  --sb-radius-card: 18px; --sb-shadow-card: 0 1px 0 rgb(255 255 255 / .7) inset, 0 10px 30px -20px rgb(20 40 70 / .35);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+}
+html.dark[data-look="cristal"] {
+  --page-bg: #0d1520;
+  --cr-wall:
+    radial-gradient(30% 12% at 70% 8%, rgb(180 200 255 / .18), transparent 70%),
+    radial-gradient(70% 40% at 8% 58%, #102016, transparent 70%),
+    radial-gradient(60% 35% at 85% 55%, #1a2b1f, transparent 70%),
+    linear-gradient(180deg, #0b1424 0%, #14223a 26%, #1d2c40 38%, #18281c 50%, #0e1a12 60%, #142233 72%, #0d1724 100%);
+  --cr-side: rgb(28 32 40 / .5); --cr-glass: rgb(22 26 33 / .62); --cr-line: rgb(255 255 255 / .1);
+  --cr-card: rgb(255 255 255 / .06); --cr-tile: rgb(255 255 255 / .05); --cr-pick: rgb(255 255 255 / .14);
+  --sb-surface: rgb(30 34 42 / .86); --sb-surface-container-low: rgb(255 255 255 / .05); --sb-surface-container: rgb(255 255 255 / .08);
+  --sb-surface-container-high: rgb(255 255 255 / .13); --sb-outline-variant: rgb(255 255 255 / .1);
+  --sb-shadow-card: 0 1px 0 rgb(255 255 255 / .06) inset, 0 10px 30px -18px rgb(0 0 0 / .6);
+}
+/* Fondo de paisaje y la ventana de vidrio */
+html[data-look="cristal"] .sb-shell { background: var(--cr-wall) !important; background-attachment: fixed; }
+html[data-look="cristal"] .sb-shell > div.flex-1 { background: var(--cr-glass); backdrop-filter: blur(40px) saturate(1.5); -webkit-backdrop-filter: blur(40px) saturate(1.5); }
+@media (min-width: 768px) {
+  html[data-look="cristal"] .sb-shell { padding: 16px; }
+  html[data-look="cristal"] .sb-shell > aside {
+    height: auto; background: var(--cr-side); backdrop-filter: blur(30px) saturate(1.6); -webkit-backdrop-filter: blur(30px) saturate(1.6);
+    border: 1px solid var(--cr-line); border-right-color: rgb(30 45 70 / .1); border-radius: 26px 0 0 26px;
+    box-shadow: 0 30px 80px -30px rgb(10 30 60 / .45);
+  }
+  html[data-look="cristal"] .sb-shell > div.flex-1 { border: 1px solid var(--cr-line); border-left: 0; border-radius: 0 26px 26px 0; box-shadow: 0 30px 80px -30px rgb(10 30 60 / .45); }
+  html.dark[data-look="cristal"] .sb-shell > aside { border-right-color: rgb(255 255 255 / .08); }
+  /* Los tres puntos de la ventana, arriba del menú */
+  html[data-look="cristal"] .sb-shell > aside::before {
+    content: ""; display: block; flex: none; width: 56px; height: 13px; margin: 16px 0 2px 18px;
+    background:
+      radial-gradient(circle at 6.5px 6.5px, #ff5f57 5.6px, transparent 6.2px),
+      radial-gradient(circle at 26.5px 6.5px, #febc2e 5.6px, transparent 6.2px),
+      radial-gradient(circle at 46.5px 6.5px, #28c840 5.6px, transparent 6.2px);
+  }
+  html[data-look="cristal"] .sb-shell > aside.w-\[68px\]::before { margin-left: 6px; transform: scale(.85); }
+}
+/* Menú de vidrio: títulos de sección grises, íconos grises y la activa en cápsula blanca */
+html[data-look="cristal"] .sb-shell > aside .sb-nav-section { font-size: 11px; font-weight: 600; opacity: .55; letter-spacing: 0; }
+html[data-look="cristal"] .sb-shell > aside .sb-nav-link:not(.h-9) { height: 34px; border-radius: 10px !important; }
+html[data-look="cristal"] .sb-shell > aside .sb-nav-link:not(.h-9):hover { background: rgb(255 255 255 / .28); }
+html.dark[data-look="cristal"] .sb-shell > aside .sb-nav-link:not(.h-9):hover { background: rgb(255 255 255 / .06); }
+html[data-look="cristal"] .sb-shell > aside .sb-nav-label { font-size: 14px; }
+html[data-look="cristal"] .sb-shell > aside .sb-nav-icon { color: var(--sb-on-surface) !important; opacity: .72; }
+html[data-look="cristal"] .sb-nav-pill {
+  background: var(--cr-pick) !important; border: 1px solid rgb(255 255 255 / .95); border-radius: 10px !important;
+  box-shadow: 0 1px 2px rgb(20 40 70 / .08), 0 6px 16px -10px rgb(20 40 70 / .3) !important;
+}
+html.dark[data-look="cristal"] .sb-nav-pill { border-color: rgb(255 255 255 / .16); }
+/* Barra superior: título de la ventana en negrita y línea fina debajo */
+html[data-look="cristal"] .sb-shell > div.flex-1 > header { border-bottom: 1px solid var(--sb-outline-variant); }
+html[data-look="cristal"] .sb-crumb { font-size: 17px !important; font-weight: 700 !important; color: var(--sb-on-surface) !important; letter-spacing: -0.01em; }
+/* Contenido: tarjetas de vidrio, filas translúcidas y la marcada como en una selección de vidrio */
+html[data-look="cristal"] .sb-card {
+  background: var(--cr-card) !important; backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--cr-line) !important;
+}
+html[data-look="cristal"] .sb-card .sb-card { background: var(--cr-tile) !important; }
+html[data-look="cristal"] .sb-title { font-weight: 700; letter-spacing: -0.025em; }
+html[data-look="cristal"] main .sb-card .grid.rounded-xl.bg-sb-primary-soft,
+html[data-look="cristal"] .modal__dialog .grid.rounded-xl.bg-sb-primary-soft {
+  background: var(--cr-pick) !important; box-shadow: 0 0 0 1px rgb(255 255 255 / .95), 0 6px 18px -12px rgb(20 40 70 / .35);
+}
+html.dark[data-look="cristal"] main .sb-card .grid.rounded-xl.bg-sb-primary-soft { box-shadow: 0 0 0 1px rgb(255 255 255 / .18); }
+html[data-look="cristal"] main input:not([type=checkbox]):not([type=radio]), html[data-look="cristal"] main select, html[data-look="cristal"] main textarea {
+  background: rgb(255 255 255 / .55); border-color: var(--cr-line);
+}
+html.dark[data-look="cristal"] main input:not([type=checkbox]):not([type=radio]), html.dark[data-look="cristal"] main select { background: rgb(255 255 255 / .06); }
+html[data-look="cristal"] .sb-aging { --sb-aging-bg: rgb(250 251 253 / .94); }
+html.dark[data-look="cristal"] .sb-aging { --sb-aging-bg: rgb(30 34 42 / .95); }
+/* Ventanas (modales) de vidrio */
+html[data-look="cristal"] :is(.modal__dialog, .drawer__content) {
+  background: rgb(246 248 251 / .74) !important; backdrop-filter: blur(40px) saturate(1.6); -webkit-backdrop-filter: blur(40px) saturate(1.6);
+  border: 1px solid var(--cr-line) !important; border-radius: 22px !important;
+}
+html.dark[data-look="cristal"] :is(.modal__dialog, .drawer__content) { background: rgb(26 30 38 / .78) !important; }
+html[data-look="cristal"] :is(.modal__dialog, .drawer__content) :is(.rounded-xl, .rounded-2xl):is(.border, .bg-sb-surface-container-low) { background: var(--cr-tile) !important; border-color: var(--cr-line) !important; }
