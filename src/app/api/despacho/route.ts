@@ -14,6 +14,7 @@ import { orderStops, planEtas } from "@/lib/yur-road";
  * GET  ?site=PCL&guia=…        -> unidades de esa guía listas para despachar
  * GET  ?site=PCL&trip=12       -> detalle del viaje: destino, dealer, factura, guía, cantidad y tipo
  * GET  ?site=PCL&stock=1       -> stock en almacén (ingresó y aún no se despacha), por guía
+ * GET  ?site=PCL&route=1       -> camiones en ruta: cada viaje con sus paradas por distrito, lo entregado y su plazo
  * POST { action: "dispatch", site, guias: [], driver, plate, date, lateReason?, stops?: [distrito, …] }
  *      YUR: guarda las paradas del viaje en ese orden (o en el de la carretera), con su llegada estimada.
  */
@@ -73,6 +74,25 @@ export async function GET(req: Request) {
       canDispatch: perm.ok,
       rows: rows.map((r) => ({ ...r, w2: num(r.w2), w3: num(r.w3), total: num(r.total), need: num(r.need), overdue: num(r.overdue) })),
       aging: aging.map((r) => ({ ...r, arribo: r.arribo ? String(r.arribo).slice(0, 10) : null, w2: num(r.w2), w3: num(r.w3) })),
+    });
+  }
+
+  // Camiones en ruta: cada viaje con sus paradas (una por distrito), lo entregado y su plazo. Los de los últimos
+  // 30 días y los que aún tienen algo por entregar
+  if (p.get("route")) {
+    const rows = await queryList<{ id: number; dispatched_on: string; driver: string; plate: string | null; district: string | null; department: string | null;
+      total: number; delivered: number; delivered_on: string | null; est: string | null; w2: number; w3: number; guias: number; dealers: string | null }>(
+      `SELECT d.id, d.dispatched_on, d.driver, d.plate, v.district, v.department, COUNT(*) total, SUM(v.d_entrega IS NOT NULL) delivered,
+         MAX(v.d_entrega) delivered_on, MIN(v.est_date) est, SUM(v.category = '2W') w2, SUM(v.category = '3W') w3,
+         COUNT(DISTINCT v.guia) guias, string_agg(DISTINCT v.dealer::text, ', ') dealers
+       FROM dispatches d JOIN v_units v ON v.dispatch_id = d.id
+       WHERE d.site = ?${perm.carrier ? " AND v.carrier = ?" : ""}
+       GROUP BY d.id, d.dispatched_on, d.driver, d.plate, v.district, v.department
+       HAVING MAX(d.dispatched_on) >= CURRENT_DATE - 30 OR SUM(v.d_entrega IS NULL) > 0
+       ORDER BY d.dispatched_on DESC, d.id DESC LIMIT 600`, [site, ...sargs]);
+    return NextResponse.json({
+      canDeliver: s.role === "admin" || (s.role === "operator" && (await getScope(s.id)).stages.some((st) => st.site === site && st.field === "d_entrega")),
+      rows: rows.map((r) => ({ ...r, total: num(r.total), delivered: num(r.delivered), w2: num(r.w2), w3: num(r.w3), guias: num(r.guias) })),
     });
   }
 

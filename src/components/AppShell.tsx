@@ -46,6 +46,7 @@ const SECTIONS: Section[] = [
       { title: "PCL 2 · Arribo e ingreso", href: "/arribo", icon: Warehouse, fields: ["PCL:d_arribo", "PCL:d_almacen"] },
       { title: "PCL 3 · Stock en almacén", href: "/stock", icon: Boxes, fields: ["PCL:d_almacen", "PCL:d_despacho"] },
       { title: "PCL 3 · Despacho", href: "/despacho", icon: Forklift, fields: ["PCL:d_despacho"] },
+      { title: "PCL 4 · Camiones en ruta", href: "/camiones", icon: MapPinned, fields: ["PCL:d_despacho", "PCL:d_entrega"] },
       // Ruta Yurimaguas (chata sin contenedores y luego carretera)
       { title: "YUR 1 · Carga a chata", href: "/yur/carga", icon: Ship, fields: ["YUR:d_carga", "YUR:d_zarpe"] },
       { title: "YUR 2 · Llegada a Yurimaguas", href: "/yur/llegada", icon: Warehouse, fields: ["YUR:d_arribo", "YUR:d_almacen"] },
@@ -103,6 +104,7 @@ const SECTIONS: Section[] = [
       { title: "2 · Arribo e ingreso", href: "/arribo", icon: Warehouse },
       { title: "3 · Stock en almacén", href: "/stock", icon: Boxes },
       { title: "3 · Despacho", href: "/despacho", icon: Forklift },
+      { title: "4 · Camiones en ruta", href: "/camiones", icon: MapPinned },
     ],
   },
   {
@@ -410,7 +412,10 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
   // Opción activa: la de ruta más larga que coincide (/portal/resumen antes que /portal, /dev/database antes que /dev)
   const activeHref = [...sections.flatMap((s) => s.items), ...(role === "admin" ? [LICENSE] : []), PROFILE].filter((i) => path === i.href || path.startsWith(i.href + "/"))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? "";
-  const pageName = [...sections.flatMap((s) => s.items), ...(role === "admin" ? [LICENSE] : []), PROFILE].filter((i) => path === i.href || path.startsWith(i.href + "/"))
+  // Título de arriba: en las secciones de ruta se antepone la ruta («PCL 1 · Embarque y zarpe»), así no se confunden
+  const routeOf = (t: string) => (t.startsWith("Ruta Pucallpa") ? "PCL " : t.startsWith("Ruta Yurimaguas") ? "YUR " : "");
+  const pageName = [...sections.flatMap((s) => s.items.map((i) => ({ ...i, title: /^\d/.test(i.title) ? routeOf(s.title) + i.title : i.title }))), ...(role === "admin" ? [LICENSE] : []), PROFILE]
+    .filter((i) => path === i.href || path.startsWith(i.href + "/"))
     .sort((a, b) => b.href.length - a.href.length)[0]?.title ?? "";
   const initials = name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
