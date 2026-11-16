@@ -4,7 +4,7 @@ import * as React from "react";
 import * as k from "@/components/iso/iso-kit";
 import type { Plane, Point3, Projection } from "@/components/iso/iso-kit";
 import { Hand, LocateFixed, Maximize2, Minimize2, Minus, Plus, Rotate3d } from "lucide-react";
-import { ROADS, TOWNS, town, type TripState } from "@/lib/yur-road";
+import { ROADS, TOWNS, type Town, type TripState } from "@/lib/yur-road";
 import { cn } from "@/lib/cn";
 import "@/components/iso/iso.css";
 import "@/components/figures/route/route.css";
@@ -20,23 +20,37 @@ export type RoadTruck = { id: number; label: string; sub: string; state: TripSta
 
 const W = 900, H = 620;
 const START = { az: 90, el: 52 };
-const xs = TOWNS.map((t) => t.x), ys = TOWNS.map((t) => t.y);
 const PAD = 40;
-const GROUND = { x: Math.min(...xs) - PAD - 20, y: Math.min(...ys) - PAD, w: Math.max(...xs) - Math.min(...xs) + PAD * 2 + 20, d: Math.max(...ys) - Math.min(...ys) + PAD * 2, r: 10 };
-const BOUNDS: Point3[] = k.boxCorners(GROUND, -8, 12);
-// Costa del Pacífico (al oeste) y río Huallaga (en Yurimaguas)
 const geo = (lon: number, lat: number): Plane => [(lon + 78.6) * 100, (-lat - 6.4) * 100];
-const COAST: Plane[] = [geo(-81.35, -4.45), geo(-81.2, -5.1), geo(-80.95, -5.85), geo(-80.2, -6.5), geo(-79.95, -6.95), geo(-79.6, -7.4), geo(-79.1, -8.15), geo(-78.65, -9.1), geo(-78.35, -9.75)];
-const RIVER: Plane[] = [geo(-76.25, -6.45), geo(-76.18, -6.15), geo(-76.08, -5.92), geo(-75.98, -5.6), geo(-75.85, -5.25)];
-const MINOR = new Set(["PEDRO RUIZ", "OLMOS", "LA VICTORIA"]);
 
-function draw(P: Projection) {
+/** Red que dibuja el mapa: pueblos, carreteras, el pueblo de origen (con su almacén) y costa/río opcionales */
+export type RoadMap = { towns: Town[]; roads: [string, string, number][]; hub: string; minor?: string[]; coast?: Plane[]; river?: Plane[]; label: string };
+/** Yurimaguas (por defecto): costa del Pacífico al oeste y río Huallaga */
+export const YUR_MAP: RoadMap = {
+  towns: TOWNS, roads: ROADS, hub: "YURIMAGUAS", minor: ["PEDRO RUIZ", "OLMOS", "LA VICTORIA"], label: "Carretera desde Yurimaguas",
+  coast: [geo(-81.35, -4.45), geo(-81.2, -5.1), geo(-80.95, -5.85), geo(-80.2, -6.5), geo(-79.95, -6.95), geo(-79.6, -7.4), geo(-79.1, -8.15), geo(-78.65, -9.1), geo(-78.35, -9.75)],
+  river: [geo(-76.25, -6.45), geo(-76.18, -6.15), geo(-76.08, -5.92), geo(-75.98, -5.6), geo(-75.85, -5.25)],
+};
+/** Pucallpa: costa de Lima y río Ucayali */
+export const geoPoint = geo;
+
+const prepared = new Map<RoadMap, ReturnType<typeof prepare>>();
+function prepare(m: RoadMap) {
+  const xs = m.towns.map((t) => t.x), ys = m.towns.map((t) => t.y);
+  const GROUND = { x: Math.min(...xs) - PAD - 20, y: Math.min(...ys) - PAD, w: Math.max(...xs) - Math.min(...xs) + PAD * 2 + 20, d: Math.max(...ys) - Math.min(...ys) + PAD * 2, r: 10 };
+  return { m, GROUND, BOUNDS: k.boxCorners(GROUND, -8, 12) as Point3[], byId: new Map(m.towns.map((t) => [t.id, t])), MINOR: new Set(m.minor ?? []) };
+}
+const prep = (m: RoadMap) => { let v = prepared.get(m); if (!v) { v = prepare(m); prepared.set(m, v); } return v; };
+
+function draw(P: Projection, pr: ReturnType<typeof prepare>) {
   const at = (p: Point3) => k.iso(p, P);
   const depth = (p: Point3) => k.depthOf(p, P);
+  const { GROUND, m } = pr;
   const ground = k.solidSvg(k.slabOf(GROUND, -8, 8, P, 6, 1), { tone: "mid", className: "rd-ground" });
   const west = GROUND.x + 1, south = GROUND.y + GROUND.d - 1, north = GROUND.y + 1;
-  const sea = `<path class="rd-sea" d="${k.onTop([[west, north], [COAST[0][0], north], ...COAST, [COAST[COAST.length - 1][0], south], [west, south]], 0.05, P, true)}"/>`;
-  const river = `<path class="rd-river" d="${k.onTop(RIVER, 0.1, P)}"/>`;
+  const C = m.coast ?? [];
+  const sea = C.length ? `<path class="rd-sea" d="${k.onTop([[west, north], [C[0][0], north], ...C, [C[C.length - 1][0], south], [west, south]], 0.05, P, true)}"/>` : "";
+  const river = m.river?.length ? `<path class="rd-river" d="${k.onTop(m.river, 0.1, P)}"/>` : "";
   return { ground, sea, river, at, depth };
 }
 
@@ -47,11 +61,17 @@ function boxRing(cx: number, cy: number, len: number, wid: number, angle: number
   return [[-len / 2, -wid / 2], [len / 2, -wid / 2], [len / 2, wid / 2], [-len / 2, wid / 2]].map(([u, v]) => [ox + u * c - v * s, oy + u * s + v * c] as Plane);
 }
 
-export function RoadScene({ trucks, selected, onPick, path, stops, enapu }: {
+export function RoadScene({ trucks, selected, onPick, path, stops, enapu, map = YUR_MAP, hubTag }: {
   trucks: RoadTruck[]; selected: number | null; onPick: (id: number) => void;
   /** Pueblos del viaje elegido (se resalta su camino y sus paradas) */
   path: string[]; stops: string[]; enapu: number;
+  /** Red de carreteras (Yurimaguas por defecto) y un texto junto al pueblo de origen */
+  map?: RoadMap; hubTag?: string;
 }) {
+  const pr = React.useMemo(() => prep(map), [map]);
+  const { MINOR, byId } = pr;
+  const HUB = map.hub;
+  const tag = hubTag ?? (map === YUR_MAP && enapu > 0 ? `ENAPU ${enapu.toLocaleString("es-PE")}` : "");
   const [theme, setTheme] = React.useState<"dark" | "light">("light");
   React.useEffect(() => {
     const html = document.documentElement;
@@ -64,8 +84,8 @@ export function RoadScene({ trucks, selected, onPick, path, stops, enapu }: {
 
   const [cam, setCam] = React.useState<{ az: number; el: number; zoom: number; t: { x: number; y: number } | null }>({ ...START, zoom: 1, t: null });
   const [mode, setMode] = React.useState<"move" | "turn">("move");
-  const P = React.useMemo(() => k.fitProjection(BOUNDS, W, H, { pad: 6, azimuth: cam.az, elevation: cam.el }), [cam.az, cam.el]);
-  const s = React.useMemo(() => draw(P), [P]);
+  const P = React.useMemo(() => k.fitProjection(pr.BOUNDS, W, H, { pad: 6, azimuth: cam.az, elevation: cam.el }), [cam.az, cam.el, pr]);
+  const s = React.useMemo(() => draw(P, pr), [P, pr]);
 
   const box = React.useRef<HTMLDivElement>(null);
   const [boxW, setBoxW] = React.useState(0);
@@ -112,9 +132,10 @@ export function RoadScene({ trucks, selected, onPick, path, stops, enapu }: {
   const vw = Math.min(W, H * aspect) / cam.zoom, vh = Math.min(H, W / aspect) / cam.zoom;
   // En celular el mapa se ve recortado: arranca centrado en los camiones (y Yurimaguas)
   const home = React.useMemo(() => {
-    const px = [town("YURIMAGUAS").x, ...trucks.map((t) => t.x)], py = [town("YURIMAGUAS").y, ...trucks.map((t) => t.y)];
+    const h = byId.get(HUB)!;
+    const px = [h.x, ...trucks.map((t) => t.x)], py = [h.y, ...trucks.map((t) => t.y)];
     return { x: (Math.min(...px) + Math.max(...px)) / 2, y: (Math.min(...py) + Math.max(...py)) / 2 };
-  }, [trucks]);
+  }, [trucks, byId, HUB]);
   const [fx, fy] = cam.t ? s.at([cam.t.x, cam.t.y, 0]) : narrow && !isFull ? s.at([home.x, home.y, 0]) : [W / 2, H / 2];
   const vx = Math.min(Math.max(fx - vw / 2, 0), W - vw), vy = Math.min(Math.max(fy - vh / 2, 0), H - vh);
   const unproject = React.useCallback((sx: number, sy: number) => {
@@ -136,8 +157,8 @@ export function RoadScene({ trucks, selected, onPick, path, stops, enapu }: {
   // Carreteras (las del viaje elegido, resaltadas)
   const roads = React.useMemo(() => {
     let base = "", lit = "";
-    for (const [a, b] of ROADS) {
-      const A = town(a), B = town(b);
+    for (const [a, b] of map.roads) {
+      const A = byId.get(a)!, B = byId.get(b)!;
       const d = k.onTop([[A.x, A.y], [B.x, B.y]], 0.2, P);
       const on = onPath.has(a) && onPath.has(b);
       if (on) lit += `<path class="rd-road is-on" d="${d}"/>`;
@@ -145,16 +166,16 @@ export function RoadScene({ trucks, selected, onPick, path, stops, enapu }: {
       base += `<path class="rd-lane" d="${d}"/>`;
     }
     return base + lit;
-  }, [P, onPath]);
+  }, [P, onPath, map.roads, byId]);
 
   // Pueblos (casitas) y camiones, dibujados del fondo hacia adelante
   const pieces = React.useMemo(() => {
     const out: { key: number; svg: string; truck?: RoadTruck }[] = [];
-    for (const t of TOWNS) {
+    for (const t of map.towns) {
       if (MINOR.has(t.id)) continue;
       const stop = stopSet.has(t.id);
       let svg = "";
-      if (t.id === "YURIMAGUAS") {
+      if (t.id === HUB) {
         // Puerto y almacén ENAPU
         svg = k.solidSvg(k.slabOf({ x: t.x - 9, y: t.y - 14, w: 22, d: 12, r: 1 }, 0, 9, P, 2, 0.4), { tone: "hi", className: "rd-town is-stop" })
           + k.solidSvg(k.slabOf({ x: t.x - 6, y: t.y + 2, w: 9, d: 7, r: 0.6 }, 0, 6, P, 2, 0.3), { tone: "hi", className: "rd-town" });
@@ -180,7 +201,7 @@ export function RoadScene({ trucks, selected, onPick, path, stops, enapu }: {
       out.push({ key: s.depth([x, y, 0]) + 0.5, svg: front ? cargo + cab : cab + cargo, truck: { ...tk, x, y } });
     }
     return out.sort((a, b) => a.key - b.key);
-  }, [trucks, stopSet, P, s, big]);
+  }, [trucks, stopSet, P, s, big, map.towns, MINOR, HUB]);
 
   // Gestos (igual que el muelle)
   const ptrs = React.useRef(new Map<number, { x: number; y: number }>());
@@ -254,7 +275,7 @@ export function RoadScene({ trucks, selected, onPick, path, stops, enapu }: {
         onContextMenu={(e) => e.preventDefault()}
         onDoubleClick={(e) => { const p = toLocal(e.clientX, e.clientY); zoomAt(cam.zoom >= 6 ? 1 / 7 : 1.8, p.x, p.y); }}>
         <svg className="iso-svg" style={narrow || isFull ? { width: "100%", height: "100%" } : undefined} viewBox={`${vx} ${vy} ${vw} ${vh}`} role="img"
-          aria-label="Carretera desde Yurimaguas en 3D con los camiones en ruta">
+          aria-label={`${map.label} en 3D con los camiones en ruta`}>
           <g dangerouslySetInnerHTML={{ __html: s.ground + s.sea + s.river + roads }} />
           {pieces.map((p, i) => p.truck ? (
             <g key={`t${p.truck.id}`} className={cn("rd-truck", `rd-tk-${p.truck.state}`, selected === p.truck.id && "is-on", p.truck.state === "camino" && "is-moving")}
@@ -263,9 +284,9 @@ export function RoadScene({ trucks, selected, onPick, path, stops, enapu }: {
         </svg>
 
         {/* Nombres de los pueblos */}
-        {TOWNS.filter((t) => inView([t.x, t.y, 0]) && (!MINOR.has(t.id) || cam.zoom > 2.2)).map((t) => (
-          <span key={t.id} className={cn("rd-town-tag", t.id === "YURIMAGUAS" && "is-hub", MINOR.has(t.id) && "is-minor")} style={pos([t.x, t.y, 0])}>
-            {t.name}{t.id === "YURIMAGUAS" && enapu > 0 ? ` · ENAPU ${enapu.toLocaleString("es-PE")}` : ""}
+        {map.towns.filter((t) => inView([t.x, t.y, 0]) && (!MINOR.has(t.id) || cam.zoom > 2.2)).map((t) => (
+          <span key={t.id} className={cn("rd-town-tag", t.id === HUB && "is-hub", MINOR.has(t.id) && "is-minor")} style={pos([t.x, t.y, 0])}>
+            {t.name}{t.id === HUB && tag ? ` · ${tag}` : ""}
           </span>
         ))}
         {/* Etiqueta de cada camión (en celular, solo el elegido o al acercar) */}
