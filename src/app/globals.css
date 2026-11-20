@@ -287,30 +287,45 @@ html.dark {
 /* Las variantes con transparencia (/40, /60, /70…) también quedan con el color pleno */
 [class*="text-sb-on-surface-variant/"] { color: var(--sb-on-surface-variant) !important; }
 
-/* Celular: las tablas del sistema (componente Table) se ven como tarjetas, una por fila,
-   con el título de cada columna a la izquierda y su dato a la derecha. Nada se desliza de lado. */
+/* Celular: las tablas del sistema se ven como tarjetas de app (nada se desliza de lado). Cada fila es una tarjeta:
+   el primer dato es su título; los demás van en una cuadrícula de dos columnas con su nombre arriba, y las acciones
+   (columnas sin título) ocupan el ancho abajo, fáciles de tocar. */
 @media (max-width: 640px) {
   .sb-stack { overflow-x: visible; }
-  .sb-stack table, .sb-stack tbody, .sb-stack tr, .sb-stack td { display: block; width: 100%; }
-  .sb-stack table { min-width: 0 !important; }
+  .sb-stack table, .sb-stack tbody { display: block; width: 100%; min-width: 0 !important; }
   .sb-stack thead { display: none; }
-  .sb-stack tbody tr { padding: 0.65rem 1rem; }
-  /* El título de la columna flota a la izquierda; el dato (aunque tenga varias líneas) va a la derecha */
+  .sb-stack tbody { display: flex; flex-direction: column; gap: 8px; }
+  .sb-stack tbody tr {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; width: 100%;
+    padding: 12px 14px; border: 0 !important; border-radius: 18px;
+    background: var(--sb-surface-container-low); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--sb-outline-variant) 45%, transparent);
+  }
+  .sb-stack tbody tr:active { background: var(--sb-surface-container); }
   .sb-stack td {
-    padding: 0.28rem 0 !important; max-width: none !important; white-space: normal !important; text-align: right !important; overflow-wrap: anywhere;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; width: auto;
+    padding: 0 !important; max-width: none !important; white-space: normal !important; text-align: left !important;
+    overflow-wrap: anywhere; font-size: 13.5px; color: var(--sb-on-surface);
   }
   .sb-stack td::before {
-    content: attr(data-label); float: left; max-width: 45%; margin-right: 0.75rem; text-align: left;
-    font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--sb-on-surface-variant);
+    content: attr(data-label); font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+    line-height: 1.2; color: var(--sb-on-surface-variant);
   }
-  .sb-stack td::after { content: ""; display: block; clear: both; }
   .sb-stack td:empty { display: none; }
-  /* Columnas sin título (acciones): botones a la derecha */
-  .sb-stack td[data-label=""] { padding-top: 0.5rem !important; }
+  /* Título de la tarjeta: el primer dato, grande y sin su nombre */
+  .sb-stack td:first-child { grid-column: 1 / -1; font-size: 15px; font-weight: 600; }
+  .sb-stack td:first-child::before { content: none; }
+  /* Acciones y celdas que abarcan varias columnas: todo el ancho */
+  .sb-stack td[data-label=""], .sb-stack td[colspan] { grid-column: 1 / -1; }
+  .sb-stack td[data-label=""]:not(:first-child) { flex-direction: row; flex-wrap: wrap; gap: 8px; padding-top: 2px !important; }
   .sb-stack td[data-label=""]::before, .sb-stack td[colspan]::before { content: none; }
-  .sb-stack td[colspan] { text-align: center !important; }
-  .sb-stack td span.flex, .sb-stack td div.flex { flex-wrap: wrap; justify-content: flex-end; }
-  .sb-stack td input[type="checkbox"] { float: left; }
+  .sb-stack td[colspan] { align-items: center; text-align: center !important; }
+  .sb-stack td span.flex, .sb-stack td div.flex { flex-wrap: wrap; }
+  .sb-stack td[data-label=""] :is(button, a) { min-height: 36px; }
+  /* Acción suelta (borrar) en la esquina de la tarjeta, junto al título */
+  .sb-stack tr.sb-corner-row { position: relative; }
+  .sb-stack tr.sb-corner-row td:first-child { padding-right: 44px !important; }
+  .sb-stack td.sb-corner { position: absolute; top: 10px; right: 8px; width: auto; }
+  .sb-stack td.sb-corner button { opacity: .7; min-width: 36px; display: grid; place-items: center; }
 }
 
 /* ===== Diseño suave y minimal (todo el sistema) ===== */

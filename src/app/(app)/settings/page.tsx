@@ -5,6 +5,7 @@ import { Plus, Save, Trash2 } from "lucide-react";
 import { Card, PageTitle } from "@/components/ui";
 import { MONTHS, SITE_INFO, type Site } from "@/lib/hsp";
 import { SoftSelect } from "@/components/SoftSelect";
+import { TableLabels } from "@/components/TableLabels";
 
 type LT = { site: Site; zone: string; days_cre: number; days_vac: number; units?: number };
 type DR = { district: string; department: string; site: Site; days: number; units?: number };
@@ -94,6 +95,7 @@ export default function SettingsPage() {
                 </div>
                 <Button size="sm" variant="secondary" className="rounded-full" onPress={() => addLT(site)}><Plus className="h-3.5 w-3.5" /> Agregar</Button>
               </div>
+              <TableLabels className="max-sm:px-3 max-sm:pb-3">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">
@@ -106,16 +108,16 @@ export default function SettingsPage() {
                 </thead>
                 <tbody>
                   {cfg.leadTimes.map((l, i) => l.site !== site ? null : (
-                    <tr key={i} className="border-b border-sb-outline-variant/25 last:border-0">
+                    <tr key={i} className="sb-corner-row border-b border-sb-outline-variant/25 last:border-0">
                       <td className="px-4 py-1.5"><input value={l.zone} onChange={(e) => setLT(i, { zone: e.target.value.toUpperCase() })} className={`w-full ${input}`} aria-label="Zona" placeholder={yur ? "RUTA ORIENTE 6" : "DEPARTAMENTO"} /></td>
                       <td className="px-2 py-1.5">
                         <input type="number" min={0} value={l.days_cre} aria-label="Días"
                           onChange={(e) => setLT(i, yur ? { days_cre: Number(e.target.value) } : { days_cre: Number(e.target.value), days_vac: Number(e.target.value) })}
-                          className={`w-16 ${input}`} />
+                          className={`w-16 max-sm:w-full ${input}`} />
                       </td>
-                      {yur && <td className="px-2 py-1.5"><input type="number" min={0} value={l.days_vac} aria-label="Días vaciante" onChange={(e) => setLT(i, { days_vac: Number(e.target.value) })} className={`w-16 ${input}`} /></td>}
+                      {yur && <td className="px-2 py-1.5"><input type="number" min={0} value={l.days_vac} aria-label="Días vaciante" onChange={(e) => setLT(i, { days_vac: Number(e.target.value) })} className={`w-16 max-sm:w-full ${input}`} /></td>}
                       <td className="px-2 py-1.5 text-right text-sb-on-surface-variant">{l.units?.toLocaleString() ?? "—"}</td>
-                      <td className="px-2 py-1.5 text-right">
+                      <td className="sb-corner px-2 py-1.5 text-right">
                         <button aria-label={`Quitar ${l.zone}`} className="rounded-full p-1.5 opacity-40 hover:bg-sb-surface-container hover:opacity-100" onClick={() => change({ leadTimes: cfg.leadTimes.filter((_, j) => j !== i) })}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -124,6 +126,7 @@ export default function SettingsPage() {
                   ))}
                 </tbody>
               </table>
+              </TableLabels>
               {cfg.missing.filter((m) => m.site === site).length > 0 && (
                 <div className="border-t border-sb-outline-variant/40 px-4 py-3 text-[11px]">
                   <p className="mb-2 font-medium">Zonas con unidades pero sin plazo (no tienen fecha estimada):</p>
@@ -156,7 +159,8 @@ export default function SettingsPage() {
         </div>
         <div className="grid xl:grid-cols-2">
           {(["YUR", "PCL"] as const).map((site) => (
-            <table key={site} className="w-full text-left text-xs xl:[&:first-child]:border-r xl:border-sb-outline-variant/40">
+            <TableLabels key={site} className="max-sm:px-3 max-sm:pb-3 xl:[&:first-child]:border-r xl:border-sb-outline-variant/40">
+            <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-sb-outline-variant/40 text-[10px] uppercase tracking-wider text-sb-on-surface-variant/60">
                   <th className="px-4 py-2 font-semibold">{SITE_INFO[site].title} · distrito</th>
@@ -169,17 +173,17 @@ export default function SettingsPage() {
               </thead>
               <tbody>
                 {cfg.districtRoutes.map((r, i) => r.site !== site ? null : (
-                  <tr key={i} className="border-b border-sb-outline-variant/25 last:border-0">
+                  <tr key={i} className="sb-corner-row border-b border-sb-outline-variant/25 last:border-0">
                     <td className="px-4 py-1.5"><input value={r.district} onChange={(e) => setDR(i, { district: e.target.value.toUpperCase() })} className={`w-full ${input}`} aria-label="Distrito" placeholder="DISTRITO" /></td>
-                    <td className="px-2 py-1.5"><input value={r.department} onChange={(e) => setDR(i, { department: e.target.value.toUpperCase() })} className={`w-28 ${input}`} aria-label="Departamento" placeholder="cualquiera" /></td>
+                    <td className="px-2 py-1.5"><input value={r.department} onChange={(e) => setDR(i, { department: e.target.value.toUpperCase() })} className={`w-28 max-sm:w-full ${input}`} aria-label="Departamento" placeholder="cualquiera" /></td>
                     <td className="px-2 py-1.5">
-                      <SoftSelect value={r.site} onChange={(e) => setDR(i, { site: e.target.value as Site })} className={`w-20 ${input}`} aria-label="Ruta">
+                      <SoftSelect value={r.site} onChange={(e) => setDR(i, { site: e.target.value as Site })} className={`w-20 max-sm:w-full ${input}`} aria-label="Ruta">
                         <option value="YUR">YUR</option><option value="PCL">PCL</option>
                       </SoftSelect>
                     </td>
-                    <td className="px-2 py-1.5"><input type="number" min={0} value={r.days} onChange={(e) => setDR(i, { days: Number(e.target.value) })} className={`w-16 ${input}`} aria-label="Plazo en días" /></td>
+                    <td className="px-2 py-1.5"><input type="number" min={0} value={r.days} onChange={(e) => setDR(i, { days: Number(e.target.value) })} className={`w-16 max-sm:w-full ${input}`} aria-label="Plazo en días" /></td>
                     <td className="px-2 py-1.5 text-right text-sb-on-surface-variant">{r.units?.toLocaleString() ?? "—"}</td>
-                    <td className="px-2 py-1.5 text-right">
+                    <td className="sb-corner px-2 py-1.5 text-right">
                       <button aria-label={`Quitar ${r.district}`} className="rounded-full p-1.5 opacity-40 hover:bg-sb-surface-container hover:opacity-100" onClick={() => change({ districtRoutes: cfg.districtRoutes.filter((_, j) => j !== i) })}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -188,6 +192,7 @@ export default function SettingsPage() {
                 ))}
               </tbody>
             </table>
+            </TableLabels>
           ))}
         </div>
       </Card>
