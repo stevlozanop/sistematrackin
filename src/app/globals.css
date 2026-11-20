@@ -1114,14 +1114,6 @@ html[data-look="cristal"] main .sb-card span.grid.h-9.w-9.rounded-xl:not(.bg-sb-
 }
 html.dark[data-look="cristal"] main .sb-card span.grid.h-9.w-9.rounded-xl:not(.bg-sb-late-soft) { background: rgb(255 255 255 / .07) !important; }
 /* 4: vidrio vivo — crece, rebota y lo recorre un brillo */
-html[data-look="cristal"] :is(.sb-pill, .sb-glass, .button--secondary, .sb-nav-link) { position: relative; overflow: hidden; }
-html[data-look="cristal"] :is(.sb-pill, .sb-glass, .button--secondary, .sb-nav-link)::after {
-  content: ""; position: absolute; inset: -40% -60%; pointer-events: none; opacity: 0;
-  background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / .55) 50%, transparent 62%);
-  transform: translateX(-60%); transition: transform .7s var(--sb-ease), opacity .25s;
-}
-html[data-look="cristal"] :is(.sb-pill, .sb-glass, .button--secondary, .sb-nav-link):hover::after { opacity: 1; transform: translateX(60%); }
-html.dark[data-look="cristal"] :is(.sb-pill, .sb-glass, .button--secondary, .sb-nav-link)::after { background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / .16) 50%, transparent 62%); }
 html[data-look="cristal"] :is(.sb-glass, .button--secondary):not(:disabled):active { transform: scale(.96); transition: transform .12s; }
 html[data-look="cristal"] .button--secondary { background: rgb(255 255 255 / .45) !important; border: 0 !important; box-shadow: var(--cr-edge), var(--cr-lift) !important; }
 html.dark[data-look="cristal"] .button--secondary { background: rgb(255 255 255 / .07) !important; }
@@ -1137,4 +1129,43 @@ html[data-look="cristal"] :is(.modal__backdrop--opaque, .modal__backdrop--blur, 
 html.dark[data-look="cristal"] :is(.modal__backdrop--opaque, .modal__backdrop--blur, .drawer__backdrop--opaque, .drawer__backdrop--blur) { background: rgb(0 0 0 / .18) !important; }
 html[data-look="cristal"] :is(.modal__dialog, .drawer__dialog) { box-shadow: var(--cr-edge), 0 40px 90px -40px rgb(10 30 60 / .55) !important; outline: 0 !important; border-radius: var(--cr-r) !important; }
 html[data-look="cristal"] .modal__dialog :is(.rounded-xl, .rounded-2xl) { border-radius: var(--cr-r2) !important; }
-@media (prefers-reduced-motion: reduce) { html[data-look="cristal"] :is(.sb-pill, .sb-glass, .button--secondary, .sb-nav-link)::after { display: none; } }
+
+
+/* ===== Liquid Glass en TODOS los estilos (cada uno conserva sus colores y su forma) =====
+   1) Los botones de arriba (guía, avisos, perfil) juntos en una sola cápsula de vidrio flotante.
+   2) Vidrio vivo: al pasar, un brillo recorre el botón; al tocar, se hunde un poco (sin recortar su contenido).
+   3) Íconos de un solo color en la barra y en los encabezados de las tarjetas (el color, solo donde significa algo).
+   4) Esquinas concéntricas: lo de adentro sigue la curva de su tarjeta. 5) Borde de luz arriba en las tarjetas (claro). */
+:root { --lg-edge: inset 0 1px 0 rgb(255 255 255 / .7); }
+html.dark { --lg-edge: inset 0 1px 0 rgb(255 255 255 / .06); }
+/* 1 · cápsula de la barra (Workice, Lumina y Cristal ya tienen la suya) */
+html:not([data-look="workice"]):not([data-look="lumina"]):not([data-look="cristal"]) .sb-shell > div.flex-1 > header > div:last-child {
+  gap: 2px; padding: 3px; border-radius: 999px;
+  background: color-mix(in oklab, var(--sb-surface) 72%, transparent); backdrop-filter: blur(20px) saturate(1.7);
+  box-shadow: var(--lg-edge), 0 0 0 1px color-mix(in oklab, var(--sb-on-surface) 7%, transparent), 0 10px 26px -18px rgb(16 16 24 / .35);
+}
+html:not([data-look="workice"]):not([data-look="lumina"]):not([data-look="cristal"]) .sb-shell > div.flex-1 > header > div:last-child .sb-glass {
+  background: transparent !important; border-color: transparent !important; box-shadow: none !important; backdrop-filter: none;
+}
+/* 2 · brillo que recorre el botón (dentro de su propia forma) y hundido al tocar */
+:is(.sb-pill, .sb-pill-sm, .sb-pill-xs, .sb-glass, .button--secondary, .button--primary):not(.absolute):not(.fixed):not(.sticky) { position: relative; }
+:is(.sb-pill, .sb-pill-sm, .sb-pill-xs, .sb-glass, .button--secondary, .button--primary)::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0;
+  background: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / .42) 50%, transparent 60%) no-repeat;
+  background-size: 260% 100%; background-position: 130% 0; transition: background-position .7s var(--sb-ease), opacity .2s;
+}
+html.dark :is(.sb-pill, .sb-pill-sm, .sb-pill-xs, .sb-glass, .button--secondary, .button--primary)::after {
+  background-image: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / .14) 50%, transparent 60%);
+}
+:is(.sb-pill, .sb-pill-sm, .sb-pill-xs, .sb-glass, .button--secondary, .button--primary):not(:disabled):hover::after { opacity: 1; background-position: -30% 0; }
+:is(.sb-glass, .button--secondary, .button--primary):not(:disabled):active { transform: scale(.96); transition: transform .12s; }
+@media (prefers-reduced-motion: reduce) { :is(.sb-pill, .sb-pill-sm, .sb-pill-xs, .sb-glass, .button--secondary, .button--primary)::after { display: none; } }
+/* 3 · íconos de un solo color */
+.sb-shell > div.flex-1 > header svg { color: var(--sb-on-surface); opacity: .82; }
+html:not([data-look="workice"]):not([data-look="cristal"]) main .sb-card span.grid.h-9.w-9.rounded-xl.bg-sb-primary-soft {
+  background: var(--sb-surface-container) !important; color: var(--sb-on-surface) !important; box-shadow: var(--lg-edge);
+}
+/* 4 · esquinas concéntricas (la tarjeta de adentro, un poco menos redonda que la de afuera) */
+.sb-card .sb-card { border-radius: max(6px, calc(var(--sb-radius-card, 20px) - 8px)); }
+/* 5 · borde de luz arriba en las tarjetas (no en los estilos de líneas o de contornos) */
+html:not(.dark):not([data-look="minimalice"]):not([data-look="workice"]):not([data-look="cristal"]) .sb-card { box-shadow: var(--lg-edge), var(--sb-shadow-card); }
