@@ -40,37 +40,109 @@ function Meter({ value, max, delay = 0, tone = "bg-sb-primary" }: { value: numbe
   );
 }
 
-/** Mapa de calor: pantallas abiertas por día y hora (un solo tono, de claro a oscuro). */
+/** Mapa de calor: pantallas abiertas por día y hora (un solo tono, de claro a oscuro). Se toca o se pasa el mouse
+ *  para ver el detalle. En PC, la cuadrícula completa con el total de cada día; en el celular, se elige el día y se ven
+ *  sus 24 horas en barras grandes, con las franjas del día (madrugada, mañana, tarde y noche). */
+const hh = (h: number) => String(h).padStart(2, "0");
+const BANDS = [["Madrugada", 0], ["Mañana", 6], ["Tarde", 12], ["Noche", 18]] as const;
 function Heat({ cells }: { cells: Overview["heat"] }) {
-  const [hover, setHover] = useState<{ d: number; h: number } | null>(null);
   const grid = new Map(cells.map((c) => [`${c.dow}-${c.h}`, c.n]));
+  const get = (d: number, h: number) => grid.get(`${d}-${h}`) ?? 0;
   const max = Math.max(1, ...cells.map((c) => c.n));
   const total = cells.reduce((t, c) => t + c.n, 0);
   const peak = cells.reduce<Overview["heat"][number] | null>((b, c) => (!b || c.n > b.n ? c : b), null);
-  const at = hover ? grid.get(`${hover.d}-${hover.h}`) ?? 0 : null;
+  const dayTotal = DAYS.map((_, i) => Array.from({ length: 24 }, (_, h) => get(i + 1, h)).reduce((a, b) => a + b, 0));
+  const dayMax = Math.max(1, ...dayTotal);
+  const [hover, setHover] = useState<{ d: number; h: number } | null>(null);
+  const [pin, setPin] = useState<{ d: number; h: number } | null>(null);
+  const [day, setDay] = useState<number | null>(null);
+  const cur = hover ?? pin;
+  const dSel = day ?? cur?.d ?? peak?.dow ?? 1;
+  const tone = (n: number) => n ? `color-mix(in oklab, var(--sb-primary) ${Math.round(18 + (n / max) * 82)}%, var(--sb-surface-container))` : "var(--sb-surface-container)";
+  const pick = (d: number, h: number) => setPin(pin?.d === d && pin.h === h ? null : { d, h });
+  const hourMax = Math.max(1, ...Array.from({ length: 24 }, (_, h) => get(dSel, h)));
+  const curDay = cur && cur.d === dSel ? cur : null;
+
   return (
     <div>
-      <p className="mb-3 h-4 text-[11px] text-sb-on-surface-variant">
-        {hover ? <><b className="text-sb-on-surface">{at!.toLocaleString()}</b> pantallas · {DAYS[hover.d - 1]} de {String(hover.h).padStart(2, "0")}:00 a {String((hover.h + 1) % 24).padStart(2, "0")}:00</>
-          : peak && total ? <>{total.toLocaleString()} pantallas en 4 semanas · hora pico: <b className="text-sb-on-surface">{DAYS[peak.dow - 1]} {String(peak.h).padStart(2, "0")}:00</b></> : "Todavía sin visitas registradas."}
+      <p className="mb-3 min-h-4 text-[11px] text-sb-on-surface-variant">
+        {cur ? <><b className="text-sb-on-surface">{get(cur.d, cur.h).toLocaleString()}</b> pantallas · {DAYS[cur.d - 1]} de {hh(cur.h)}:00 a {hh((cur.h + 1) % 24)}:00</>
+          : peak && total ? <>{total.toLocaleString()} pantallas en 4 semanas · hora pico: <b className="text-sb-on-surface">{DAYS[peak.dow - 1]} {hh(peak.h)}:00</b></> : "Todavía sin visitas registradas."}
       </p>
-      <div className="grid gap-[2px]" style={{ gridTemplateColumns: "28px repeat(24, minmax(0, 1fr))" }} onMouseLeave={() => setHover(null)}>
-        {DAYS.map((day, di) => (
-          <div key={day} className="contents">
-            <span className="self-center text-[10px] text-sb-on-surface-variant">{day}</span>
-            {Array.from({ length: 24 }, (_, h) => {
-              const n = grid.get(`${di + 1}-${h}`) ?? 0;
-              return (
-                <motion.div key={h} onMouseEnter={() => setHover({ d: di + 1, h })}
-                  initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: (di * 24 + h) * 0.002, duration: 0.3 }}
-                  className={cn("aspect-square rounded-[3px] ring-sb-on-surface transition-shadow", hover?.d === di + 1 && hover.h === h && "ring-1")}
-                  style={{ background: n ? `color-mix(in oklab, var(--sb-primary) ${Math.round(18 + (n / max) * 82)}%, var(--sb-surface-container))` : "var(--sb-surface-container)" }} />
-              );
-            })}
-          </div>
-        ))}
-        <span />
-        {Array.from({ length: 24 }, (_, h) => <span key={h} className="text-center text-[9px] text-sb-on-surface-variant">{h % 6 === 0 ? String(h).padStart(2, "0") : ""}</span>)}
+
+      {/* PC y tablet: cuadrícula completa; se toca una celda para fijarla y a la derecha va el total de cada día */}
+      <div className="hidden sm:block">
+        <div className="grid gap-[2px]" style={{ gridTemplateColumns: "28px repeat(24, minmax(0, 1fr)) 44px" }} onMouseLeave={() => setHover(null)}>
+          {DAYS.map((d, di) => (
+            <div key={d} className="contents">
+              <span className="self-center text-[10px] text-sb-on-surface-variant">{d}</span>
+              {Array.from({ length: 24 }, (_, h) => {
+                const on = cur?.d === di + 1 && cur.h === h;
+                return (
+                  <motion.button key={h} type="button" aria-label={`${d} ${hh(h)}:00 · ${get(di + 1, h)} pantallas`}
+                    onMouseEnter={() => setHover({ d: di + 1, h })} onClick={() => pick(di + 1, h)}
+                    initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: on ? 1.18 : 1 }} transition={{ delay: hover ? 0 : (di * 24 + h) * 0.002, duration: 0.25 }}
+                    className={cn("aspect-square cursor-pointer rounded-[3px] ring-sb-on-surface", on && "z-[1] ring-2", pin?.d === di + 1 && pin.h === h && "ring-2")}
+                    style={{ background: tone(get(di + 1, h)) }} />
+                );
+              })}
+              <span className="flex items-center gap-1 pl-1 text-[10px] tabular-nums text-sb-on-surface-variant">
+                <i className="h-1 rounded-full bg-sb-primary" style={{ width: `${Math.max(2, (dayTotal[di] / dayMax) * 18)}px` }} />{dayTotal[di]}
+              </span>
+            </div>
+          ))}
+          <span />
+          {Array.from({ length: 24 }, (_, h) => <span key={h} className="text-center text-[9px] text-sb-on-surface-variant">{h % 6 === 0 ? hh(h) : ""}</span>)}
+          <span />
+        </div>
+      </div>
+
+      {/* Celular: se elige el día y se ven sus 24 horas en barras que se pueden tocar */}
+      <div className="sm:hidden">
+        <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-2 scroll-hidden">
+          {DAYS.map((d, di) => {
+            const on = dSel === di + 1;
+            return (
+              <button key={d} type="button" aria-pressed={on} onClick={() => { setDay(di + 1); setPin(null); }}
+                className={cn("sb-pill flex min-w-[2.9rem] shrink-0 flex-col items-center rounded-2xl border px-2 py-1.5 transition-colors",
+                  on ? "border-sb-primary bg-sb-primary-soft text-sb-on-surface" : "border-sb-outline-variant/60 text-sb-on-surface-variant")}>
+                <span className="text-[11px] font-semibold">{d}</span>
+                <b className="text-sm tabular-nums text-sb-on-surface">{dayTotal[di]}</b>
+                <i className="mt-0.5 h-1 w-6 overflow-hidden rounded-full bg-sb-surface-container-high">
+                  <i className="block h-full rounded-full bg-sb-primary" style={{ width: `${(dayTotal[di] / dayMax) * 100}%` }} />
+                </i>
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex h-28 items-end gap-[3px] rounded-2xl bg-sb-surface-container-low px-2 pt-2">
+          {Array.from({ length: 24 }, (_, h) => {
+            const n = get(dSel, h), on = curDay?.h === h;
+            return (
+              <button key={h} type="button" aria-label={`${hh(h)}:00 · ${n} pantallas`} onClick={() => pick(dSel, h)}
+                className={cn("flex h-full min-w-0 flex-1 items-end rounded-md", on && "bg-sb-surface-container-high")}>
+                <motion.span className={cn("block w-full rounded-t-[4px]", on && "outline-2 outline-offset-1 outline-sb-on-surface")}
+                  initial={{ height: 0 }} animate={{ height: `${n ? Math.max(8, (n / hourMax) * 100) : 4}%` }} transition={{ duration: 0.45, delay: h * 0.012, ease: [0.32, 0.72, 0, 1] }}
+                  style={{ background: tone(n) }} />
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex px-2 pt-1 text-[9px] text-sb-on-surface-variant">
+          {Array.from({ length: 24 }, (_, h) => <span key={h} className="flex-1 text-center">{h % 6 === 0 ? hh(h) : ""}</span>)}
+        </div>
+        <div className="mt-3 grid grid-cols-4 gap-1.5">
+          {BANDS.map(([label, from]) => {
+            const n = Array.from({ length: 6 }, (_, k) => get(dSel, from + k)).reduce((a, b) => a + b, 0);
+            const best = dayTotal[dSel - 1] ? Math.max(...BANDS.map(([, f]) => Array.from({ length: 6 }, (_, k) => get(dSel, f + k)).reduce((a, b) => a + b, 0))) === n && n > 0 : false;
+            return (
+              <div key={label} className={cn("rounded-xl px-2 py-1.5 text-center", best ? "bg-sb-primary-soft" : "bg-sb-surface-container-low")}>
+                <b className="block text-sm tabular-nums">{n}</b>
+                <span className="block text-[10px] leading-tight text-sb-on-surface-variant">{label}<br />{hh(from)}–{hh(from + 6)}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
