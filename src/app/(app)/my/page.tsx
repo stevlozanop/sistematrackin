@@ -265,7 +265,7 @@ export default function MyWorkPage() {
 
       {/* Barra para registrar las unidades marcadas */}
       {sel.size > 0 && stage && (
-        <div className="fixed inset-x-0 bottom-24 z-20 flex justify-center px-3 md:bottom-6 md:left-[240px]">
+        <div className="fixed inset-x-0 bottom-[calc(4.7rem+env(safe-area-inset-bottom))] z-20 flex justify-center px-3 md:bottom-6 md:left-[240px]">
           <div className="flex w-full max-w-3xl flex-wrap items-end gap-2 rounded-2xl border border-sb-outline-variant/60 bg-sb-surface p-3 shadow-xl sm:gap-3">
             <div className="min-w-32 flex-1 text-sm"><b>{sel.size}</b> {sel.size === 1 ? "unidad marcada" : "unidades marcadas"}<div className="text-[11px] text-muted">{stageLabel(stage.site, stage.field)}</div></div>
             <label className="flex flex-col gap-1 text-[11px]">Fecha

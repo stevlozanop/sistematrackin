@@ -339,6 +339,8 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
   // Asistente: para la operación (no para la consola The Iceberg Labs). Atajo: Ctrl/⌘ + J
   const hasAssistant = role !== "dev";
   const [assistant, setAssistant] = useState(false);
+  // Celular: el nombre de la pantalla aparece arriba (sobre vidrio) cuando el título grande ya se fue al bajar
+  const [scrolledAt, setScrolledAt] = useState<string | null>(null);
   useEffect(() => {
     if (!hasAssistant) return;
     const onKey = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "j") { e.preventDefault(); setAssistant((v) => !v); } };
@@ -346,6 +348,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
     return () => window.removeEventListener("keydown", onKey);
   }, [hasAssistant]);
   const path = usePathname();
+  const scrolled = scrolledAt === path;
   // Cambio de contraseña obligatorio (lo pidió la empresa o The Iceberg Labs): primero a su perfil
   const routerTop = useRouter();
   useEffect(() => { if (mustChange && path !== "/profile") routerTop.replace("/profile?cambiar=1"); }, [mustChange, path, routerTop]);
@@ -513,19 +516,19 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
 
       {/* Main */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 shrink-0 items-center justify-between gap-2 px-4 sm:px-6">
-          <h1 className="sb-crumb truncate text-sm font-medium text-sb-on-surface-variant">{pageName}</h1>
+        <header data-scrolled={scrolled || undefined} className="m-appbar flex h-14 shrink-0 items-center justify-between gap-2 px-4 sm:px-6">
+          <h1 className="sb-crumb m-crumb truncate text-sm font-medium text-sb-on-surface-variant">{pageName}</h1>
           <div className="flex shrink-0 items-center gap-2">
             {hasGuide && (
               <button type="button" onClick={() => setGuide(true)} title="Cómo funciona el sistema"
-                className="sb-pill sb-glass flex h-8 items-center gap-1.5 rounded-full bg-sb-surface px-3 text-[11px] font-medium text-sb-on-surface-variant shadow-[var(--sb-shadow-card)] transition-colors hover:text-sb-on-surface">
+                className="sb-pill sb-glass hidden h-8 items-center gap-1.5 rounded-full bg-sb-surface px-3 text-[11px] font-medium text-sb-on-surface-variant shadow-[var(--sb-shadow-card)] transition-colors hover:text-sb-on-surface md:flex">
                 <BookOpen className="h-3.5 w-3.5" /><span className="hidden sm:inline">Guía</span>
               </button>
             )}
             {hasAssistant && (
               <button type="button" onClick={() => setAssistant(true)} title="Asistente (Ctrl+J)" aria-label="Abrir asistente"
-                className="sb-pill flex h-8 items-center gap-1.5 rounded-full bg-sb-primary px-3 text-[11px] font-semibold text-sb-on-primary md:hidden">
-                <Sparkles className="h-3.5 w-3.5" />Asistente
+                className="sb-pill grid h-9 w-9 place-items-center rounded-full bg-sb-primary text-sb-on-primary md:hidden">
+                <Sparkles className="h-4 w-4" />
               </button>
             )}
             {role !== "dev" && <AlertBell href={role === "operator" ? "/my" : role === "dealer" ? "/portal" : "/alerts"} />}
@@ -541,13 +544,13 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
               {isOwner && own ? (
                 <CodeTag code={companyCode(own.id, own.kind, own.code)} size="xs" />
               ) : (
-                <span className="text-[10px] font-medium uppercase text-sb-on-surface-variant">{roleLabel(role)}</span>
+                <span className="hidden text-[10px] font-medium uppercase text-sb-on-surface-variant sm:inline">{roleLabel(role)}</span>
               )}
             </Link>
           </div>
         </header>
 
-        <main className="scroll-hidden relative flex-1 overflow-auto px-4 pb-28 sm:px-6 md:pb-6">
+        <main onScroll={(e) => { const v = e.currentTarget.scrollTop > 44; if (v !== scrolled) setScrolledAt(v ? path : null); }} className="m-main scroll-hidden relative flex-1 overflow-auto px-4 pb-28 sm:px-6 md:pb-6">
           {licenseNotice && (
             <div role="status" className="mb-4 flex items-center gap-2.5 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-xs">
               <CalendarClock className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
@@ -564,7 +567,8 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
           </AnimatePresence>
         </main>
 
-        <MobileNav items={[...sections.flatMap((x) => x.items), ...(role === "admin" ? [LICENSE] : []), PROFILE]} activeHref={activeHref} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} onGuide={hasGuide ? () => setGuide(true) : undefined}
+        <MobileNav items={[...sections.flatMap((x) => x.items), ...(role === "admin" ? [LICENSE] : []), PROFILE]}
+          groups={[...sections.map((x) => ({ title: x.title, items: x.items })), { title: "Cuenta", items: [...(role === "admin" ? [LICENSE] : []), PROFILE] }]} activeHref={activeHref} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} onGuide={hasGuide ? () => setGuide(true) : undefined}
           onUpload={upload ? () => setUploadOpen(true) : undefined} />
         {upload && <UploadCenter open={uploadOpen} onClose={() => setUploadOpen(false)} mode={upload} />}
         {hasGuide && <GuideModal open={guide} onClose={closeGuide} />}

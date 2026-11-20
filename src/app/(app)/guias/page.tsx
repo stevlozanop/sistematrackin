@@ -315,7 +315,7 @@ export default function GuiasPage() {
         <AnimatePresence>
           {chosen.length > 0 && activeStage && (
             <motion.div initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }} transition={{ duration: 0.35, ease: EASE }}
-              className="sticky bottom-24 z-40 rounded-2xl border border-sb-outline-variant bg-sb-surface p-3 shadow-2xl md:bottom-3">
+              className="sticky bottom-[calc(4.7rem+env(safe-area-inset-bottom))] z-40 rounded-2xl border border-sb-outline-variant bg-sb-surface p-3 shadow-2xl md:bottom-3">
               <div className="flex flex-wrap items-end gap-3">
                 <div className="min-w-[10rem] flex-1">
                   <p className="text-sm font-semibold">{chosen.length} guía(s) · {n(units)} unidades</p>

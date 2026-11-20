@@ -1005,3 +1005,56 @@ html:not([data-look="workice"]) main .sb-card span.grid.h-9.w-9.rounded-xl.bg-sb
 .sb-card .sb-card { border-radius: max(6px, calc(var(--sb-radius-card, 20px) - 8px)); }
 /* 5 · borde de luz arriba en las tarjetas (no en los estilos de líneas o de contornos) */
 html:not(.dark):not([data-look="minimalice"]):not([data-look="workice"]) .sb-card { box-shadow: var(--lg-edge), var(--sb-shadow-card); }
+
+/* ===== Celular de verdad (no la PC achicada): barra de pestañas abajo, título grande que sube a la barra de arriba,
+   ventanas que salen desde abajo como hojas, toques con respuesta y sin zoom al escribir ===== */
+@media (max-width: 767px) {
+  /* Barra de arriba: respeta la muesca; el nombre de la pantalla aparece sobre vidrio solo al bajar */
+  .m-appbar { height: calc(3.25rem + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); position: relative; z-index: 20;
+    transition: background-color .25s, box-shadow .25s, backdrop-filter .25s; }
+  .m-appbar[data-scrolled] { background: color-mix(in oklab, var(--page-bg) 78%, transparent); backdrop-filter: blur(20px) saturate(1.8);
+    box-shadow: 0 1px 0 color-mix(in oklab, var(--sb-on-surface) 8%, transparent); }
+  .m-crumb { opacity: 0; transform: translateY(6px); transition: opacity .2s, transform .25s var(--sb-ease, ease); font-size: 15px !important; font-weight: 600 !important; color: var(--sb-on-surface) !important; }
+  .m-appbar[data-scrolled] .m-crumb { opacity: 1; transform: none; }
+  /* Título grande de la pantalla, como en las apps */
+  .sb-page .sb-title { font-size: 28px; line-height: 1.12; font-weight: 700; letter-spacing: -0.025em; }
+  .sb-page .sb-sub { font-size: 13.5px; }
+  .m-main { padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)) !important; overscroll-behavior-y: contain; }
+
+  /* Barra de pestañas fija abajo, de vidrio, con la zona segura del celular */
+  .m-tabbar { padding-bottom: max(env(safe-area-inset-bottom), 6px);
+    background: color-mix(in oklab, var(--sb-surface) 82%, transparent); backdrop-filter: blur(24px) saturate(1.8);
+    box-shadow: 0 -1px 0 color-mix(in oklab, var(--sb-on-surface) 8%, transparent); }
+  .m-sheet { padding-bottom: calc(4.4rem + max(env(safe-area-inset-bottom), 6px)); border-radius: 28px 28px 0 0;
+    background: color-mix(in oklab, var(--sb-surface) 92%, transparent); backdrop-filter: blur(28px) saturate(1.8);
+    box-shadow: 0 -20px 60px -20px rgb(0 0 0 / .35), inset 0 1px 0 rgb(255 255 255 / .5); touch-action: none; }
+  html.dark .m-sheet { box-shadow: 0 -20px 60px -20px rgb(0 0 0 / .8), inset 0 1px 0 rgb(255 255 255 / .06); }
+  .m-sheet .overflow-y-auto { touch-action: pan-y; }
+
+  /* Ventanas: hojas que suben desde abajo, de borde a borde, con su asa y la zona segura */
+  .modal__container { padding: 0 !important; padding-top: 2.5rem !important; justify-content: flex-end; }
+  .modal__dialog { margin-top: auto !important; max-width: none !important; border-radius: 28px 28px 0 0 !important;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important; max-height: calc(var(--visual-viewport-height, 100dvh) - 2.5rem); }
+  .modal__dialog::before { content: ""; position: absolute; top: 8px; left: 50%; width: 40px; height: 5px; margin-left: -20px;
+    border-radius: 99px; background: color-mix(in oklab, var(--sb-on-surface) 18%, transparent); }
+  .modal__container[data-entering="true"] { animation: m-sheet-in .38s cubic-bezier(.32,.72,0,1) both !important; }
+  .modal__container[data-exiting="true"] { animation: m-sheet-out .2s ease-in both !important; }
+  /* En el celular, la barra de abajo de la app no tapa nada que se abra encima */
+  .modal__backdrop, .drawer__backdrop { z-index: 70 !important; }
+}
+@keyframes m-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes m-sheet-out { to { transform: translateY(100%); } }
+
+/* Pantallas táctiles: sin el destello azul, sin espera de doble toque, sin zoom al escribir y con respuesta al tocar
+   (el brillo de «pasar el mouse» no existe en el dedo, así que no se queda pegado) */
+@media (hover: none) and (pointer: coarse) {
+  html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+  a, button, [role="button"], label, summary { touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+  input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea { font-size: 16px !important; }
+  :is(.sb-pill, .sb-pill-sm, .sb-pill-xs, .sb-glass, .button--secondary, .button--primary)::after { display: none; }
+  main :is(a, button):not(:disabled):active { opacity: .72; transition: opacity 0s; }
+  main .sb-card a:active, main a.sb-card:active { transform: scale(.985); transition: transform .1s; }
+  .button { min-height: 40px; }
+  .sb-shell, .sb-shell main { -webkit-overflow-scrolling: touch; }
+}
+@media (prefers-reduced-motion: reduce) { .modal__container[data-entering="true"], .modal__container[data-exiting="true"] { animation: none !important; } }

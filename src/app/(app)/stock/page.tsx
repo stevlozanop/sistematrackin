@@ -326,7 +326,7 @@ export default function StockPage() {
 
       {/* Barra para armar el despacho con lo marcado */}
       {chosen.length > 0 && (
-        <div className="sticky bottom-24 z-40 flex items-center gap-2 sm:gap-3 rounded-2xl border border-sb-outline-variant/60 bg-sb-surface/90 p-3 pl-4 shadow-2xl backdrop-blur-xl md:bottom-3">
+        <div className="sticky bottom-[calc(4.7rem+env(safe-area-inset-bottom))] z-40 flex items-center gap-2 sm:gap-3 rounded-2xl border border-sb-outline-variant/60 bg-sb-surface/90 p-3 pl-4 shadow-2xl backdrop-blur-xl md:bottom-3">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold"><span className="text-lg tabular-nums">{n(pick.total)}</span> unidades <span className="font-normal text-sb-on-surface-variant">en {chosen.length === 1 ? "1 guía" : `${chosen.length} guías`}</span></p>
             <p className="truncate text-[11px] text-sb-on-surface-variant">{canDispatch ? <><KindText w2={pick.w2} w3={pick.w3} /> · {[...new Set(chosen.map((r) => r.district).filter(Boolean))].join(", ")}</> : "El despacho no es tu etapa: pásale estas guías a quien despacha."}</p>

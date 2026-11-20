@@ -66,7 +66,7 @@ export function InstallApp() {
 
   if (!evt && !ios) return null;
   return (
-    <div role="dialog" aria-label="Instalar System Tracking" className="fixed inset-x-3 bottom-3 z-[60] mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-[#111] p-3 text-white shadow-2xl ring-1 ring-white/10 sm:bottom-5"
+    <div role="dialog" aria-label="Instalar System Tracking" className="fixed inset-x-3 bottom-[calc(5.2rem+env(safe-area-inset-bottom))] z-[60] mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-[#111] p-3 text-white shadow-2xl ring-1 ring-white/10 md:bottom-5"
       style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
       {/* eslint-disable-next-line @next/next/no-img-element -- ícono fijo de public/ */}
       <img src="/icons/icon-192.png" alt="" className="h-11 w-11 shrink-0 rounded-xl" />

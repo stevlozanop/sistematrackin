@@ -220,7 +220,7 @@ export default function RecepcionPage() {
 
       {/* Celular: con guías marcadas, una barra lleva a confirmar (el formulario queda debajo de la lista) */}
       {ready && (
-        <div className="sticky bottom-24 z-40 flex items-center gap-3 rounded-2xl border border-sb-outline-variant/60 bg-sb-surface/90 p-3 pl-4 shadow-2xl backdrop-blur-xl lg:hidden">
+        <div className="sticky bottom-[calc(4.7rem+env(safe-area-inset-bottom))] z-40 flex items-center gap-3 rounded-2xl border border-sb-outline-variant/60 bg-sb-surface/90 p-3 pl-4 shadow-2xl backdrop-blur-xl lg:hidden">
           <p className="min-w-0 flex-1 truncate text-sm font-semibold"><span className="text-lg tabular-nums">{chosen.length}</span> guía{chosen.length === 1 ? "" : "s"} <span className="font-normal text-sb-on-surface-variant">· {n(units)} unid.</span></p>
           <Button variant="primary" className="shrink-0 rounded-full" onPress={() => document.getElementById("confirmar-recepcion")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
             <PackageCheck className="h-4 w-4" /> Confirmar
