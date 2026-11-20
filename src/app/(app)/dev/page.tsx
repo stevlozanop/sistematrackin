@@ -99,23 +99,23 @@ function Heat({ cells }: { cells: Overview["heat"] }) {
 
       {/* Celular: se elige el día y se ven sus 24 horas en barras que se pueden tocar */}
       <div className="sm:hidden">
-        <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-2 scroll-hidden">
+        <div className="grid grid-cols-7 gap-1 pb-2">
           {DAYS.map((d, di) => {
             const on = dSel === di + 1;
             return (
               <button key={d} type="button" aria-pressed={on} onClick={() => { setDay(di + 1); setPin(null); }}
-                className={cn("sb-pill flex min-w-[2.9rem] shrink-0 flex-col items-center rounded-2xl border px-2 py-1.5 transition-colors",
+                className={cn("sb-pill flex min-w-0 flex-col items-center rounded-xl border px-0.5 py-1.5 transition-colors min-[400px]:rounded-2xl",
                   on ? "border-sb-primary bg-sb-primary-soft text-sb-on-surface" : "border-sb-outline-variant/60 text-sb-on-surface-variant")}>
                 <span className="text-[11px] font-semibold">{d}</span>
-                <b className="text-sm tabular-nums text-sb-on-surface">{dayTotal[di]}</b>
-                <i className="mt-0.5 h-1 w-6 overflow-hidden rounded-full bg-sb-surface-container-high">
+                <b className="text-[13px] tabular-nums text-sb-on-surface min-[400px]:text-sm">{dayTotal[di]}</b>
+                <i className="mt-0.5 h-1 w-4/5 max-w-6 overflow-hidden rounded-full bg-sb-surface-container-high">
                   <i className="block h-full rounded-full bg-sb-primary" style={{ width: `${(dayTotal[di] / dayMax) * 100}%` }} />
                 </i>
               </button>
             );
           })}
         </div>
-        <div className="flex h-28 items-end gap-[3px] rounded-2xl bg-sb-surface-container-low px-2 pt-2">
+        <div className="flex h-28 items-end gap-[2px] rounded-2xl bg-sb-surface-container-low px-2 pt-2">
           {Array.from({ length: 24 }, (_, h) => {
             const n = get(dSel, h), on = curDay?.h === h;
             return (
@@ -131,7 +131,7 @@ function Heat({ cells }: { cells: Overview["heat"] }) {
         <div className="flex px-2 pt-1 text-[9px] text-sb-on-surface-variant">
           {Array.from({ length: 24 }, (_, h) => <span key={h} className="flex-1 text-center">{h % 6 === 0 ? hh(h) : ""}</span>)}
         </div>
-        <div className="mt-3 grid grid-cols-4 gap-1.5">
+        <div className="mt-3 grid grid-cols-2 gap-1.5 min-[360px]:grid-cols-4">
           {BANDS.map(([label, from]) => {
             const n = Array.from({ length: 6 }, (_, k) => get(dSel, from + k)).reduce((a, b) => a + b, 0);
             const best = dayTotal[dSel - 1] ? Math.max(...BANDS.map(([, f]) => Array.from({ length: 6 }, (_, k) => get(dSel, f + k)).reduce((a, b) => a + b, 0))) === n && n > 0 : false;
@@ -161,13 +161,13 @@ export default function DevDashboard() {
 
   const CompanyRow = ({ co, i, child = false }: { co: Company; i: number; child?: boolean }) => (
     <Link href={`/dev/users?q=${encodeURIComponent(co.name)}`} className={cn("group block border-b border-sb-outline-variant/20 py-2.5 last:border-0", child && "pl-6")}>
-      <div className="mb-1.5 flex items-center gap-2 text-xs">
+      <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
         <span className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-md", co.kind === "transport" ? "bg-sb-primary text-sb-on-primary" : "bg-sb-surface-container-high")}>
           {co.kind === "transport" ? <Truck className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
         </span>
         <span className="min-w-0 flex-1 truncate font-medium group-hover:underline">{co.name}</span>
         {co.online > 0 && <span className="flex items-center gap-1 text-[10px] text-sb-primary"><span className="h-1.5 w-1.5 rounded-full bg-sb-primary" />{co.online} en línea</span>}
-        <span className="shrink-0 text-[11px] text-sb-on-surface-variant">{co.active_7d}/{co.accounts} activas · {co.views_7d.toLocaleString()} pantallas</span>
+        <span className="order-last basis-full pl-8 text-[11px] text-sb-on-surface-variant sm:order-none sm:basis-auto sm:shrink-0 sm:pl-0">{co.active_7d}/{co.accounts} activas · {co.views_7d.toLocaleString()} pantallas</span>
         <ChevronRight className="h-3 w-3 text-sb-on-surface-variant/50 transition-transform group-hover:translate-x-0.5" />
       </div>
       <Meter value={co.views_7d} max={maxCo} delay={0.05 * i} />
@@ -180,11 +180,11 @@ export default function DevDashboard() {
         <LiveDot at={at} />
       </PageTitle>
 
-      <div className="grid gap-4 xl:grid-cols-[1.7fr_1fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.7fr_1fr] [&>*]:min-w-0">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <PlatformFigure data={{ ...L, accounts: c.accounts }} />
         </motion.div>
-        <Card className="flex flex-col justify-between gap-4 p-5">
+        <Card className="flex flex-col justify-between gap-4 p-4 sm:p-5">
           <div>
             <h3 className="text-sm font-semibold">Pulso ahora</h3>
             <p className="text-[11px] text-sb-on-surface-variant">Lo mismo que muestra la figura, en números.</p>
@@ -222,11 +222,11 @@ export default function DevDashboard() {
         ]}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="p-5">
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Empresas y consorcios · uso de 7 días</h3>
-            <Link href="/companies" className="text-[11px] text-sb-on-surface-variant hover:underline">Administrar</Link>
+      <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
+        <Card className="p-4 sm:p-5">
+          <div className="mb-2 flex items-start justify-between gap-2">
+            <h3 className="min-w-0 text-sm font-semibold">Empresas y consorcios · uso de 7 días</h3>
+            <Link href="/companies" className="shrink-0 pt-0.5 text-[11px] text-sb-on-surface-variant hover:underline">Administrar</Link>
           </div>
           {roots.length ? roots.map((r, i) => (
             <div key={r.id}>
@@ -235,14 +235,14 @@ export default function DevDashboard() {
             </div>
           )) : <p className="py-6 text-center text-xs text-sb-on-surface-variant">Todavía no hay empresas registradas.</p>}
         </Card>
-        <Card className="p-5">
+        <Card className="p-4 sm:p-5">
           <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold"><CalendarClock className="h-3.5 w-3.5" /> Cuándo usan el sistema</h3>
           <Heat cells={d.heat} />
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="p-5">
+      <div className="grid gap-4 lg:grid-cols-3 [&>*]:min-w-0">
+        <Card className="p-4 sm:p-5">
           <h3 className="mb-3 text-sm font-semibold">Pantallas más usadas · 7 días</h3>
           {d.screens.length ? d.screens.map((s, i) => (
             <div key={s.path} className="mb-2.5">
@@ -251,7 +251,7 @@ export default function DevDashboard() {
             </div>
           )) : <p className="py-6 text-center text-xs text-sb-on-surface-variant">Sin visitas en los últimos 7 días.</p>}
         </Card>
-        <Card className="p-5">
+        <Card className="p-4 sm:p-5">
           <h3 className="mb-3 text-sm font-semibold">Personas más activas · 7 días</h3>
           {d.people.length ? d.people.map((p, i) => (
             <motion.div key={p.id} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 * i }}>
@@ -266,7 +266,7 @@ export default function DevDashboard() {
             </motion.div>
           )) : <p className="py-6 text-center text-xs text-sb-on-surface-variant">Sin actividad todavía.</p>}
         </Card>
-        <Card className="p-5">
+        <Card className="p-4 sm:p-5">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold"><Users className="h-3.5 w-3.5" /> Cuentas por tipo</h3>
           {[...d.roles].sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role)).map((r, i) => (
             <div key={r.role} className="mb-2.5">
