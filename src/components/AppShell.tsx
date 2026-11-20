@@ -567,8 +567,7 @@ export function AppShell({ name, role, sites = ["PCL", "YUR"], fields = [], firs
           </AnimatePresence>
         </main>
 
-        <MobileNav items={[...sections.flatMap((x) => x.items), ...(role === "admin" ? [LICENSE] : []), PROFILE]}
-          groups={[...sections.map((x) => ({ title: x.title, items: x.items })), { title: "Cuenta", items: [...(role === "admin" ? [LICENSE] : []), PROFILE] }]} activeHref={activeHref} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} onGuide={hasGuide ? () => setGuide(true) : undefined}
+        <MobileNav items={[...sections.flatMap((x) => x.items), ...(role === "admin" ? [LICENSE] : []), PROFILE]} activeHref={activeHref} dark={dark} onToggleTheme={toggleTheme} onLogout={logout} onGuide={hasGuide ? () => setGuide(true) : undefined}
           onUpload={upload ? () => setUploadOpen(true) : undefined} />
         {upload && <UploadCenter open={uploadOpen} onClose={() => setUploadOpen(false)} mode={upload} />}
         {hasGuide && <GuideModal open={guide} onClose={closeGuide} />}

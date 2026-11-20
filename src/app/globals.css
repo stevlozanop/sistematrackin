@@ -1036,16 +1036,6 @@ html:not(.dark):not([data-look="minimalice"]):not([data-look="workice"]) .sb-car
   .sb-page .sb-sub { font-size: 13.5px; }
   .m-main { padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)) !important; overscroll-behavior-y: contain; }
 
-  /* Barra de pestañas fija abajo, de vidrio, con la zona segura del celular */
-  .m-tabbar { padding-bottom: max(env(safe-area-inset-bottom), 6px);
-    background: color-mix(in oklab, var(--sb-surface) 82%, transparent); backdrop-filter: blur(24px) saturate(1.8);
-    box-shadow: 0 -1px 0 color-mix(in oklab, var(--sb-on-surface) 8%, transparent); }
-  .m-sheet { padding-bottom: calc(4.4rem + max(env(safe-area-inset-bottom), 6px)); border-radius: 28px 28px 0 0;
-    background: color-mix(in oklab, var(--sb-surface) 92%, transparent); backdrop-filter: blur(28px) saturate(1.8);
-    box-shadow: 0 -20px 60px -20px rgb(0 0 0 / .35), inset 0 1px 0 rgb(255 255 255 / .5); touch-action: none; }
-  html.dark .m-sheet { box-shadow: 0 -20px 60px -20px rgb(0 0 0 / .8), inset 0 1px 0 rgb(255 255 255 / .06); }
-  .m-sheet .overflow-y-auto { touch-action: pan-y; }
-
   /* Ventanas: hojas que suben desde abajo, de borde a borde, con su asa y la zona segura */
   .modal__container { padding: 0 !important; padding-top: 2.5rem !important; justify-content: flex-end; }
   .modal__dialog { margin-top: auto !important; max-width: none !important; border-radius: 28px 28px 0 0 !important;
