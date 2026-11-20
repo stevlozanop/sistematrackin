@@ -1078,3 +1078,63 @@ html[data-look="workice"] :is(.modal__dialog, .drawer__dialog) button[aria-press
   --sb-on-surface: var(--wk-on-text); --sb-on-surface-variant: color-mix(in oklab, var(--wk-on-text) 62%, transparent);
   --sb-primary: var(--wk-on-text); --sb-on-primary: var(--wk-on); --sb-primary-soft: color-mix(in oklab, var(--wk-on-text) 10%, transparent);
 }
+
+/* ===== Cristal · Liquid Glass (las reglas del vidrio líquido, llevadas a la web) =====
+   1) Vidrio que deja ver lo de atrás: sin velos oscuros detrás de ventanas y paneles.
+   2) Barra flotante: los botones de arriba (guía, avisos, perfil) juntos en una sola cápsula de vidrio.
+   3) Íconos de un solo color; el color solo cuando significa algo (opción activa, acción principal, alertas).
+   4) Vidrio «vivo»: al pasar o tocar, los botones de vidrio crecen un poco, rebotan y un brillo los recorre.
+   5) Esquinas concéntricas: lo de adentro sigue la curva de su contenedor (24 → 16 → 10).
+   6) Borde de luz (reflejo arriba y canto abajo) en cada superficie de vidrio. El desenfoque va solo en las
+      superficies flotantes (barra, menú activo, ventanas) para no cargar el equipo. */
+html[data-look="cristal"] {
+  --cr-r: 24px; --cr-r2: 16px; --cr-r3: 10px;
+  --cr-edge: inset 0 1px 0 rgb(255 255 255 / .85), inset 0 -1px 0 rgb(255 255 255 / .25), inset 0 0 0 1px rgb(255 255 255 / .35);
+  --cr-lift: 0 1px 2px rgb(20 40 70 / .06), 0 14px 34px -22px rgb(20 40 70 / .45);
+}
+html.dark[data-look="cristal"] {
+  --cr-edge: inset 0 1px 0 rgb(255 255 255 / .14), inset 0 -1px 0 rgb(255 255 255 / .04), inset 0 0 0 1px rgb(255 255 255 / .06);
+  --cr-lift: 0 14px 34px -22px rgb(0 0 0 / .9);
+}
+/* 5 + 6: superficies con esquinas concéntricas y borde de luz */
+html[data-look="cristal"] .sb-card { border-radius: var(--cr-r) !important; box-shadow: var(--cr-edge), var(--cr-lift) !important; }
+html[data-look="cristal"] .sb-card .sb-card, html[data-look="cristal"] main .sb-card .rounded-2xl { border-radius: var(--cr-r2) !important; }
+html[data-look="cristal"] main .sb-card .sb-card .rounded-xl, html[data-look="cristal"] main .sb-card .rounded-2xl .rounded-xl { border-radius: var(--cr-r3) !important; }
+/* 2: barra flotante de vidrio con los botones de la derecha agrupados */
+html[data-look="cristal"] .sb-shell > div.flex-1 > header > div:last-child {
+  gap: 2px; padding: 3px; border-radius: 999px; background: rgb(255 255 255 / .45); backdrop-filter: blur(24px) saturate(1.8);
+  box-shadow: var(--cr-edge), var(--cr-lift);
+}
+html.dark[data-look="cristal"] .sb-shell > div.flex-1 > header > div:last-child { background: rgb(255 255 255 / .06); }
+html[data-look="cristal"] .sb-shell > div.flex-1 > header > div:last-child .sb-glass { background: transparent !important; border-color: transparent !important; box-shadow: none !important; backdrop-filter: none; }
+/* 3: íconos de un solo color en el menú y la barra; la opción activa sí lleva el color (significa «estás aquí») */
+html[data-look="cristal"] .sb-shell > div.flex-1 > header svg { color: var(--sb-on-surface); opacity: .8; }
+html[data-look="cristal"] main .sb-card span.grid.h-9.w-9.rounded-xl:not(.bg-sb-late-soft) {
+  background: rgb(255 255 255 / .5) !important; color: var(--sb-on-surface) !important; box-shadow: var(--cr-edge); border-radius: 12px !important;
+}
+html.dark[data-look="cristal"] main .sb-card span.grid.h-9.w-9.rounded-xl:not(.bg-sb-late-soft) { background: rgb(255 255 255 / .07) !important; }
+/* 4: vidrio vivo — crece, rebota y lo recorre un brillo */
+html[data-look="cristal"] :is(.sb-pill, .sb-glass, .button--secondary, .sb-nav-link) { position: relative; overflow: hidden; }
+html[data-look="cristal"] :is(.sb-pill, .sb-glass, .button--secondary, .sb-nav-link)::after {
+  content: ""; position: absolute; inset: -40% -60%; pointer-events: none; opacity: 0;
+  background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / .55) 50%, transparent 62%);
+  transform: translateX(-60%); transition: transform .7s var(--sb-ease), opacity .25s;
+}
+html[data-look="cristal"] :is(.sb-pill, .sb-glass, .button--secondary, .sb-nav-link):hover::after { opacity: 1; transform: translateX(60%); }
+html.dark[data-look="cristal"] :is(.sb-pill, .sb-glass, .button--secondary, .sb-nav-link)::after { background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / .16) 50%, transparent 62%); }
+html[data-look="cristal"] :is(.sb-glass, .button--secondary):not(:disabled):active { transform: scale(.96); transition: transform .12s; }
+html[data-look="cristal"] .button--secondary { background: rgb(255 255 255 / .45) !important; border: 0 !important; box-shadow: var(--cr-edge), var(--cr-lift) !important; }
+html.dark[data-look="cristal"] .button--secondary { background: rgb(255 255 255 / .07) !important; }
+/* Acción principal: vidrio teñido del color de la empresa (el color sí significa algo: es lo principal) */
+html[data-look="cristal"] :is(.button--primary, button.bg-sb-primary, a.bg-sb-primary) {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--sb-primary) 78%, #fff), color-mix(in oklab, var(--sb-primary) 92%, transparent)) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .6), inset 0 -1px 0 rgb(0 0 0 / .1), 0 10px 26px -12px color-mix(in oklab, var(--sb-primary) 80%, transparent) !important;
+}
+/* Menú: la opción activa en vidrio flotante con su borde de luz (concéntrico con el menú) */
+html[data-look="cristal"] .sb-nav-pill { backdrop-filter: blur(20px) saturate(1.8); box-shadow: var(--cr-edge), 0 6px 16px -10px rgb(20 40 70 / .3) !important; border: 0 !important; }
+/* 1: sin velo oscuro detrás de ventanas y paneles; solo se esmerila lo de atrás */
+html[data-look="cristal"] :is(.modal__backdrop--opaque, .modal__backdrop--blur, .drawer__backdrop--opaque, .drawer__backdrop--blur) { background: rgb(255 255 255 / .08) !important; backdrop-filter: blur(14px) saturate(1.5) !important; }
+html.dark[data-look="cristal"] :is(.modal__backdrop--opaque, .modal__backdrop--blur, .drawer__backdrop--opaque, .drawer__backdrop--blur) { background: rgb(0 0 0 / .18) !important; }
+html[data-look="cristal"] :is(.modal__dialog, .drawer__dialog) { box-shadow: var(--cr-edge), 0 40px 90px -40px rgb(10 30 60 / .55) !important; outline: 0 !important; border-radius: var(--cr-r) !important; }
+html[data-look="cristal"] .modal__dialog :is(.rounded-xl, .rounded-2xl) { border-radius: var(--cr-r2) !important; }
+@media (prefers-reduced-motion: reduce) { html[data-look="cristal"] :is(.sb-pill, .sb-glass, .button--secondary, .sb-nav-link)::after { display: none; } }
